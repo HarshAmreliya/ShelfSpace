@@ -1,0 +1,25 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - shelfspace-net
+
+  auth-service:
+    build: ./services/auth-service
+    ports:
+      - "3001:3001"
+    networks:
+      - shelfspace-net
+
+  user-service:
+    build: ./services/user-service
+    ports:
+      - "3002:3002"
+    networks:
+      - shelfspace-net
+
+networks:
+  shelfspace-net:
+    driver: bridge

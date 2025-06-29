@@ -1,0 +1,45 @@
+# Node.js Dependencies
+node_modules/
+**/node_modules/
+
+# Python Dependencies & Bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg-info/
+.venv/
+env/
+venv/
+
+# Next.js Build
+.next/
+out/
+*.log
+
+# Docker
+*.pid
+*.sock
+*.log
+docker-compose.override.yml
+docker-compose.debug.yml
+
+# dotenv
+.env
+.env.*
+
+# OS and IDE specific
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pip-log.txt
+
+# Build Artif
