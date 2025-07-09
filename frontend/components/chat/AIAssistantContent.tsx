@@ -1,4 +1,38 @@
-  const AIAssistantContent = () => (
+"use client";
+import { useState } from "react";
+import { Award, Book, MessageCircle, TrendingUp } from "lucide-react";
+import { formatTime, generateAIResponse } from "@/utils/chatbot";
+import { Message } from "../../types/Message";
+
+export default function AIAssistantContent() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [chatMode, setChatMode] = useState("general");
+
+  const handleSendMessage = (messageText?: string) => {
+    const content = messageText || inputMessage;
+    if (!content.trim()) return;
+
+    const newMessage: Message = {
+      id: Date.now(),
+      type: "user",
+      content,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, newMessage]);
+    setInputMessage("");
+    setIsTyping(true);
+
+    setTimeout(() => {
+      const aiResponse = generateAIResponse(content);
+      setMessages((prev) => [...prev, aiResponse]);
+      setIsTyping(false);
+    }, 1000);
+  };
+
+  return (
     <div className="p-6 h-[calc(100vh-120px)] flex flex-col">
       {/* Header */}
       <div className="bg-white rounded-xl shadow-md p-6 mb-6">
@@ -17,22 +51,22 @@
             <span className="text-sm text-gray-600">Online</span>
           </div>
         </div>
-        
+
         {/* Chat Mode Selector */}
         <div className="flex space-x-2">
           {[
-            { id: 'general', label: 'General', icon: MessageCircle },
-            { id: 'recommendations', label: 'Recommendations', icon: TrendingUp },
-            { id: 'analysis', label: 'Reading Analysis', icon: Award },
-            { id: 'discussion', label: 'Book Discussion', icon: Book }
-          ].map(mode => (
+            { id: "general", label: "General", icon: MessageCircle },
+            { id: "recommendations", label: "Recommendations", icon: TrendingUp },
+            { id: "analysis", label: "Reading Analysis", icon: Award },
+            { id: "discussion", label: "Book Discussion", icon: Book },
+          ].map((mode) => (
             <button
               key={mode.id}
               onClick={() => setChatMode(mode.id)}
               className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 chatMode === mode.id
-                  ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? "bg-purple-100 text-purple-700 border border-purple-200"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               <mode.icon className="w-4 h-4" />
@@ -42,53 +76,57 @@
         </div>
       </div>
 
-      {/* Chat Messages */}
+      {/* Chat Box */}
       <div className="flex-1 bg-white rounded-xl shadow-md flex flex-col">
         <div className="flex-1 p-6 overflow-y-auto space-y-4 max-h-[500px]">
-          {messages.map(message => (
-            <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] ${message.type === 'user' ? 'order-2' : 'order-1'}`}>
-                <div className={`rounded-2xl px-4 py-3 ${
-                  message.type === 'user' 
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' 
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
+          {messages.map((message) => (
+            <div key={message.id} className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[80%] ${message.type === "user" ? "order-2" : "order-1"}`}>
+                <div
+                  className={`rounded-2xl px-4 py-3 ${
+                    message.type === "user"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                      : "bg-gray-100 text-gray-800"
+                  }`}
+                >
                   <p className="text-sm">{message.content}</p>
                 </div>
-                <div className={`flex items-center mt-1 text-xs text-gray-500 ${
-                  message.type === 'user' ? 'justify-end' : 'justify-start'
-                }`}>
+                <div
+                  className={`flex items-center mt-1 text-xs text-gray-500 ${
+                    message.type === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
                   <span>{formatTime(message.timestamp)}</span>
                 </div>
-                
-                {/* AI Suggestions */}
-                {message.type === 'ai' && message.suggestions && (
+
+                {message.type === "ai" && message.suggestions && (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {message.suggestions.map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleSendMessage(suggestion)}
-                        className="px-3 py-1 bg-purple-50 text-purple-700 text-xs rounded-full hover:bg-purple-100 transition-colors border border-purple-200"
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
+                    {message.suggestions.map((sug: string, idx: number) => (
+                        <button
+                          key={idx}
+                          onClick={() => handleSendMessage(sug)}
+                          className="..."
+                        >
+                          {sug}
+                        </button>
+                      ))}
                   </div>
                 )}
               </div>
-              
+
               {/* Avatar */}
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                message.type === 'user' 
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white order-1 ml-3' 
-                  : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white order-2 mr-3'
-              }`}>
-                {message.type === 'user' ? 'U' : 'AI'}
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                  message.type === "user"
+                    ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white order-1 ml-3"
+                    : "bg-gradient-to-r from-purple-500 to-pink-500 text-white order-2 mr-3"
+                }`}
+              >
+                {message.type === "user" ? "U" : "AI"}
               </div>
             </div>
           ))}
-          
-          {/* Typing Indicator */}
+
           {isTyping && (
             <div className="flex justify-start">
               <div className="flex items-center space-x-3">
@@ -98,16 +136,22 @@
                 <div className="bg-gray-100 rounded-2xl px-4 py-3">
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div
+                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "0.1s" }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "0.2s" }}
+                    ></div>
                   </div>
                 </div>
               </div>
             </div>
           )}
         </div>
-        
-        {/* Input Area */}
+
+        {/* Input */}
         <div className="border-t border-gray-200 p-4">
           <div className="flex items-center space-x-3">
             <div className="flex-1 relative">
@@ -115,7 +159,7 @@
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                 placeholder="Ask me anything about books, reading, or your library..."
                 className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
               />
@@ -130,16 +174,11 @@
               </button>
             </div>
           </div>
-          
+
           {/* Quick Actions */}
           <div className="flex items-center space-x-2 mt-3">
             <span className="text-xs text-gray-500">Quick actions:</span>
-            {[
-              'Recommend a book',
-              'Set reading goal',
-              'Analyze my habits',
-              'Book discussion'
-            ].map(action => (
+            {["Recommend a book", "Set reading goal", "Analyze my habits", "Book discussion"].map((action) => (
               <button
                 key={action}
                 onClick={() => handleSendMessage(action)}
@@ -153,3 +192,4 @@
       </div>
     </div>
   );
+}
