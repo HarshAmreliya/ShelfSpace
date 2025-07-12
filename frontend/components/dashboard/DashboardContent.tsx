@@ -129,7 +129,43 @@ const mockData: DashboardData = {
   ],
 };
 
-const DashboardContent: React.FC = () => {
+interface DashboardContentProps {
+  currentlyReading: Array<{
+    id: number;
+    title: string;
+    author: string;
+    progress: number;
+    cover: string;
+  }>;
+  recentActivity: Array<{
+    id: number;
+    action: string;
+    book?: string;
+    group?: string;
+    time: string;
+    rating?: number;
+  }>;
+  recommendations: Array<{
+    id: number;
+    title: string;
+    author: string;
+    reason: string;
+    cover: string;
+  }>;
+  readingGroups: Array<{
+    id: number;
+    name: string;
+    members: number;
+    currentBook: string;
+  }>;
+}
+
+const DashboardContent: React.FC<DashboardContentProps> = ({
+  currentlyReading,
+  recentActivity,
+  recommendations,
+  readingGroups
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
 
@@ -173,7 +209,7 @@ const DashboardContent: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Total Books"
-          value={mockData.stats.totalBooks}
+          value={47}
           icon={BookOpen}
           iconColor="text-indigo-dye-600"
           iconBgColor="bg-indigo-dye-50"
@@ -182,7 +218,7 @@ const DashboardContent: React.FC = () => {
         />
         <StatsCard
           title="Reading Time"
-          value={`${mockData.stats.readingTime}h`}
+          value="23h"
           icon={Clock}
           iconColor="text-safety-orange-600"
           iconBgColor="bg-safety-orange-50"
@@ -191,7 +227,7 @@ const DashboardContent: React.FC = () => {
         />
         <StatsCard
           title="Goal Progress"
-          value={`${mockData.stats.readingGoal}%`}
+          value="85%"
           icon={Target}
           iconColor="text-verdigris-600"
           iconBgColor="bg-verdigris-50"
@@ -200,7 +236,7 @@ const DashboardContent: React.FC = () => {
         />
         <StatsCard
           title="Active Groups"
-          value={mockData.stats.activeGroups}
+          value={readingGroups.length}
           icon={Users}
           iconColor="text-indigo-dye-600"
           iconBgColor="bg-indigo-dye-50"
@@ -237,10 +273,18 @@ const DashboardContent: React.FC = () => {
             </div>
             <div className="card-body">
               <div className="space-y-4">
-                {mockData.recentBooks.map((book) => (
+                {currentlyReading.map((book) => (
                   <BookCard
                     key={book.id}
-                    {...book}
+                    id={book.id.toString()}
+                    title={book.title}
+                    author={book.author}
+                    coverImage={book.cover}
+                    rating={4.5}
+                    readingProgress={book.progress}
+                    timeToRead="2h 30m"
+                    genre="Fiction"
+                    isCurrentlyReading={true}
                     onBookClick={handleBookClick}
                     onMoreClick={handleBookMoreClick}
                   />
@@ -259,10 +303,14 @@ const DashboardContent: React.FC = () => {
             </div>
             <div className="card-body">
               <div className="space-y-3">
-                {mockData.groups.map((group) => (
+                {readingGroups.map((group) => (
                   <GroupCard
                     key={group.id}
-                    {...group}
+                    id={group.id.toString()}
+                    name={group.name}
+                    memberCount={group.members}
+                    lastActivity="2 hours ago"
+                    coverImage=""
                     onClick={handleGroupClick}
                   />
                 ))}
@@ -281,10 +329,15 @@ const DashboardContent: React.FC = () => {
             </div>
             <div className="card-body">
               <div className="space-y-3">
-                {mockData.recommendations.map((book) => (
+                {recommendations.map((book) => (
                   <RecommendationCard
                     key={book.id}
-                    {...book}
+                    id={book.id.toString()}
+                    title={book.title}
+                    author={book.author}
+                    coverImage={book.cover}
+                    rating={4.5}
+                    reason={book.reason}
                     onClick={handleRecommendationClick}
                   />
                 ))}

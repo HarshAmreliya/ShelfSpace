@@ -1,36 +1,29 @@
 "use client";
-import { useState } from "react";
 import { Award, Book, MessageCircle, TrendingUp } from "lucide-react";
-import { formatTime, generateAIResponse } from "@/utils/chatbot";
 import { Message } from "../../types/Message";
+import MessageBubble from "./MessageBubble";
+import TypingIndicator from "./TypingIndicator";
+import QuickActions from "./QuickActions";
 
-export default function AIAssistantContent() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputMessage, setInputMessage] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const [chatMode, setChatMode] = useState("general");
+interface AIAssistantContentProps {
+  messages: Message[];
+  inputMessage: string;
+  setInputMessage: (message: string) => void;
+  isTyping: boolean;
+  chatMode: string;
+  setChatMode: (mode: string) => void;
+  handleSendMessage: (messageText?: string) => void;
+}
 
-  const handleSendMessage = (messageText?: string) => {
-    const content = messageText || inputMessage;
-    if (!content.trim()) return;
-
-    const newMessage: Message = {
-      id: Date.now(),
-      type: "user",
-      content,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
-    setInputMessage("");
-    setIsTyping(true);
-
-    setTimeout(() => {
-      const aiResponse = generateAIResponse(content);
-      setMessages((prev) => [...prev, aiResponse]);
-      setIsTyping(false);
-    }, 1000);
-  };
+export default function AIAssistantContent({
+  messages,
+  inputMessage,
+  setInputMessage,
+  isTyping,
+  chatMode,
+  setChatMode,
+  handleSendMessage
+}: AIAssistantContentProps) {
 
   return (
     <div className="p-6 h-[calc(100vh-120px)] flex flex-col">
@@ -80,75 +73,14 @@ export default function AIAssistantContent() {
       <div className="flex-1 bg-white rounded-xl shadow-md flex flex-col">
         <div className="flex-1 p-6 overflow-y-auto space-y-4 max-h-[500px]">
           {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[80%] ${message.type === "user" ? "order-2" : "order-1"}`}>
-                <div
-                  className={`rounded-2xl px-4 py-3 ${
-                    message.type === "user"
-                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  <p className="text-sm">{message.content}</p>
-                </div>
-                <div
-                  className={`flex items-center mt-1 text-xs text-gray-500 ${
-                    message.type === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  <span>{formatTime(message.timestamp)}</span>
-                </div>
-
-                {message.type === "ai" && message.suggestions && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {message.suggestions.map((sug: string, idx: number) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleSendMessage(sug)}
-                          className="..."
-                        >
-                          {sug}
-                        </button>
-                      ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Avatar */}
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                  message.type === "user"
-                    ? "bg-gradient-to-r from-indigo-dye-500 to-safety-orange-500 text-white order-1 ml-3"
-                                          : "bg-gradient-to-r from-verdigris-500 to-indigo-dye-500 text-white order-2 mr-3"
-                }`}
-              >
-                {message.type === "user" ? "U" : "AI"}
-              </div>
-            </div>
+            <MessageBubble
+              key={message.id}
+              message={message}
+              onSuggestionClick={handleSendMessage}
+            />
           ))}
 
-          {isTyping && (
-            <div className="flex justify-start">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
-                  AI
-                </div>
-                <div className="bg-gray-100 rounded-2xl px-4 py-3">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.1s" }}
-                    ></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.2s" }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {isTyping && <TypingIndicator />}
         </div>
 
         {/* Input */}
@@ -176,18 +108,7 @@ export default function AIAssistantContent() {
           </div>
 
           {/* Quick Actions */}
-          <div className="flex items-center space-x-2 mt-3">
-            <span className="text-xs text-gray-500">Quick actions:</span>
-            {["Recommend a book", "Set reading goal", "Analyze my habits", "Book discussion"].map((action) => (
-              <button
-                key={action}
-                onClick={() => handleSendMessage(action)}
-                className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full hover:bg-gray-200 transition-colors"
-              >
-                {action}
-              </button>
-            ))}
-          </div>
+          <QuickActions onActionClick={handleSendMessage} />
         </div>
       </div>
     </div>

@@ -47,72 +47,21 @@ export type UserSettings = {
 const tabs = ["profile", "preferences", "notifications", "privacy", "account"] as const;
 type SettingsTab = (typeof tabs)[number];
 
-export default function SettingsLayout() {
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>("profile");
+interface SettingsLayoutProps {
+  settingsTab: string;
+  setSettingsTab: (tab: string) => void;
+  userSettings: UserSettings;
+  handleSettingsUpdate: (section: keyof UserSettings, key: string, value: any) => void;
+}
 
-  const [userSettings, setUserSettings] = useState<UserSettings>({
-    profile: {
-      name: "Viral Vaghela",
-      email: "viral@example.com",
-      bio: "",
-      location: "",
-      favoriteGenres: [],
-    },
-    preferences: {
-      theme: "auto",
-      dailyGoal: 30,
-      weeklyGoal: 2,
-      monthlyGoal: 5,
-      readingReminders: true,
-      autoMarkAsRead: false,
-      showReadingProgress: true,
-      publicProfile: false,
-    },
-    notifications: {
-      emailNotifications: true,
-      pushNotifications: false,
-      bookRecommendations: true,
-      groupUpdates: true,
-      reviewReminders: true,
-      readingChallenges: true,
-      newFollowers: false,
-      bookReleases: true,
-    },
-    privacy: {
-      publicLibrary: false,
-      shareReadingStats: true,
-      allowRecommendations: true,
-      dataSyncEnabled: true,
-      analyticsEnabled: false,
-    },
-  });
+export default function SettingsLayout({
+  settingsTab,
+  setSettingsTab,
+  userSettings,
+  handleSettingsUpdate
+}: SettingsLayoutProps) {
 
-  const handleSettingsUpdate = (
-    section: keyof UserSettings,
-    field: string,
-    value: any
-  ) => {
-    setUserSettings((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [field]: value,
-      },
-    }));
-  };
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem("shelfspace-settings");
-    if (stored) {
-      setUserSettings(JSON.parse(stored));
-    }
-  }, []);
-
-  // Persist to localStorage
-  useEffect(() => {
-    localStorage.setItem("shelfspace-settings", JSON.stringify(userSettings));
-  }, [userSettings]);
 
   return (
     <div className="flex min-h-screen bg-gray-50">

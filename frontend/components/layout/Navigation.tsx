@@ -53,7 +53,7 @@ const navigationItems: NavigationItem[] = [
     badge: 3,
   },
   {
-    name: 'Chat',
+    name: 'AI Assistant',
     href: '/chat',
     icon: MessageCircle,
   },
@@ -80,12 +80,16 @@ const navigationItems: NavigationItem[] = [
 ];
 
 interface NavigationProps {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   className?: string;
 }
 
 const Navigation: React.FC<NavigationProps> = ({
+  activeTab,
+  setActiveTab,
   isCollapsed = false,
   onToggleCollapse,
   className = '',
@@ -102,10 +106,8 @@ const Navigation: React.FC<NavigationProps> = ({
   };
 
   const isActive = (href: string) => {
-    if (href === '/dashboard') {
-      return pathname === '/dashboard';
-    }
-    return pathname.startsWith(href);
+    const tabName = href.replace('/', '');
+    return activeTab === tabName;
   };
 
   const renderNavigationItem = (item: NavigationItem, level: number = 0) => {
@@ -115,10 +117,10 @@ const Navigation: React.FC<NavigationProps> = ({
 
     return (
       <div key={item.name}>
-        <Link
-          href={item.href}
+        <button
+          onClick={() => setActiveTab(item.href.replace('/', ''))}
           className={`
-            group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200
+            group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 w-full
             ${level > 0 ? 'ml-6' : ''}
             ${isItemActive
               ? 'bg-indigo-dye-50 text-indigo-dye-700 border-r-2 border-indigo-dye-700'
@@ -127,6 +129,7 @@ const Navigation: React.FC<NavigationProps> = ({
             ${isCollapsed ? 'justify-center px-2' : ''}
           `}
           aria-current={isItemActive ? 'page' : undefined}
+          title={isCollapsed ? item.name : undefined}
         >
           <item.icon
             className={`
@@ -159,7 +162,7 @@ const Navigation: React.FC<NavigationProps> = ({
               </div>
             </>
           )}
-        </Link>
+        </button>
 
         {/* Render children if expanded */}
         {hasChildren && !isCollapsed && isExpanded && (
@@ -167,14 +170,21 @@ const Navigation: React.FC<NavigationProps> = ({
             {item.children!.map(child => renderNavigationItem(child, level + 1))}
           </div>
         )}
+        
+        {/* Show tooltip for items with children when collapsed */}
+        {hasChildren && isCollapsed && (
+          <div className="mt-1">
+            <div className="w-2 h-2 bg-indigo-dye-400 rounded-full mx-auto"></div>
+          </div>
+        )}
       </div>
     );
   };
 
   return (
-    <nav className={`bg-white border-r border-gray-200 h-full ${className}`}>
+    <nav className={`fixed left-0 top-0 ${isCollapsed ? 'w-16' : 'w-64'} h-screen bg-white border-r border-gray-200 z-50 flex flex-col transition-all duration-300 ease-in-out ${className}`}>
       {/* Navigation Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-r from-indigo-dye-600 to-safety-orange-600 rounded-lg flex items-center justify-center">
@@ -184,29 +194,37 @@ const Navigation: React.FC<NavigationProps> = ({
           </div>
         )}
         
-        <button
-          onClick={onToggleCollapse}
-          className="btn-ghost p-2 rounded-md"
-          aria-label={isCollapsed ? 'Expand navigation' : 'Collapse navigation'}
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-4 w-4 text-gray-600" />
-          ) : (
+        {isCollapsed && (
+          <button
+            onClick={onToggleCollapse}
+            className="w-8 h-8 bg-gradient-to-r from-indigo-dye-600 to-safety-orange-600 rounded-lg flex items-center justify-center mx-auto hover:from-indigo-dye-700 hover:to-safety-orange-700 transition-colors cursor-pointer"
+            aria-label="Expand navigation"
+          >
+            <BookOpen className="h-5 w-5 text-white" />
+          </button>
+        )}
+        
+        {!isCollapsed && onToggleCollapse && (
+          <button
+            onClick={onToggleCollapse}
+            className="btn-ghost p-2 rounded-md"
+            aria-label="Collapse navigation"
+          >
             <ChevronRight className="h-4 w-4 text-gray-600 rotate-180" />
-          )}
-        </button>
+          </button>
+        )}
       </div>
 
       {/* Navigation Items */}
-      <div className="flex-1 overflow-y-auto py-4">
-        <div className="space-y-1 px-3">
+      <div className="flex-1 overflow-y-auto py-4 h-[calc(100vh-140px)]">
+        <div className={`space-y-1 ${isCollapsed ? 'px-2' : 'px-3'}`}>
           {navigationItems.map(item => renderNavigationItem(item))}
         </div>
       </div>
 
       {/* Navigation Footer */}
       {!isCollapsed && (
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200 flex-shrink-0">
           <div className="bg-gray-50 rounded-lg p-3">
             <div className="flex items-center space-x-2 mb-2">
               <div className="w-6 h-6 bg-gradient-to-r from-indigo-dye-600 to-safety-orange-600 rounded-full flex items-center justify-center">
@@ -220,6 +238,15 @@ const Navigation: React.FC<NavigationProps> = ({
             <button className="w-full btn-primary text-xs py-1">
               Upgrade
             </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Collapsed Footer - Just Premium Icon */}
+      {isCollapsed && (
+        <div className="p-4 border-t border-gray-200 flex-shrink-0 flex justify-center">
+          <div className="w-8 h-8 bg-gradient-to-r from-indigo-dye-600 to-safety-orange-600 rounded-full flex items-center justify-center">
+            <span className="text-xs font-semibold text-white">P</span>
           </div>
         </div>
       )}
