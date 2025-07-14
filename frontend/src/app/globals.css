@@ -161,6 +161,16 @@
   .shadow-sm { @apply shadow-md; }
   .shadow-md { @apply shadow-lg; }
   .shadow-lg { @apply shadow-xl; }
+
+  /* Hide scrollbars but allow scrolling */
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+    overflow-x: auto;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Fallback and enhancements for settings dashboard */

@@ -149,6 +149,9 @@ module.exports = {
       ringOffsetColor: {
         'primary': '#004777',
       },
+      scale: {
+        '103': '1.03',
+      },
     },
   },
   plugins: [],

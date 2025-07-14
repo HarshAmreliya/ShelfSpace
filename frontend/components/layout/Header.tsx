@@ -11,6 +11,8 @@ interface HeaderProps {
   onNotificationsClick?: () => void;
   onSettingsClick?: () => void;
   onProfileClick?: () => void;
+  pageTitle?: string;
+  showGreeting?: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -21,6 +23,8 @@ const Header: React.FC<HeaderProps> = ({
   onNotificationsClick,
   onSettingsClick,
   onProfileClick,
+  pageTitle,
+  showGreeting = true,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -40,17 +44,22 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
-        {/* Left Section - Greeting and Search */}
+        {/* Left Section - Greeting or Page Title and Search */}
         <div className="flex items-center space-x-6 flex-1">
           <div className="hidden md:block">
-            <h1 className="text-h5 text-gray-900 font-semibold">
-              {getGreeting()}, {userName}!
-            </h1>
-            <p className="text-body-sm text-gray-600 mt-1">
-              Ready to dive into your next chapter?
-            </p>
+            {showGreeting ? (
+              <>
+                <h1 className="text-h5 text-gray-900 font-semibold">
+                  {getGreeting()}, {userName}!
+                </h1>
+                <p className="text-body-sm text-gray-600 mt-1">
+                  Ready to dive into your next chapter?
+                </p>
+              </>
+            ) : pageTitle ? (
+              <h1 className="text-h5 text-gray-900 font-semibold">{pageTitle}</h1>
+            ) : null}
           </div>
-          
           {/* Search Bar */}
           <div className="flex-1 max-w-md">
             <form onSubmit={handleSearch} className="relative">

@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  LogOut,
 } from 'lucide-react';
 
 interface NavigationItem {
@@ -85,6 +86,7 @@ interface NavigationProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   className?: string;
+  onSignOut?: () => void;
 }
 
 const Navigation: React.FC<NavigationProps> = ({
@@ -93,6 +95,7 @@ const Navigation: React.FC<NavigationProps> = ({
   isCollapsed = false,
   onToggleCollapse,
   className = '',
+  onSignOut,
 }) => {
   const pathname = usePathname();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -225,29 +228,26 @@ const Navigation: React.FC<NavigationProps> = ({
       {/* Navigation Footer */}
       {!isCollapsed && (
         <div className="p-4 border-t border-gray-200 flex-shrink-0">
-          <div className="bg-gray-50 rounded-lg p-3">
-            <div className="flex items-center space-x-2 mb-2">
-              <div className="w-6 h-6 bg-gradient-to-r from-indigo-dye-600 to-safety-orange-600 rounded-full flex items-center justify-center">
-                <span className="text-xs font-semibold text-white">P</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">Premium Plan</p>
-                <p className="text-xs text-gray-500">Unlimited access</p>
-              </div>
-            </div>
-            <button className="w-full btn-primary text-xs py-1">
-              Upgrade
+          <button
+            onClick={onSignOut}
+            className="w-full flex items-center justify-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 rounded-md transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Sign Out</span>
             </button>
-          </div>
         </div>
       )}
       
-      {/* Collapsed Footer - Just Premium Icon */}
+      {/* Collapsed Footer - Just Sign Out Icon */}
       {isCollapsed && (
         <div className="p-4 border-t border-gray-200 flex-shrink-0 flex justify-center">
-          <div className="w-8 h-8 bg-gradient-to-r from-indigo-dye-600 to-safety-orange-600 rounded-full flex items-center justify-center">
-            <span className="text-xs font-semibold text-white">P</span>
-          </div>
+          <button
+            onClick={onSignOut}
+            className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+            title="Sign Out"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       )}
     </nav>
