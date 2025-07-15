@@ -2,11 +2,14 @@
 
 import React, { useState } from 'react';
 import { Book } from 'lucide-react';
+import { signOut } from 'next-auth/react';
 import Navigation from '../layout/Navigation';
 import Header from '../layout/Header';
 import DashboardContent from './DashboardContent';
 import AIAssistantContent from '../chat/AIAssistantContent';
 import SettingsLayout from '../settings/SettingsLayout';
+import LibraryContent from '../library/LibraryContent';
+import DiscoverContent from '../discover/DiscoverContent';
 import { UserSettings } from '../../types/Settings';
 import { Message } from '../../types/Message';
 
@@ -123,6 +126,10 @@ const ShelfSpaceDashboard = () => {
     }));
   };
 
+  const handleSignOut = () => {
+    signOut({ callbackUrl: '/login' });
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Navigation 
@@ -130,9 +137,22 @@ const ShelfSpaceDashboard = () => {
         setActiveTab={setActiveTab} 
         isCollapsed={isNavigationCollapsed}
         onToggleCollapse={() => setIsNavigationCollapsed(!isNavigationCollapsed)}
+        onSignOut={handleSignOut}
       />
       <div className={`flex-1 transition-all duration-300 ease-in-out ${isNavigationCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <Header />
+        <Header 
+          userName={userSettings.profile.name}
+          userEmail={userSettings.profile.email}
+          userAvatar={userSettings.profile.avatar}
+          showGreeting={activeTab === 'dashboard'}
+          pageTitle={
+            activeTab === 'library' ? 'Library' :
+            activeTab === 'discover' ? 'Discover' :
+            activeTab === 'settings' ? 'Settings' :
+            activeTab === 'chat' ? 'Chat' :
+            undefined
+          }
+        />
         {activeTab === 'dashboard' && (
           <DashboardContent 
             currentlyReading={currentlyReading}
@@ -160,7 +180,13 @@ const ShelfSpaceDashboard = () => {
             handleSettingsUpdate={handleSettingsUpdate}
           />
         )}
-        {activeTab !== 'dashboard' && activeTab !== 'chat' && activeTab !== 'settings' && (
+        {activeTab === 'library' && (
+          <LibraryContent />
+        )}
+        {activeTab === 'discover' && (
+          <DiscoverContent />
+        )}
+        {activeTab !== 'dashboard' && activeTab !== 'chat' && activeTab !== 'settings' && activeTab !== 'library' && activeTab !== 'discover' && (
           <div className="p-6 flex items-center justify-center h-96">
             <div className="text-center text-gray-500">
               <Book className="w-16 h-16 mx-auto mb-4 text-gray-400" />

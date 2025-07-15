@@ -34,9 +34,33 @@ export default function AIAssistantContent({
             <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
               <MessageCircle className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-800">AI Reading Assistant</h2>
-              <p className="text-sm text-gray-600">Your personal book companion</p>
+            <div className="flex items-center space-x-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">Shelf AI</h2>
+                <p className="text-sm text-gray-600">Your personal book companion</p>
+              </div>
+              {/* Chat Mode Selector moved here */}
+              <div className="flex space-x-2 ml-4">
+                {[
+                  { id: "general", label: "General", icon: MessageCircle },
+                  { id: "recommendations", label: "Recommendations", icon: TrendingUp },
+                  { id: "analysis", label: "Reading Analysis", icon: Award },
+                  { id: "discussion", label: "Book Discussion", icon: Book },
+                ].map((mode) => (
+                  <button
+                    key={mode.id}
+                    onClick={() => setChatMode(mode.id)}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      chatMode === mode.id
+                        ? "bg-purple-100 text-purple-700 border border-purple-200"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    <mode.icon className="w-4 h-4" />
+                    <span>{mode.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -44,29 +68,7 @@ export default function AIAssistantContent({
             <span className="text-sm text-gray-600">Online</span>
           </div>
         </div>
-
-        {/* Chat Mode Selector */}
-        <div className="flex space-x-2">
-          {[
-            { id: "general", label: "General", icon: MessageCircle },
-            { id: "recommendations", label: "Recommendations", icon: TrendingUp },
-            { id: "analysis", label: "Reading Analysis", icon: Award },
-            { id: "discussion", label: "Book Discussion", icon: Book },
-          ].map((mode) => (
-            <button
-              key={mode.id}
-              onClick={() => setChatMode(mode.id)}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                chatMode === mode.id
-                  ? "bg-purple-100 text-purple-700 border border-purple-200"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              <mode.icon className="w-4 h-4" />
-              <span>{mode.label}</span>
-            </button>
-          ))}
-        </div>
+        {/* Removed old Chat Mode Selector below header */}
       </div>
 
       {/* Chat Box */}
