@@ -1,6 +1,8 @@
 import { error } from "console";
-import { Request, Response, NextFunction } from "express";
-import { JWTPayload, SignJWT, jwtVerify } from "jose";
+// AFTER
+import express from "express";
+import type { Request, Response, NextFunction } from "express";
+import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 
 const secretKey = new TextEncoder().encode(process.env.JWT_SECRET);
 const algorithm = "HSA256";

@@ -1,31 +1,36 @@
 services:
+  nginx-gateway:
+    image: nginx:stable-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - shelfspace-net
+    depends_on:
+      - frontend
+      - user-service
+      # - user-library-service
+      # - book-service
   frontend:
     build: ./frontend
-    ports:
-      - "3000:3000"
     networks:
       - shelfspace-net
 
   user-service:
     build: ./services/user-service
-    ports:
-      - "3002:3002"
     networks:
       - shelfspace-net
 
-  user-library-service:
-    build: ./services/user-library-service
-    ports:
-      - "3003:3003"
-    networks:
-      - shelfspace-net
+  # user-library-service:
+  #   build: ./services/user-library-service
+  #   networks:
+  #     - shelfspace-net
 
-  book-service:
-    build: ./services/book-service
-    ports:
-      - "3004:3004"
-    networks:
-      - shelfspace-net
+  # book-service:
+  #   build: ./services/book-service
+  #   networks:
+  #     - shelfspace-net
 
 networks:
   shelfspace-net:

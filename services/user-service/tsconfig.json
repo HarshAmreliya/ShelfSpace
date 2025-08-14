@@ -1,18 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "lib": ["ES2020"],
-    "outDir": "dist",
-    "rootDir": "src",
-    "strict": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
+    "strict": true,
     "skipLibCheck": true,
-    "typeRoots": ["./types", "./node_modules/@types"],
-    "moduleResolution": "node",
-    "module": "ESNext",
-    "allowImportingTsExtensions": true,
-    "noEmit": true
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist" // Or whatever your output directory is
   },
   "ts-node": {
     "esm": true

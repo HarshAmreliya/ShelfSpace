@@ -1,7 +1,7 @@
 import express from "express";
 import prisma from "../prisma.ts";
 import { updateUserSchema, updatePreferencesSchema } from "../schemas.ts";
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { isAuthenticated } from "../middlewares/auth.ts";
 
 const router = express.Router();
