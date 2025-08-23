@@ -1,11 +1,13 @@
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
-import { WebSocketServer } from "ws";
+import { createServer } from "http";
 import chatRoutes from "./routes/chat.routes.ts";
-import handleWebSocketConnection from "./websockets/chat.websocket.ts";
+import initializeSocket from "./socket.ts";
 
 const app = express();
+const httpServer = createServer(app);
+
 const PORT = process.env.PORT || 3006;
 
 app.use(express.json());
@@ -18,13 +20,8 @@ app.get("/", (_req, res) => {
 
 app.use("/api/chat", chatRoutes);
 
-const server = app.listen(PORT, () => {
+initializeSocket(httpServer);
+
+httpServer.listen(PORT, () => {
   console.log(`Chat service running at http://localhost:${PORT}`);
 });
-
-// Initialize WebSocket Server
-const wss = new WebSocketServer({ server });
-
-wss.on("connection", handleWebSocketConnection);
-
-console.log("WebSocket server initialized.");

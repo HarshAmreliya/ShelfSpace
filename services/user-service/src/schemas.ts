@@ -25,10 +25,3 @@ export const updatePreferencesSchema = z.object({
   reducedMotion: z.boolean().optional(),
   autoPlayMedia: z.boolean().optional(),
 });
-
-export interface UserPayload {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-  picture?: string | null;
-}

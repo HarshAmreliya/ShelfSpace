@@ -1,10 +1,13 @@
+import type { Request, Response, NextFunction } from "express";
+import prisma from "../prisma";
 
-import { Request, Response, NextFunction } from 'express';
-import prisma from '../prisma';
-
-export const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
+export const isAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   if (!req.userId) {
-    return res.status(401).json({ message: 'Unauthorized' });
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
   try {
@@ -12,12 +15,12 @@ export const isAdmin = async (req: Request, res: Response, next: NextFunction) =
       where: { id: req.userId },
     });
 
-    if (user && user.role === 'ADMIN') {
+    if (user && user.role === "ADMIN") {
       next();
     } else {
-      res.status(403).json({ message: 'Forbidden' });
+      res.status(403).json({ message: "Forbidden" });
     }
   } catch (error) {
-    res.status(500).json({ message: 'Internal Server Error' });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };

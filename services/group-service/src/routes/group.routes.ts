@@ -162,7 +162,7 @@ router.post("/:id/join", isAuthenticated, async (req: Request<{ id: string }>, r
 });
 
 // Leave a group
-router.post("/:id/leave", isAuthenticated, async (req: Request<{ id: string }>, res: Response) => {
+router.post("/:id/leave", isAuthenticated, async (req: Request<{ id:string }>, res: Response) => {
   const { id } = req.params;
   const userId = req.userId!;
 
@@ -195,6 +195,31 @@ router.get("/:id/members", async (req: Request<{ id: string }>, res: Response<Gr
     res.json(members);
   } catch (error) {
     console.error("Error fetching group members:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Verify group membership
+router.get("/:groupId/members/:userId/verify", async (req: Request<{ groupId: string; userId: string }>, res: Response) => {
+  const { groupId, userId } = req.params;
+
+  try {
+    const membership = await prisma.groupMembership.findUnique({
+      where: {
+        groupId_userId: {
+          groupId,
+          userId,
+        },
+      },
+    });
+
+    if (!membership) {
+      return res.status(404).json({ error: "Membership not found" });
+    }
+
+    res.status(200).json({ isMember: true });
+  } catch (error) {
+    console.error("Error verifying membership:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

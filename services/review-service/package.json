@@ -23,7 +23,7 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
-    "@types/axios": "^1.14.0",
+    "@types/axios": "^0.14.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/morgan": "^1.9.10",
