@@ -1,0 +1,35 @@
+# FastAPI and API dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+python-multipart==0.0.6
+
+# Vector Database
+pinecone-client==3.0.0
+pinecone
+
+# Embedding Model
+sentence-transformers==2.2.2
+transformers==4.36.0
+torch>=2.1.0  # Let uv find the compatible version
+
+# LLM API
+google-generativeai==0.3.2
+
+# HTTP requests and async support
+httpx==0.25.0
+aiofiles==23.2.0
+
+# Environment and configuration
+python-dotenv==1.0.0
+pydantic-settings==2.1.0
+
+# JSON and data processing
+orjson==3.9.10
+
+# Logging and monitoring
+structlog==23.2.0
+
+pandas
+numpy
+tqdm==4.66.1
