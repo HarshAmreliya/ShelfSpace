@@ -19,10 +19,10 @@ class EmbeddingGenerator:
 
             self.dimension = self.model.get_sentence_embedding_dimension()
 
-            logger.info(f"✅ Model '{model_name}' loaded successfully. Vector dimension: {self.dimension}")
+            logger.info(f"Model '{model_name}' loaded successfully. Vector dimension: {self.dimension}")
 
         except Exception as e:
-            logger.error(f"❌ Failed to load SentenceTransformer model: {e}")
+            logger.error(f"Failed to load SentenceTransformer model: {e}")
             logger.error("Please ensure you have an internet connection and the 'sentence-transformers' library is installed.")
             raise
 

@@ -130,6 +130,7 @@ class PineconeVectorStore:
                 "chunk_type": chunk.chunk_type,
                 "priority": chunk.priority,
                 "book_id": chunk.book_id,
+                "work_id": chunk.work_id,
                 "chunk_id": chunk.chunk_id,
                 "intent_relevance": ",".join(chunk.intent_relevance),
                 "length": chunk.metadata.get("length"),

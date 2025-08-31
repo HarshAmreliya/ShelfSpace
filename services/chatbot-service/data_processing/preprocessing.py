@@ -123,6 +123,14 @@ class HierarchicalChunkGenerator:
         overview_parts = [
             f"📚 {title} by {author}"
         ]
+
+        illustrators = record.get('publication_info', {}).get('illustrators', [])
+        if illustrators:
+            overview_parts.append(f"✍️ Illustrated by: {', '.join(illustrators)}")
+            
+        translators = record.get('publication_info', {}).get('translators', [])
+        if translators:
+            overview_parts.append(f"🌍 Translated by: {', '.join(translators)}")
         
         # Add rating if available
         if record['user_engagement']['avg_rating'] > 0:
@@ -154,7 +162,13 @@ class HierarchicalChunkGenerator:
             'metadata': {
                 'length': len(overview_text),
                 'contains_rating': record['user_engagement']['avg_rating'] > 0,
-                'contains_genres': bool(record.get('genres'))
+                'contains_genres': bool(record.get('genres')),
+                'has_illustrator': bool(illustrators),
+                'has_translator': bool(translators),
+                'has_illustrator': bool(illustrators),
+                'has_translator': bool(translators),
+                'work_id': record.get('work_id'), # --- ADDED work_id ---
+                'total_ratings': total_ratings or 0 # Ensure this is present for de-duplication
             }
         }
     
@@ -170,6 +184,18 @@ class HierarchicalChunkGenerator:
             "",
             f"Description: {description}",
         ]
+
+        illustrators = record.get('publication_info', {}).get('illustrators', [])
+        if illustrators:
+            detailed_parts.append(f"Illustrator(s): {', '.join(illustrators)}")
+            
+        translators = record.get('publication_info', {}).get('translators', [])
+        if translators:
+            detailed_parts.append(f"Translator(s): {', '.join(translators)}")
+
+        if record['user_engagement']['avg_rating'] > 0:
+            rating = record['user_engagement']['avg_rating']
+            total_ratings = record['user_engagement']['total_ratings']
         
         detailed_text = "\n".join(detailed_parts)
         
@@ -180,9 +206,14 @@ class HierarchicalChunkGenerator:
             'priority': ChunkPriority.IMPORTANT.value,
             'intent_relevance': ['detailed', 'compare'],
             'book_id': record['book_id'],
+            'work_id': record.get('work_id'), # --- ADDED work_id ---
             'metadata': {
                 'length': len(detailed_text),
-                'description_length': len(description)
+                'description_length': len(description),
+                'has_illustrator': bool(illustrators),
+                'has_translator': bool(translators),
+                'work_id': record.get('work_id'), # --- ADDED work_id ---
+                'total_ratings': total_ratings or 0 # Ensure this is present for de-duplication
             }
         }
     
@@ -213,6 +244,10 @@ class HierarchicalChunkGenerator:
         # Reading commitment
         pages = record['reading_metadata'].get('pages', 0)
         reading_time = record['reading_metadata'].get('reading_time_minutes', 0)
+
+        if record['user_engagement']['avg_rating'] > 0:
+            rating = record['user_engagement']['avg_rating']
+            total_ratings = record['user_engagement']['total_ratings']
         
         if pages and reading_time:
             hours = reading_time // 60
@@ -247,10 +282,13 @@ class HierarchicalChunkGenerator:
             'priority': ChunkPriority.IMPORTANT.value,
             'intent_relevance': ['recommend', 'compare'],
             'book_id': record['book_id'],
+            'work_id': record.get('work_id'), # --- ADDED work_id ---
             'metadata': {
                 'has_rating_analysis': record['user_engagement']['avg_rating'] > 0,
                 'reading_time_hours': reading_time // 60 if reading_time else 0,
-                'complexity_level': complexity
+                'complexity_level': complexity,
+                'work_id': record.get('work_id'), # --- ADDED work_id ---
+                'total_ratings': total_ratings or 0 # Ensure this is present for de-duplication
             }
         }
     
@@ -260,6 +298,10 @@ class HierarchicalChunkGenerator:
             f"🔍 Discovery Info for {record['title']}",
             ""
         ]
+
+        if record['user_engagement']['avg_rating'] > 0:
+            rating = record['user_engagement']['avg_rating']
+            total_ratings = record['user_engagement']['total_ratings']
         
         # Publication context
         pub_year = record['publication_info'].get('year')
@@ -313,10 +355,13 @@ class HierarchicalChunkGenerator:
             'priority': ChunkPriority.CONTEXTUAL.value,
             'intent_relevance': ['discover', 'recommend'],
             'book_id': record['book_id'],
+            'work_id': record.get('work_id'),
             'metadata': {
                 'publication_year': pub_year,
                 'popularity_tier': record['popularity_label'],
-                'has_shelf_data': bool(shelves)
+                'has_shelf_data': bool(shelves),
+                'work_id': record.get('work_id'), # --- ADDED work_id ---
+                'total_ratings': total_ratings or 0 # Ensure this is present for de-duplication
             }
         }
     
@@ -326,6 +371,10 @@ class HierarchicalChunkGenerator:
             f"🎭 Themes in {record['title']}",
             ""
         ]
+
+        if record['user_engagement']['avg_rating'] > 0:
+            rating = record['user_engagement']['avg_rating']
+            total_ratings = record['user_engagement']['total_ratings']
         
         themes = record.get('themes', [])
         if themes:
@@ -368,9 +417,12 @@ class HierarchicalChunkGenerator:
             'priority': ChunkPriority.CONTEXTUAL.value,
             'intent_relevance': ['detailed', 'compare'],
             'book_id': record['book_id'],
+            'work_id': record.get('work_id'),
             'metadata': {
                 'theme_count': len(themes),
-                'has_genres': bool(record.get('genres'))
+                'has_genres': bool(record.get('genres')),
+                'work_id': record.get('work_id'), # --- ADDED work_id ---
+                'total_ratings': total_ratings or 0 # Ensure this is present for de-duplication
             }
         }
     
@@ -382,6 +434,10 @@ class HierarchicalChunkGenerator:
             f"📚 If you like {record['title']}, you might enjoy:",
             ""
         ]
+
+        if record['user_engagement']['avg_rating'] > 0:
+            rating = record['user_engagement']['avg_rating']
+            total_ratings = record['user_engagement']['total_ratings']
         
         if similar_books:
             for i, book in enumerate(similar_books[:3], 1):
@@ -408,10 +464,13 @@ class HierarchicalChunkGenerator:
             'priority': ChunkPriority.SUPPLEMENTARY.value,
             'intent_relevance': ['discover', 'compare'],
             'book_id': record['book_id'],
+            'work_id': record.get('work_id'),
             'metadata': {
                 'similar_count': len(similar_books[:3]),
                 'has_genre_suggestions': bool(record.get('genres')),
-                'has_theme_suggestions': bool(record.get('themes'))
+                'has_theme_suggestions': bool(record.get('themes')),
+                'work_id': record.get('work_id'), # --- ADDED work_id ---
+                'total_ratings': total_ratings or 0 # Ensure this is present for de-duplication
             }
         }
     
@@ -864,6 +923,56 @@ class StreamlinedBookRAGProcessor:
         
         return result
     
+    def parse_contributors(self, contributors_data: List[Dict]) -> Dict[str, List[str]]:
+        """
+        Parses a list of contributor dictionaries that ALREADY CONTAIN the name and role.
+        1. The first entry is ALWAYS the primary author.
+        2. Subsequent entries are only processed if they have a specific role.
+        """
+        # Default return value if the input is empty or invalid
+        if not contributors_data or not isinstance(contributors_data, list):
+            return {"authors": ["Unknown Author"], "translators": [], "illustrators": []}
+
+        contributors = defaultdict(list)
+        
+        # --- Step 1: Process the Primary Author (the first entry) ---
+        primary_author_data = contributors_data[0]
+        if isinstance(primary_author_data, dict):
+            # Directly get the name, no mapping needed
+            primary_author_name = primary_author_data.get('name')
+            if primary_author_name:
+                contributors['authors'].append(primary_author_name)
+
+        # --- Step 2: Process all other contributors ---
+        if len(contributors_data) > 1:
+            for person in contributors_data[1:]: # Loop starts from the second person
+                if not isinstance(person, dict):
+                    continue
+
+                role = person.get('role', '').lower().strip()
+
+                # --- The Key Logic: Ignore if the role is empty ---
+                if not role:
+                    continue # This is a secondary author and will be ignored
+
+                # Directly get the name, no mapping needed
+                name = person.get('name')
+
+                if name:
+                    if 'translator' in role:
+                        contributors['translators'].append(name)
+                    elif 'illustrator' in role:
+                        contributors['illustrators'].append(name)
+                    # Note: We do not add any more authors in this loop
+
+        # Final check: Ensure there's always at least one author listed
+        if not contributors.get('authors'):
+            contributors['authors'] = ["Unknown Author"]
+            
+        return dict(contributors)
+
+
+
     def parse_authors(self, authors_field) -> list[str]:
         """Special parsing for authors field which has different structure"""
         if authors_field is None:
@@ -1086,9 +1195,14 @@ class StreamlinedBookRAGProcessor:
         title = self.clean_text(str(row.get('title', ''))).strip()
         if not title:
             return None, "missing_title"  # Return reason for skip
-
-        authors = self.parse_authors(row.get('authors', ''))
-        primary_author = authors[0]
+        
+        contributors = self.parse_contributors(row.get('authors', []))
+        authors = contributors.get('authors', ["Unknown Author"])
+        translators = contributors.get('translators', [])
+        illustrators = contributors.get('illustrators', [])
+        
+        # authors = self.parse_authors(row.get('authors', ''))
+        primary_author = authors[0] if authors else "Unknown Author"
         num_pages = row.get('num_pages')
         if not num_pages:
             num_pages = 0
@@ -1135,14 +1249,16 @@ class StreamlinedBookRAGProcessor:
             'publication_info': {
                 'year': self.safe_convert_int(row.get('publication_year')),
                 'publisher': str(row.get('publisher', '')) if pd.notna(row.get('publisher')) and str(row.get('publisher', '')).strip() else None,
-                'language': str(row.get('language_code', 'eng')) if pd.notna(row.get('language_code')) else 'eng'
+                'language': str(row.get('language_code', 'eng')) if pd.notna(row.get('language_code')) else 'eng',
+                'translators': translators,
+                'illustrators': illustrators
             },
             'identifiers': {
                 'isbn13': str(row.get('isbn13', '')) if pd.notna(row.get('isbn13')) else '',
                 'image_url': str(row.get('image_url', '')) if pd.notna(row.get('image_url')) else ''
             },
             'similar_books': self.get_book_titles(self.parse_list_field(row.get('similar_books', ''))),
-            'searchable_text': self.create_searchable_text(title, primary_author, description, genres, themes)
+            'searchable_text': self.create_searchable_text(title, primary_author, description, genres, themes, illustrators, translators)
         }
         
         return enhanced_record, None # Success, no skip reason
@@ -1295,7 +1411,7 @@ class StreamlinedBookRAGProcessor:
         return min(100.0, round(score, 1))
     
     def create_searchable_text(self, title: str, author: str, description: str, 
-                              genres: List[str], themes: List[str]) -> str:
+                              genres: List[str], themes: List[str], translators: List[str], illustrators: List[str]) -> str:
         """Create optimized searchable text"""
         parts = [title, author]
         
@@ -1310,6 +1426,12 @@ class StreamlinedBookRAGProcessor:
             
         if self.safe_len_check(themes):
             parts.append(" ".join(themes))
+
+        if self.safe_len_check(translators):
+            parts.append("Translated by " + " ".join(translators))
+            
+        if self.safe_len_check(illustrators):
+            parts.append("Illustrated by " + " ".join(illustrators))
         
         return " | ".join(parts)
     
@@ -1623,7 +1745,7 @@ class StreamlinedBookRAGProcessor:
 if __name__ == "__main__":
     # Load your actual dataset
     # df = pd.read_json("data/complete_goodreads_books_authors.json", lines=True)
-    with open("data/complete_goodreads_books_authors.json", "r", encoding="utf-8") as f:
+    with open("../data/complete_goodreads_books_authors2.json", "r", encoding="utf-8") as f:
         books = [json.loads(line) for line in f if line.strip() and line[0]!="Unknown Author"]
 
 
