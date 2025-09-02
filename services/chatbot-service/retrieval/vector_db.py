@@ -17,7 +17,7 @@ except ImportError as e:
     print("Install dependencies with: uv pip install pinecone-client python-dotenv sentence-transformers torch")
     exit(1)
 
-logging.basicConfig(level=logging.INFO, format='%{asctime}s - %{levelname}s - %{message}s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 class PineconeConnector:
@@ -43,7 +43,54 @@ class PineconeConnector:
         logger.info(f"Connection to Index {index_name} established.")
         logger.info(self.index.describe_index_stats())
 
-    def search(self, query_vector: List[float], top_k: int = 5, filter_dict: Optional[Dict] = None) -> List[Dict]:
+        self.chunk_intent_map = {
+            'overview': ['quick', 'recommend'],
+            'detailed': ['detailed', 'compare'], 
+            'experience': ['recommend', 'compare'],
+            'discovery': ['discover', 'recommend'],
+            'themes': ['detailed', 'compare'],
+            'similar': ['discover', 'compare']
+        }
+
+        self.intent_strategies = {
+            "quick": {
+                "max_works": 1,
+                "chunk_diversity": False,
+                "description": "Quick facts from single work"
+            },
+            "detailed": {
+                "max_works": 1,
+                "chunk_diversity": True,
+                "description": "Comprehensive info from single work"
+            },
+            "recommend": {
+                "max_works": 5,
+                "chunk_diversity": False,
+                "description": "Multiple book recommendations"
+            },
+            "compare": {
+                "max_works": 10,
+                "chunk_diversity": True,
+                "description": "Multiple works for comparison"
+            },
+            "discover": {
+                "max_works": 8,
+                "chunk_diversity": False,
+                "description": "Discover diverse options"
+            }
+        }
+
+        self.chunk_type_priority = {
+            'overview': 1,
+            'detailed': 2,
+            'themes': 3,
+            'experience': 4,
+            'discovery': 5,
+            'similar': 6,
+            'other': 7
+        }
+
+    def search(self, query_vector: List[float], top_k: int = 3, filter_dict: Optional[Dict] = None) -> List[Dict]:
         if not query_vector:
             logger.warning("Search called with an empty query vector.")
             return []
@@ -54,7 +101,7 @@ class PineconeConnector:
         try:
             results = self.index.query(
                 vector=query_vector,
-                top_k=top_k,
+                top_k=fetch_k,
                 filter=filter_dict,
                 include_metadata = True
             )
@@ -75,7 +122,6 @@ class PineconeConnector:
                     best_candidates[work_id] = match
 
             final_results = list(best_candidates.values())
-
             final_results.sort(key=lambda m: m['score'], reverse=True)
 
             
@@ -105,7 +151,7 @@ if __name__ == '__main__':
         logger.error(f"Initialization failed: {e}")
         exit(1)
 
-    test_query = "Describe the book Crime and Punishment by Fyodor Dostoyevsky?"
+    test_query = "How many pages does Crime and Punishment by Fyodor Dostoyevsky have?"
     test_vector = embedder.embed_query(test_query)
     logger.info(f"Created test vector for query: \"{test_query}\"")
 
@@ -121,7 +167,12 @@ if __name__ == '__main__':
             print(f"\n--- Match ---")
             print(f"  - ID: {match['id']}")
             print(f"  - Score: {match['score']:.4f}")
-            print(f"  - Text: {text_content}...")
+            print(f"  - Work ID: {metadata.get('work_id', 'N/A')}")
+            print(f"  - Total Ratings: {metadata.get('total_ratings', 'N/A')}")
+            if len(text_content) > 500:
+                print(f"  - Text: {text_content[:500]}...")
+            else:
+                print(f"  - Text: {text_content}")
     else:
         print("Search completed. No results found.")
 

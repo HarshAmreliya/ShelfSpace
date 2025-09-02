@@ -3,10 +3,15 @@ import json
 import argparse
 import logging
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 import time
 from tqdm import tqdm
+import sys
+
+# project_root = Path(__file__).parent.parent
+# if str(project_root) not in sys.path:
+#     sys.path.insert(0, str(project_root))
 
 try:
     from dotenv import load_dotenv
@@ -39,9 +44,9 @@ class BookChunk:
     chunk_type: str        
     priority: int          
     intent_relevance: List[str]  
-    book_id: str 
-    work_id: str          
-    metadata: Dict[str, Any]     
+    book_id: str         
+    metadata: Dict[str, Any]   
+    work_id: str
     embedding: np.ndarray = None 
 
 class EmbeddingGenerator:    
@@ -131,9 +136,9 @@ class PineconeVectorStore:
                 "chunk_type": chunk.chunk_type,
                 "priority": chunk.priority,
                 "book_id": chunk.book_id,
-                "work_id": chunk.work_id,
                 "chunk_id": chunk.chunk_id,
                 "intent_relevance": chunk.intent_relevance,
+                "work_id": chunk.work_id,
                 "length": chunk.metadata.get("length"),
                 "publication_year": chunk.metadata.get("publication_year"),
                 "has_rating": chunk.metadata.get("contains_rating"),
@@ -177,48 +182,6 @@ class PineconeVectorStore:
         stats = self.index.describe_index_stats()
         logger.info(f"Index now contains {stats.total_vector_count} total vectors")
 
-
-def load_chunks_from_json(file_path: Path) -> List[BookChunk]:
-    logger.info(f"Loading chunks from: {file_path}")
-    
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        
-        chunks = []
-        
-        if isinstance(data, list):
-            chunks_data = data
-        else:
-            chunks_data = [data]
-        
-        for chunk_data in chunks_data:
-            try:
-                chunk = BookChunk(
-                    chunk_id=chunk_data['chunk_id'],
-                    text=chunk_data['text'],
-                    chunk_type=chunk_data['chunk_type'],
-                    priority=chunk_data['priority'],
-                    intent_relevance=chunk_data['intent_relevance'],
-                    book_id=chunk_data['book_id'],
-                    work_id= chunk_data['work_id'],
-                    metadata=chunk_data['metadata']
-                )
-                chunks.append(chunk)
-                
-            except KeyError as e:
-                logger.warning(f"Skipping invalid chunk in {file_path}: missing {e}")
-                continue
-        
-        logger.info(f"Loaded {len(chunks)} valid chunks from {file_path}")
-        return chunks
-        
-    except json.JSONDecodeError as e:
-        logger.error(f"Invalid JSON in {file_path}: {e}")
-        return []
-    except Exception as e:
-        logger.error(f"Error reading {file_path}: {e}")
-        return []
 
 def find_json_files(data_dir: Path) -> List[Path]:
     if not data_dir.exists():
@@ -270,8 +233,8 @@ def process_chunks_streaming(json_file_path: Path,
                     priority=chunk_data['priority'],
                     intent_relevance=chunk_data['intent_relevance'],
                     book_id=chunk_data['book_id'],
-                    work_id=chunk_data['work_id'],
-                    metadata=chunk_data['metadata']
+                    metadata=chunk_data['metadata'],
+                    work_id= chunk_data['metadata'].get('work_id')
                 )
                 chunks.append(chunk)
             except KeyError as e:
@@ -297,7 +260,7 @@ def process_chunks_streaming(json_file_path: Path,
         
         del chunks, embeddings, texts
     
-    logger.info(f"✅ Completed processing {processed_count} chunks")
+    logger.info(f"Completed processing {processed_count} chunks")
 
 def main():
     # Set up command line argument parsing
@@ -378,7 +341,7 @@ def main():
                 upload_batch_size=args.upload_batch_size
             )
     
-    logger.info("✅ Successfully loaded all book chunks into Pinecone!")
+    logger.info("Successfully loaded all book chunks into Pinecone!")
     logger.info(f"Index '{args.index_name}' now ready for similarity search")
 
 
