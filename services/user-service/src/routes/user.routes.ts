@@ -38,13 +38,26 @@ router.get("/me", async (req: Request, res: Response<User>) => {
 // PUT /api/me - Update user profile
 router.put(
   "/me",
-  validate(z.object({ body: updateUserSchema })),
-  async (req: Request<{}, User, z.infer<typeof updateUserSchema>>, res: Response<User>) => {
+  async (
+    req: Request<{}, User, z.infer<typeof updateUserSchema>>,
+    res: Response<User>
+  ) => {
     const userId = req.userId;
     if (!userId) {
       res.status(401).json({ error: "Unauthorized: Missing x-user-id header" });
       return;
     }
+
+    // Zod validation
+    const parseResult = updateUserSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res
+        .status(400)
+        .json({ error: "Invalid input", details: parseResult.error.errors });
+      return;
+    }
+    // Use all validated fields
+    const updateData = parseResult.data;
 
     try {
       const updatedUser = await prisma.user.update({
@@ -60,38 +73,52 @@ router.put(
 );
 
 // GET /api/me/preferences - Retrieve user preferences
-router.get("/me/preferences", async (req: Request, res: Response<Preferences>) => {
-  const userId = req.userId;
-  if (!userId) {
-    res.status(401).json({ error: "Unauthorized: Missing x-user-id header" });
-    return;
-  }
-
-  try {
-    const preferences = await prisma.preferences.findUnique({
-      where: { userId },
-    });
-
-    if (!preferences) {
-      // If preferences don't exist, we can return default values or a 404
-      res.status(404).json({ error: "Preferences not found." });
+router.get(
+  "/me/preferences",
+  async (req: Request, res: Response<Preferences>) => {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized: Missing x-user-id header" });
       return;
     }
-    res.json(preferences);
-  } catch (error) {
-    console.error("Error fetching preferences:", error);
-    res.status(500).json({ error: "Internal server error" });
+
+    try {
+      const preferences = await prisma.preferences.findUnique({
+        where: { userId },
+      });
+
+      if (!preferences) {
+        // If preferences don't exist, we can return default values or a 404
+        res.status(404).json({ error: "Preferences not found." });
+        return;
+      }
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error fetching preferences:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   }
-});
+);
 
 // PUT /api/me/preferences - Update or create user preferences
 router.put(
   "/me/preferences",
-  validate(z.object({ body: updatePreferencesSchema })),
-  async (req: Request<{}, Preferences, z.infer<typeof updatePreferencesSchema>>, res: Response<Preferences>) => {
+  async (
+    req: Request<{}, Preferences, z.infer<typeof updatePreferencesSchema>>,
+    res: Response<Preferences>
+  ) => {
     const userId = req.userId;
     if (!userId) {
       res.status(401).json({ error: "Unauthorized: Missing x-user-id header" });
+      return;
+    }
+
+    // Zod validation
+    const parseResult = updatePreferencesSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res
+        .status(400)
+        .json({ error: "Invalid input", details: parseResult.error.errors });
       return;
     }
 
