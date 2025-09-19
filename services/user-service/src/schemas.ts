@@ -1,11 +1,17 @@
 import { z } from "zod";
 
+export const createUserSchema = z.object({
+  email: z.string().email("Must be a valid email"),
+  name: z.string().min(1, "Name cannot be empty").max(100),
+});
+
 export const updateUserSchema = z.object({
-  name: z.string().min(1, "Name cannot be empty").max(100).optional(),
+  name: z.string().min(1, "Name cannot be empty").max(100),
   avatarUrl: z.string().url("Must be a valid URL").optional(),
   bio: z.string().max(500).optional(),
   website: z.string().url("Must be a valid URL").optional(),
   isPublic: z.boolean().optional(),
+  role: z.enum(["admin", "user"]),
 });
 
 export const updatePreferencesSchema = z.object({
@@ -24,4 +30,8 @@ export const updatePreferencesSchema = z.object({
   accessibilityFont: z.boolean().optional(),
   reducedMotion: z.boolean().optional(),
   autoPlayMedia: z.boolean().optional(),
+});
+
+export const updateUserStatusSchema = z.object({
+  status: z.enum(["ACTIVE", "SUSPENDED", "BANNED", "DEACTIVATED"]),
 });

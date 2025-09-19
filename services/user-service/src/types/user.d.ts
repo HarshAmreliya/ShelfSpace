@@ -1,8 +1,8 @@
 import { User as PrismaUser, UserStats as PrismaUserStats, Preferences as PrismaPreferences } from '@prisma/client';
 
 export interface User extends PrismaUser {
-  preferences?: Preferences;
-  stats?: UserStats;
+  preferences?: Preferences | null;
+  stats?: UserStats | null;
 }
 
 export interface UserStats extends PrismaUserStats {}

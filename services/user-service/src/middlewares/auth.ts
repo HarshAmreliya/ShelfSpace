@@ -5,7 +5,7 @@ import type { Request, Response, NextFunction } from "express";
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 
 const secretKey = new TextEncoder().encode(process.env.JWT_SECRET);
-const algorithm = "HSA256";
+const algorithm = "HS256";
 
 interface CustomJWTPayload extends JWTPayload {
   id: string;

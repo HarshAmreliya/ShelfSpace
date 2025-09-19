@@ -15,14 +15,21 @@ model User {
   bio         String?
   website     String?
   isPublic    Boolean      @default(true)
-  isActive    Boolean      @default(true)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+  status      UserStatus   @default(ACTIVE)
 
   preferences Preferences?
   stats       UserStats?
   goals       UserGoal[]
   badges      UserBadge[]
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  DEACTIVATED
 }
 
 model Preferences {

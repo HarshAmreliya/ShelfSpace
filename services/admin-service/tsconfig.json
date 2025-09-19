@@ -8,6 +8,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
+    "allowImportingTsExtensions": true,
     "typeRoots": ["./types", "./node_modules/@types"]
   },
   "ts-node": {

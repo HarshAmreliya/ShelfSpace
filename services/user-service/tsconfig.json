@@ -7,11 +7,12 @@
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist" // Or whatever your output directory is
+    "outDir": "./dist", // Or whatever your output directory is
+    "allowImportingTsExtensions": true
   },
   "ts-node": {
     "esm": true
   },
-  "include": ["src", "types"],
+  "include": ["src", "types", "script.js"],
   "exclude": ["node_modules"]
 }
