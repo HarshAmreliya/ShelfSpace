@@ -49,3 +49,5 @@ ml-lab/.venv/
 ml-lab/__pycache__/
 ml-lab/data/
 ml-lab/models/
+
+requirements.txt
