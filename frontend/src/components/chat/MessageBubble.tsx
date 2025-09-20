@@ -1,4 +1,6 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Message } from '../../../types/Message';
 import { formatTime } from '../../utils/chatbot';
 
@@ -20,7 +22,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onSuggestionClic
               : 'bg-gray-100 text-gray-800'
           }`}
         >
-          <p className="text-sm">{message.content}</p>
+          <div className={`prose prose-sm max-w-none ${isUser ? 'prose-invert' : ''}`}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {message.content}
+            </ReactMarkdown>
+          </div>
         </div>
         <div
           className={`flex items-center mt-1 text-xs text-gray-500 ${

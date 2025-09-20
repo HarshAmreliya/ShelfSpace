@@ -4,6 +4,8 @@ import logging
 import uuid
 from typing import Optional
 from pathlib import Path
+# from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # --- Path Correction ---
 # This ensures the API server can find your other modules (core, retrieval).
@@ -38,6 +40,20 @@ app = FastAPI(
     title="Shelf Space AI Chatbot API",
     description="An API for interacting with the RAG-based book recommendation chatbot with memory.",
     version="1.1.0"
+)
+
+origins = [
+    "http://localhost:3000", # For a React app
+    "http://localhost:5173", # For a Vite app
+    # Add the origin of your client application
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Allows POST, GET, etc.
+    allow_headers=["*"],
 )
 
 # --- Global Chatbot Instance ---
