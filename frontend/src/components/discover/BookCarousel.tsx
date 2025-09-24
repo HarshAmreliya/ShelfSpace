@@ -1,8 +1,8 @@
+"use client";
 
-'use client';
-
-import React from 'react';
-import BookCard, { Book } from '../../components/common/BookCard';
+import React from "react";
+import { BookCard } from "@/components/common/BookCard";
+import { Book } from "@/types/models";
 
 interface BookCarouselProps {
   title: string;
@@ -11,12 +11,14 @@ interface BookCarouselProps {
 
 const BookCarousel: React.FC<BookCarouselProps> = ({ title, books }) => {
   return (
-    <section className="mb-10">
-      <h2 className="text-lg font-bold text-gray-900 mb-3 ml-2">{title}</h2>
-      <div className="flex overflow-x-auto no-scrollbar pb-2 px-4 py-4 space-x-4">
+    <section className="mb-8">
+      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 px-2">
+        {title}
+      </h2>
+      <div className="flex overflow-x-auto scrollbar-hide pb-2 px-2 space-x-4">
         {books.map((book) => (
-          <div key={book.id} className="min-w-[150px]">
-            <BookCard {...book} />
+          <div key={book.id} className="min-w-[150px] flex-shrink-0">
+            <BookCard book={book} variant="grid" />
           </div>
         ))}
       </div>

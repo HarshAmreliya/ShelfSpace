@@ -1,90 +1,65 @@
+"use client";
 
-'use client';
-
-import React from 'react';
-import { Grid, List } from 'lucide-react';
+import React from "react";
+import { ReadingList, ViewMode } from "@/types/library";
+import { ViewModeToggle } from "@/components/library/components/ViewModeToggle";
+import { FilterControls } from "@/components/library/components/FilterControls";
 
 interface LibraryHeaderProps {
-  currentList: any; // Replace with a proper type
-  viewMode: 'grid' | 'list';
-  setViewMode: (viewMode: 'grid' | 'list') => void;
+  currentList: ReadingList | undefined;
+  viewMode: ViewMode;
+  setViewMode: (viewMode: ViewMode) => void;
   filterGenre: string;
   setFilterGenre: (genre: string) => void;
-  sortBy: string;
-  setSortBy: (sort: any) => void; // Replace with a proper type
+  sortBy: "title" | "author" | "dateAdded" | "rating";
+  setSortBy: (sort: "title" | "author" | "dateAdded" | "rating") => void;
   genres: string[];
   filteredBooksCount: number;
 }
 
-const LibraryHeader: React.FC<LibraryHeaderProps> = ({ 
-  currentList, 
-  viewMode, 
-  setViewMode, 
-  filterGenre, 
-  setFilterGenre, 
-  sortBy, 
-  setSortBy, 
-  genres, 
-  filteredBooksCount 
+const LibraryHeader: React.FC<LibraryHeaderProps> = ({
+  currentList,
+  viewMode,
+  setViewMode,
+  filterGenre,
+  setFilterGenre,
+  sortBy,
+  setSortBy,
+  genres,
+  filteredBooksCount,
 }) => {
   return (
-    <div className="bg-white border-b border-gray-200 p-6">
+    <div className="bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm border-b border-amber-200 dark:border-slate-700 p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{currentList?.name}</h2>
-          <p className="text-gray-600">{currentList?.description}</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`p-2 rounded-md transition-colors ${
-              viewMode === 'grid' 
-                ? 'bg-indigo-dye-100 text-indigo-dye-700' 
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
+          <h1
+            className="text-2xl font-bold text-gray-900 dark:text-slate-100 font-serif"
+            id="library-title"
           >
-            <Grid className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`p-2 rounded-md transition-colors ${
-              viewMode === 'list' 
-                ? 'bg-indigo-dye-100 text-indigo-dye-700' 
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <List className="h-4 w-4" />
-          </button>
+            {currentList?.name || "Library"}
+          </h1>
+          {currentList?.description && (
+            <p
+              className="text-gray-600 dark:text-slate-300 italic"
+              aria-describedby="library-title"
+            >
+              {currentList.description}
+            </p>
+          )}
         </div>
+        <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
       </div>
 
       {/* Filters */}
-      <div className="flex items-center space-x-4">
-        <select
-          value={filterGenre}
-          onChange={(e) => setFilterGenre(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-dye-500 focus:border-indigo-dye-500"
-        >
-          <option value="all">All Genres</option>
-          {genres.map(genre => (
-            <option key={genre} value={genre}>{genre}</option>
-          ))}
-        </select>
-        
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as any)}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-dye-500 focus:border-indigo-dye-500"
-        >
-          <option value="title">Sort by Title</option>
-          <option value="author">Sort by Author</option>
-          <option value="dateAdded">Sort by Date Added</option>
-          <option value="rating">Sort by Rating</option>
-        </select>
-
-        <span className="text-sm text-gray-600">
-          {filteredBooksCount} book{filteredBooksCount !== 1 ? 's' : ''}
-        </span>
+      <div role="region" aria-label="Filter and sort controls">
+        <FilterControls
+          filterGenre={filterGenre}
+          onFilterGenreChange={setFilterGenre}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+          genres={genres}
+          filteredBooksCount={filteredBooksCount}
+        />
       </div>
     </div>
   );

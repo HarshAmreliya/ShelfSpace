@@ -1,26 +1,35 @@
+"use client";
 
-'use client';
-
-import React from 'react';
-import { Book } from '../../../types/library';
-import BookCard from '../common/BookCard';
+import React, { memo } from "react";
+import { Book } from "@/types/book";
+import { BookListItem } from "@/components/library/components/BookListItem";
 
 interface BookListProps {
   books: Book[];
+  onBookSelect?: (book: Book) => void;
+  className?: string;
 }
 
-const BookList: React.FC<BookListProps> = ({ books }) => {
-  return (
-    <div className="space-y-4">
-      {books.map(book => (
-        <BookCard
-          key={book.id}
-          {...book}
-          viewMode="list"
-        />
-      ))}
-    </div>
-  );
-};
+const BookList: React.FC<BookListProps> = memo(
+  ({ books, onBookSelect, className = "" }) => {
+    return (
+      <div
+        className={`space-y-4 ${className}`}
+        role="list"
+        aria-label={`List of ${books.length} books`}
+      >
+        {books.map((book) => (
+          <BookListItem
+            key={book.id}
+            book={book}
+            onSelect={onBookSelect}
+          />
+        ))}
+      </div>
+    );
+  }
+);
+
+BookList.displayName = "BookList";
 
 export default BookList;

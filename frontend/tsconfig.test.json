@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Relax some strict rules for test files
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": false,
+    "exactOptionalPropertyTypes": false,
+    "types": ["jest", "@testing-library/jest-dom", "node"]
+  },
+  "include": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "src/test-utils/**/*",
+    "jest.config.js",
+    "jest.setup.js"
+  ],
+  "exclude": ["node_modules"]
+}

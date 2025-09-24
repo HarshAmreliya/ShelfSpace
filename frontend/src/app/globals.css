@@ -54,6 +54,110 @@
   .card {
     @apply bg-surface rounded-xl shadow-sm border border-border;
   }
+
+  /* Custom Scrollbar Styles */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.amber.400') theme('colors.amber.100');
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: theme('colors.amber.100');
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: theme('colors.amber.400');
+    border-radius: 4px;
+    border: 1px solid theme('colors.amber.200');
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.amber.500');
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-corner {
+    background: theme('colors.amber.100');
+  }
+
+  /* Dark mode scrollbar styles */
+  .dark .custom-scrollbar {
+    scrollbar-color: theme('colors.amber.500') theme('colors.slate.700');
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-track {
+    background: theme('colors.slate.700');
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: theme('colors.amber.500');
+    border: 1px solid theme('colors.slate.600');
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.amber.400');
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-corner {
+    background: theme('colors.slate.700');
+  }
+
+  /* Apply custom scrollbar to all scrollable elements */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.amber.400') theme('colors.amber.100');
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: theme('colors.amber.100');
+    border-radius: 4px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: theme('colors.amber.400');
+    border-radius: 4px;
+    border: 1px solid theme('colors.amber.200');
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.amber.500');
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: theme('colors.amber.100');
+  }
+
+  /* Dark mode global scrollbar styles */
+  .dark * {
+    scrollbar-color: theme('colors.amber.500') theme('colors.slate.700');
+  }
+
+  .dark *::-webkit-scrollbar-track {
+    background: theme('colors.slate.700');
+  }
+
+  .dark *::-webkit-scrollbar-thumb {
+    background: theme('colors.amber.500');
+    border: 1px solid theme('colors.slate.600');
+  }
+
+  .dark *::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.amber.400');
+  }
+
+  .dark *::-webkit-scrollbar-corner {
+    background: theme('colors.slate.700');
+  }
 }
 
 
