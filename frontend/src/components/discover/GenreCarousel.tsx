@@ -1,9 +1,9 @@
+"use client";
 
-'use client';
-
-import React, { useRef } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import BookCard, { Book } from '../common/BookCard';
+import React, { useRef } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { BookCard } from "@/components/common/BookCard";
+import { Book } from "@/types/models";
 
 interface GenreSection {
   genre: string;
@@ -19,13 +19,19 @@ const GenreCarousel: React.FC<GenreCarouselProps> = ({ sections }) => {
 
   const scrollLeft = (index: number) => {
     if (scrollContainerRefs.current[index]) {
-      scrollContainerRefs.current[index]?.scrollBy({ left: -400, behavior: 'smooth' });
+      scrollContainerRefs.current[index]?.scrollBy({
+        left: -400,
+        behavior: "smooth",
+      });
     }
   };
 
   const scrollRight = (index: number) => {
     if (scrollContainerRefs.current[index]) {
-      scrollContainerRefs.current[index]?.scrollBy({ left: 400, behavior: 'smooth' });
+      scrollContainerRefs.current[index]?.scrollBy({
+        left: 400,
+        behavior: "smooth",
+      });
     }
   };
 
@@ -34,7 +40,9 @@ const GenreCarousel: React.FC<GenreCarouselProps> = ({ sections }) => {
       <h2 className="text-lg font-bold text-gray-900 mb-3 ml-2">Genres</h2>
       {sections.map((section, index) => (
         <div key={section.genre} className="mb-8">
-          <h3 className="text-base font-semibold text-indigo-dye-700 mb-3 ml-2">{section.genre}</h3>
+          <h3 className="text-base font-semibold text-indigo-dye-700 mb-3 ml-2">
+            {section.genre}
+          </h3>
           <div className="relative group">
             {/* Left Arrow */}
             <button
@@ -54,8 +62,8 @@ const GenreCarousel: React.FC<GenreCarouselProps> = ({ sections }) => {
               ref={(el) => (scrollContainerRefs.current[index] = el)}
               className="flex overflow-x-auto no-scrollbar pb-2 px-4 py-4"
             >
-              {section.books.map((book: any) => (
-                <BookCard key={book.id} book={book} />
+              {section.books.map((book: Book) => (
+                <BookCard key={book.id} book={book} variant="grid" />
               ))}
             </div>
           </div>

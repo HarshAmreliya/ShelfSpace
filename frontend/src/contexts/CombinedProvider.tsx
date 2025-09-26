@@ -1,0 +1,28 @@
+// src/contexts/CombinedProvider.tsx
+"use client";
+
+import React, { ReactNode } from "react";
+import { AppProvider } from "./AppContext";
+import { ThemeProvider } from "./ThemeContext";
+
+interface CombinedProviderProps {
+  children: ReactNode;
+  initialUser?: any;
+  defaultTheme?: "light" | "dark" | "system";
+}
+
+export function CombinedProvider({
+  children,
+  initialUser,
+  defaultTheme = "system",
+}: CombinedProviderProps) {
+  return (
+    <ThemeProvider defaultTheme={defaultTheme}>
+      <AppProvider initialUser={initialUser}>{children}</AppProvider>
+    </ThemeProvider>
+  );
+}
+
+// Re-export hooks for convenience
+export { useApp } from "./AppContext";
+export { useTheme } from "./ThemeContext";

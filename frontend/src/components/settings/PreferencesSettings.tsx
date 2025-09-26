@@ -1,158 +1,339 @@
-import { UserSettings } from "./SettingsLayout"; 
-import { colors } from '../../utils/colors';
+"use client";
 
-interface Props {
-  userSettings: UserSettings;
-  handleSettingsUpdate: (section: keyof UserSettings, field: string, value: any) => void;
-}
+import React, { useState } from "react";
+import {
+  Palette,
+  Moon,
+  Sun,
+  BookOpen,
+  Eye,
+  Bell,
+  Settings as SettingsIcon,
+} from "lucide-react";
 
-interface Preferences {
-  theme: "light" | "dark" | "auto";
-  dailyGoal: number;
-  weeklyGoal: number;
-  monthlyGoal: number;
-  readingReminders: boolean;
-  autoMarkAsRead: boolean;
-  showReadingProgress: boolean;
-  publicProfile: boolean;
-}
+export function PreferencesSettings() {
+  const [preferences, setPreferences] = useState({
+    theme: "system", // "light", "dark", "system"
+    language: "en",
+    timezone: "America/Los_Angeles",
+    dateFormat: "MM/DD/YYYY",
+    readingGoal: 24,
+    bookFormat: "any",
+    autoSave: true,
+    notifications: {
+      email: true,
+      push: true,
+      inApp: true,
+    },
+    privacy: {
+      showReadingProgress: true,
+      showCurrentlyReading: true,
+      showReviews: true,
+      allowMessages: true,
+    },
+  });
 
-interface Props {
-  userSettings: UserSettings;
-  handleSettingsUpdate: (section: keyof UserSettings, field: string, value: any) => void;
-}
+  const handleToggle = (category: 'notifications' | 'privacy', setting: string) => {
+    setPreferences(prev => ({
+      ...prev,
+      [category]: {
+        ...prev[category],
+        [setting]: !(prev[category] as any)[setting],
+      },
+    }));
+  };
 
-const PreferencesSettings = ({ userSettings, handleSettingsUpdate }: Props) => (
-  <div className="bg-white rounded-xl shadow-md p-6">
-    <h3 className="text-xl font-bold text-gray-800 mb-6">Reading Preferences</h3>
+  const handleSave = () => {
+    console.log("Saving preferences:", preferences);
+  };
 
-    <div className="space-y-6">
-      {/* Theme Selection */}
+  return (
+    <div className="space-y-8">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">Theme</label>
-        <div className="flex space-x-4">
-          {[
-            { value: "light", label: "Light", icon: "☀️" },
-            { value: "dark", label: "Dark", icon: "🌙" },
-            { value: "auto", label: "Auto", icon: "🌓" },
-          ].map((theme) => (
-            <button
-              key={theme.value}
-              onClick={() => handleSettingsUpdate("preferences", "theme", theme.value)}
-              className={`flex items-center space-x-2 px-4 py-3 rounded-lg border btn-outline ${colors.buttonHover}`}
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 font-serif mb-2">
+          App Preferences
+        </h2>
+        <p className="text-gray-600 dark:text-slate-400">
+          Customize your reading experience and app settings.
+        </p>
+      </div>
+
+      {/* Appearance */}
+      <div className="bg-white/50 dark:bg-slate-700/50 rounded-xl border border-amber-200 dark:border-slate-600 p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-500 rounded-lg flex items-center justify-center">
+            <Palette className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100">
+              Appearance
+            </h3>
+            <p className="text-gray-600 dark:text-slate-400 text-sm">
+              Customize the look and feel of your app
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">
+              Theme
+            </label>
+            <div className="space-y-2">
+              {[
+                { value: "light", label: "Light", icon: Sun },
+                { value: "dark", label: "Dark", icon: Moon },
+                { value: "system", label: "System", icon: SettingsIcon },
+              ].map(({ value, label, icon: Icon }) => (
+                <label key={value} className="flex items-center gap-3 p-3 bg-white/50 dark:bg-slate-600/50 rounded-lg cursor-pointer hover:bg-white/70 dark:hover:bg-slate-600/70 transition-colors">
+                  <input
+                    type="radio"
+                    name="theme"
+                    value={value}
+                    checked={preferences.theme === value}
+                    onChange={(e) => setPreferences(prev => ({ ...prev, theme: e.target.value }))}
+                    className="text-amber-500 focus:ring-amber-500"
+                  />
+                  <Icon className="h-5 w-5 text-gray-600 dark:text-slate-400" />
+                  <span className="text-gray-900 dark:text-slate-100">{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+              Language
+            </label>
+            <select
+              value={preferences.language}
+              onChange={(e) => setPreferences(prev => ({ ...prev, language: e.target.value }))}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
             >
-              <span className="text-lg">{theme.icon}</span>
-              <span>{theme.label}</span>
-            </button>
-          ))}
+              <option value="en">English</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="it">Italian</option>
+              <option value="pt">Portuguese</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+              Timezone
+            </label>
+            <select
+              value={preferences.timezone}
+              onChange={(e) => setPreferences(prev => ({ ...prev, timezone: e.target.value }))}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            >
+              <option value="America/Los_Angeles">Pacific Time (PT)</option>
+              <option value="America/Denver">Mountain Time (MT)</option>
+              <option value="America/Chicago">Central Time (CT)</option>
+              <option value="America/New_York">Eastern Time (ET)</option>
+              <option value="Europe/London">London (GMT)</option>
+              <option value="Europe/Paris">Paris (CET)</option>
+              <option value="Asia/Tokyo">Tokyo (JST)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+              Date Format
+            </label>
+            <select
+              value={preferences.dateFormat}
+              onChange={(e) => setPreferences(prev => ({ ...prev, dateFormat: e.target.value }))}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            >
+              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+              <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Reading Goals */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">Reading Goals</label>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Daily (minutes)</label>
-            <input
-              type="number"
-              value={userSettings.preferences.dailyGoal}
-              onChange={(e) =>
-                handleSettingsUpdate("preferences", "dailyGoal", parseInt(e.target.value))
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
+      {/* Reading Preferences */}
+      <div className="bg-white/50 dark:bg-slate-700/50 rounded-xl border border-amber-200 dark:border-slate-600 p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-500 rounded-lg flex items-center justify-center">
+            <BookOpen className="h-5 w-5 text-white" />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Weekly (books)</label>
-            <input
-              type="number"
-              value={userSettings.preferences.weeklyGoal}
-              onChange={(e) =>
-                handleSettingsUpdate("preferences", "weeklyGoal", parseInt(e.target.value))
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Monthly (books)</label>
-            <input
-              type="number"
-              value={userSettings.preferences.monthlyGoal}
-              onChange={(e) =>
-                handleSettingsUpdate("preferences", "monthlyGoal", parseInt(e.target.value))
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100">
+              Reading Preferences
+            </h3>
+            <p className="text-gray-600 dark:text-slate-400 text-sm">
+              Set your reading goals and preferences
+            </p>
           </div>
         </div>
-      </div>
 
-      {/* Toggle Options */}
-      <div className="space-y-4">
-        {[
-          {
-            key: "readingReminders",
-            label: "Daily Reading Reminders",
-            desc: "Get notified to maintain your reading streak",
-          },
-          {
-            key: "autoMarkAsRead",
-            label: "Auto-mark as Read",
-            desc: "Automatically mark books as read when you finish them",
-          },
-          {
-            key: "showReadingProgress",
-            label: "Show Reading Progress",
-            desc: "Display progress bars and statistics",
-          },
-          {
-            key: "publicProfile",
-            label: "Public Profile",
-            desc: "Allow others to see your reading activity",
-          },
-        ].map((option) => (
-          <div
-            key={option.key}
-            className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-          >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+              Annual Reading Goal
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="200"
+              value={preferences.readingGoal}
+              onChange={(e) => setPreferences(prev => ({ ...prev, readingGoal: parseInt(e.target.value) }))}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            />
+            <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
+              Books per year
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+              Preferred Book Format
+            </label>
+            <select
+              value={preferences.bookFormat}
+              onChange={(e) => setPreferences(prev => ({ ...prev, bookFormat: e.target.value }))}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            >
+              <option value="any">Any Format</option>
+              <option value="physical">Physical Books</option>
+              <option value="ebook">E-books</option>
+              <option value="audiobook">Audiobooks</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <div className="flex items-center justify-between p-4 bg-white/50 dark:bg-slate-600/50 rounded-lg">
             <div>
-              <h4 className="font-medium text-gray-800">{option.label}</h4>
-              <p className="text-sm text-gray-600">{option.desc}</p>
+              <h4 className="font-medium text-gray-900 dark:text-slate-100">Auto-save Progress</h4>
+              <p className="text-sm text-gray-600 dark:text-slate-400">Automatically save your reading progress</p>
             </div>
             <button
-              onClick={() =>
-                handleSettingsUpdate(
-                  "preferences",
-                  option.key,
-                  !userSettings.preferences[option.key as keyof Preferences]
-                )
-              }
+              onClick={() => setPreferences(prev => ({ ...prev, autoSave: !prev.autoSave }))}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                userSettings.preferences[option.key as keyof Preferences]
-                  ? "bg-purple-600"
-                  : "bg-gray-300"
+                preferences.autoSave ? "bg-amber-500" : "bg-gray-300 dark:bg-slate-500"
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  userSettings.preferences[option.key as keyof Preferences]
-                    ? "translate-x-6"
-                    : "translate-x-1"
+                  preferences.autoSave ? "translate-x-6" : "translate-x-1"
                 }`}
               />
             </button>
           </div>
-        ))}
+        </div>
       </div>
 
-      <div className="flex justify-end">
-        <button className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+      {/* Notifications */}
+      <div className="bg-white/50 dark:bg-slate-700/50 rounded-xl border border-amber-200 dark:border-slate-600 p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg flex items-center justify-center">
+            <Bell className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100">
+              Notifications
+            </h3>
+            <p className="text-gray-600 dark:text-slate-400 text-sm">
+              Choose how you want to be notified
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {[
+            { key: "email", label: "Email Notifications", desc: "Receive updates via email" },
+            { key: "push", label: "Push Notifications", desc: "Get notifications on your device" },
+            { key: "inApp", label: "In-App Notifications", desc: "Show notifications within the app" },
+          ].map(({ key, label, desc }) => (
+            <div key={key} className="flex items-center justify-between p-4 bg-white/50 dark:bg-slate-600/50 rounded-lg">
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-slate-100">{label}</h4>
+                <p className="text-sm text-gray-600 dark:text-slate-400">{desc}</p>
+              </div>
+              <button
+                onClick={() => handleToggle("notifications", key)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  preferences.notifications[key as keyof typeof preferences.notifications]
+                    ? "bg-amber-500"
+                    : "bg-gray-300 dark:bg-slate-500"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    preferences.notifications[key as keyof typeof preferences.notifications]
+                      ? "translate-x-6"
+                      : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Privacy Settings */}
+      <div className="bg-white/50 dark:bg-slate-700/50 rounded-xl border border-amber-200 dark:border-slate-600 p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-gradient-to-br from-red-400 to-red-500 rounded-lg flex items-center justify-center">
+            <Eye className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100">
+              Privacy Settings
+            </h3>
+            <p className="text-gray-600 dark:text-slate-400 text-sm">
+              Control what others can see about your reading activity
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {[
+            { key: "showReadingProgress", label: "Show Reading Progress", desc: "Let others see your reading progress" },
+            { key: "showCurrentlyReading", label: "Show Currently Reading", desc: "Display books you're currently reading" },
+            { key: "showReviews", label: "Show Reviews", desc: "Make your reviews visible to others" },
+            { key: "allowMessages", label: "Allow Messages", desc: "Let other users send you messages" },
+          ].map(({ key, label, desc }) => (
+            <div key={key} className="flex items-center justify-between p-4 bg-white/50 dark:bg-slate-600/50 rounded-lg">
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-slate-100">{label}</h4>
+                <p className="text-sm text-gray-600 dark:text-slate-400">{desc}</p>
+              </div>
+              <button
+                onClick={() => handleToggle("privacy", key)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  preferences.privacy[key as keyof typeof preferences.privacy]
+                    ? "bg-amber-500"
+                    : "bg-gray-300 dark:bg-slate-500"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    preferences.privacy[key as keyof typeof preferences.privacy]
+                      ? "translate-x-6"
+                      : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Save Button */}
+      <div className="flex justify-end pt-6 border-t border-amber-200 dark:border-slate-600">
+        <button
+          onClick={handleSave}
+          className="px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors font-medium"
+        >
           Save Preferences
         </button>
       </div>
     </div>
-  </div>
-);
-
-export default PreferencesSettings;
+  );
+}

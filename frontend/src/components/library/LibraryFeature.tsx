@@ -1,0 +1,232 @@
+"use client";
+
+import React, { Suspense, useState, useMemo } from "react";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { LibraryLoadingSkeleton } from "@/components/common/LoadingStates";
+import { LibraryErrorFallback } from "@/components/common/ErrorFallbacks/LibraryErrorFallback";
+import { useLibraryState } from "@/hooks/library/useLibraryState";
+import {
+  useKeyboardNavigation,
+  commonShortcuts,
+} from "../../hooks/useKeyboardNavigation";
+import LibrarySidebar from "./LibrarySidebar";
+import LibraryHeader from "./LibraryHeader";
+import BookGrid from "./BookGrid";
+import BookList from "./BookList";
+import KeyboardShortcutsHelp from "@/components/common/KeyboardShortcutsHelp";
+import { BookOpen } from "lucide-react";
+
+/**
+ * Props for the LibraryFeature component
+ */
+interface LibraryFeatureProps {
+  /** URL search parameters for initializing library state */
+  searchParams?: { [key: string]: string | string[] | undefined };
+}
+
+/**
+ * LibraryFeature Component
+ *
+ * Main orchestrator component for the library feature. Manages the overall
+ * library state, keyboard navigation, and coordinates between sidebar and
+ * main content areas.
+ *
+ * Features:
+ * - Reading list management and selection
+ * - Book filtering, searching, and sorting
+ * - Grid and list view modes
+ * - Keyboard navigation support
+ * - Error boundaries and loading states
+ * - Responsive layout
+ *
+ * @example
+ * ```tsx
+ * // Basic usage
+ * <LibraryFeature />
+ *
+ * // With URL search parameters
+ * <LibraryFeature searchParams={{ list: "2", view: "list", search: "fiction" }} />
+ * ```
+ *
+ * Keyboard Shortcuts:
+ * - Ctrl/Cmd + K: Focus search
+ * - G: Toggle between grid and list view
+ * - ?: Show keyboard shortcuts help
+ * - Escape: Clear search or close modals
+ *
+ * @param searchParams - URL search parameters for initializing state
+ */
+export function LibraryFeature({ searchParams }: LibraryFeatureProps) {
+  const {
+    selectedList,
+    viewMode,
+    searchQuery,
+    filterGenre,
+    sortBy,
+    readingLists,
+    currentList,
+    filteredBooks,
+    genres,
+    isLoading,
+    error,
+    actions,
+  } = useLibraryState(searchParams);
+
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+
+  // Define keyboard shortcuts for library
+  const keyboardShortcuts = useMemo(
+    () => [
+      commonShortcuts.search(() => {
+        const searchInput = document.querySelector(
+          'input[placeholder*="Search"]'
+        ) as HTMLInputElement;
+        searchInput?.focus();
+      }),
+      commonShortcuts.help(() => setShowKeyboardHelp(true)),
+      {
+        key: "g",
+        action: () => actions.setViewMode("grid"),
+        description: "Switch to grid view",
+      },
+      {
+        key: "l",
+        action: () => actions.setViewMode("list"),
+        description: "Switch to list view",
+      },
+      {
+        key: "f",
+        action: () => {
+          const genreFilter = document.getElementById(
+            "genre-filter"
+          ) as HTMLSelectElement;
+          genreFilter?.focus();
+        },
+        description: "Focus genre filter",
+      },
+      {
+        key: "s",
+        action: () => {
+          const sortSelect = document.getElementById(
+            "sort-by"
+          ) as HTMLSelectElement;
+          sortSelect?.focus();
+        },
+        description: "Focus sort options",
+      },
+    ],
+    [actions]
+  );
+
+  // Set up keyboard navigation
+  useKeyboardNavigation({
+    shortcuts: keyboardShortcuts,
+    enableArrowNavigation: true,
+  });
+
+  if (error) {
+    throw error; // Let ErrorBoundary handle this
+  }
+
+  if (isLoading) {
+    return <LibraryLoadingSkeleton />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 relative z-10">
+      {/* Decorative book-themed background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 text-6xl opacity-5 dark:opacity-10">📚</div>
+        <div className="absolute top-40 right-20 text-4xl opacity-5 dark:opacity-10">📖</div>
+        <div className="absolute bottom-20 left-1/4 text-5xl opacity-5 dark:opacity-10">📝</div>
+        <div className="absolute bottom-40 right-1/3 text-3xl opacity-5 dark:opacity-10">✍️</div>
+      </div>
+
+      <div className="relative flex h-screen">
+        <aside role="complementary" aria-label="Library navigation">
+          <LibrarySidebar
+            readingLists={readingLists}
+            selectedList={selectedList}
+            setSelectedList={actions.selectList}
+            searchQuery={searchQuery}
+            setSearchQuery={actions.setSearchQuery}
+          />
+        </aside>
+
+        {/* Main Content */}
+        <main
+          id="main-content"
+          className="flex-1 flex flex-col"
+          role="main"
+          aria-label="Library content"
+        >
+          <header role="banner">
+            <LibraryHeader
+              currentList={currentList}
+              viewMode={viewMode}
+              setViewMode={actions.setViewMode}
+              filterGenre={filterGenre}
+              setFilterGenre={actions.setFilterGenre}
+              sortBy={sortBy}
+              setSortBy={actions.setSortBy}
+              genres={genres}
+              filteredBooksCount={filteredBooks.length}
+            />
+          </header>
+
+          {/* Books Display */}
+          <section
+            className="flex-1 overflow-y-auto p-6"
+            role="region"
+            aria-label={`Books in ${currentList?.name || "library"}`}
+            aria-live="polite"
+          >
+            {filteredBooks.length > 0 ? (
+              viewMode === "grid" ? (
+                <BookGrid books={filteredBooks} />
+              ) : (
+                <BookList books={filteredBooks} />
+              )
+            ) : (
+              <div className="text-center py-12" role="status" aria-live="polite">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full shadow-lg mb-6">
+                  <BookOpen className="h-10 w-10 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-3 font-serif">
+                  No Books Found
+                </h3>
+                <p className="text-lg text-gray-600 dark:text-slate-300 italic">
+                  "A room without books is like a body without a soul." - Cicero
+                </p>
+                <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
+                  Try adjusting your search or filters to find your next great read
+                </p>
+              </div>
+            )}
+          </section>
+        </main>
+      </div>
+
+      <KeyboardShortcutsHelp
+        shortcuts={keyboardShortcuts}
+        isOpen={showKeyboardHelp}
+        onClose={() => setShowKeyboardHelp(false)}
+      />
+    </div>
+  );
+}
+
+// Wrapped version with error boundary for use in pages
+export function LibraryFeatureWithBoundary({
+  searchParams,
+}: LibraryFeatureProps) {
+  return (
+    <ErrorBoundary fallback={LibraryErrorFallback}>
+      <Suspense fallback={<LibraryLoadingSkeleton />}>
+        <LibraryFeature searchParams={searchParams} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+export default LibraryFeature;

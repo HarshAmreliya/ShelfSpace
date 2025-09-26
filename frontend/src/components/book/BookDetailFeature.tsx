@@ -1,0 +1,461 @@
+"use client";
+
+import React, { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import {
+  BookOpen,
+  ArrowLeft,
+  Star,
+  Calendar,
+  User,
+  MessageCircle,
+  ThumbsUp,
+  Share2,
+  Bookmark,
+  BookmarkCheck,
+  Edit3,
+  MoreHorizontal,
+  Clock,
+  Eye,
+  Heart,
+  Flag
+} from "lucide-react";
+import { Book } from "@/types/book";
+import { BookReview, BookDiscussion } from "@/types/bookDetail";
+import { mockBookDetails, mockBookReviews, mockBookDiscussions } from "@/services/mockData/bookDetails";
+
+interface BookDetailFeatureProps {
+  bookId: string;
+}
+
+export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"overview" | "reviews" | "discussions">("overview");
+  const [isBookmarked, setIsBookmarked] = useState(false);
+
+  // Get book details from mock data
+  const book = useMemo(() => {
+    return mockBookDetails.find(b => b.id === bookId);
+  }, [bookId]);
+
+  // Get reviews and discussions for this book
+  const reviews = useMemo(() => {
+    return mockBookReviews.filter(r => r.bookId === bookId);
+  }, [bookId]);
+
+  const discussions = useMemo(() => {
+    return mockBookDiscussions.filter(d => d.bookId === bookId);
+  }, [bookId]);
+
+  if (!book) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full shadow-lg mb-6">
+            <BookOpen className="h-10 w-10 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-3 font-serif">
+            Book Not Found
+          </h1>
+          <p className="text-gray-600 dark:text-slate-300 mb-6">
+            The book you're looking for doesn't exist.
+          </p>
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const handleBookmark = () => {
+    setIsBookmarked(!isBookmarked);
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: book.title,
+        text: `Check out "${book.title}" by ${book.author}`,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 relative z-10">
+      {/* Decorative book-themed background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 text-6xl opacity-5 dark:opacity-10">📚</div>
+        <div className="absolute top-40 right-20 text-4xl opacity-5 dark:opacity-10">📖</div>
+        <div className="absolute bottom-20 left-1/4 text-5xl opacity-5 dark:opacity-10">📝</div>
+        <div className="absolute bottom-40 right-1/3 text-3xl opacity-5 dark:opacity-10">✍️</div>
+      </div>
+
+      {/* Main Content */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Book Header */}
+        <div className="bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-xl border border-amber-200 dark:border-slate-700 p-8 mb-8">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Book Cover */}
+            <div className="flex-shrink-0">
+              <div className="w-64 h-80 bg-gradient-to-br from-amber-100 to-orange-200 dark:from-slate-700 dark:to-slate-600 rounded-xl shadow-lg flex items-center justify-center">
+                <BookOpen className="h-24 w-24 text-amber-600 dark:text-slate-400" />
+              </div>
+            </div>
+
+            {/* Book Info */}
+            <div className="flex-1">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h1 className="text-4xl font-bold text-gray-900 dark:text-slate-100 mb-2 font-serif">
+                    {book.title}
+                  </h1>
+                  <p className="text-xl text-gray-600 dark:text-slate-400 mb-4">
+                    by {book.author}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleBookmark}
+                    className="p-2 rounded-lg bg-amber-100 dark:bg-slate-700 hover:bg-amber-200 dark:hover:bg-slate-600 transition-colors"
+                  >
+                    {isBookmarked ? (
+                      <BookmarkCheck className="h-5 w-5 text-amber-600 dark:text-slate-300" />
+                    ) : (
+                      <Bookmark className="h-5 w-5 text-amber-600 dark:text-slate-300" />
+                    )}
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="p-2 rounded-lg bg-amber-100 dark:bg-slate-700 hover:bg-amber-200 dark:hover:bg-slate-600 transition-colors"
+                  >
+                    <Share2 className="h-5 w-5 text-amber-600 dark:text-slate-300" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Rating and Stats */}
+              <div className="flex items-center gap-6 mb-6">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-5 w-5 ${
+                          i < Math.floor(book.averageRating || 0)
+                            ? "text-amber-400 fill-current"
+                            : "text-gray-300 dark:text-slate-600"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-gray-600 dark:text-slate-400">
+                    {book.averageRating?.toFixed(1)} ({book.ratingsCount} ratings)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-600 dark:text-slate-400">
+                  <Calendar className="h-4 w-4" />
+                  <span>{book.publishedYear}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-600 dark:text-slate-400">
+                  <BookOpen className="h-4 w-4" />
+                  <span>{book.pages} pages</span>
+                </div>
+              </div>
+
+              {/* Genres */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                {book.genres.map((genre) => (
+                  <span
+                    key={genre}
+                    className="px-3 py-1 bg-amber-100 dark:bg-slate-700 text-amber-700 dark:text-slate-300 rounded-full text-sm font-medium"
+                  >
+                    {genre}
+                  </span>
+                ))}
+              </div>
+
+              {/* Description */}
+              <p className="text-gray-700 dark:text-slate-300 leading-relaxed">
+                {book.description}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-xl border border-amber-200 dark:border-slate-700 p-8">
+          <div className="flex border-b border-amber-200 dark:border-slate-700 mb-8">
+            {[
+              { id: "overview", label: "Overview", icon: BookOpen },
+              { id: "reviews", label: `Reviews (${reviews.length})`, icon: MessageCircle },
+              { id: "discussions", label: `Discussions (${discussions.length})`, icon: User },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
+                  activeTab === tab.id
+                    ? "text-amber-600 dark:text-amber-400 border-b-2 border-amber-500 dark:border-amber-400"
+                    : "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200"
+                }`}
+              >
+                <tab.icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
+          {activeTab === "overview" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-amber-50 dark:bg-slate-700/50 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">
+                    Book Details
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-slate-400">ISBN:</span>
+                      <span className="text-gray-900 dark:text-slate-100">{book.isbn || "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-slate-400">Publisher:</span>
+                      <span className="text-gray-900 dark:text-slate-100">{book.publisher || "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-slate-400">Language:</span>
+                      <span className="text-gray-900 dark:text-slate-100">{book.language || "English"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-slate-400">Format:</span>
+                      <span className="text-gray-900 dark:text-slate-100">{book.format || "Paperback"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 dark:bg-slate-700/50 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">
+                    Reading Progress
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-slate-400">Status:</span>
+                      <span className="text-gray-900 dark:text-slate-100 capitalize">{book.status}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-slate-400">Progress:</span>
+                      <span className="text-gray-900 dark:text-slate-100">{book.readingProgress || 0}%</span>
+                    </div>
+                    {book.startedAt && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-slate-400">Started:</span>
+                        <span className="text-gray-900 dark:text-slate-100">
+                          {new Date(book.startedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                    {book.finishedAt && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-slate-400">Finished:</span>
+                        <span className="text-gray-900 dark:text-slate-100">
+                          {new Date(book.finishedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {book.personalNotes && (
+                <div className="bg-amber-50 dark:bg-slate-700/50 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">
+                    Personal Notes
+                  </h3>
+                  <p className="text-gray-700 dark:text-slate-300">{book.personalNotes}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "reviews" && (
+            <div className="space-y-6">
+              {reviews.length === 0 ? (
+                <div className="text-center py-12">
+                  <MessageCircle className="h-12 w-12 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-2">
+                    No Reviews Yet
+                  </h3>
+                  <p className="text-gray-600 dark:text-slate-400">
+                    Be the first to review this book!
+                  </p>
+                </div>
+              ) : (
+                reviews.map((review) => (
+                  <div
+                    key={review.id}
+                    className="bg-amber-50 dark:bg-slate-700/50 rounded-lg p-6 border border-amber-200 dark:border-slate-600"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center">
+                          <User className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-slate-100">
+                            {review.author}
+                            {review.isVerified && (
+                              <span className="ml-2 text-amber-500 text-sm">✓ Verified</span>
+                            )}
+                          </h4>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-4 w-4 ${
+                                    i < review.rating
+                                      ? "text-amber-400 fill-current"
+                                      : "text-gray-300 dark:text-slate-600"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-sm text-gray-600 dark:text-slate-400">
+                              {new Date(review.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <button className="p-2 rounded-lg hover:bg-amber-100 dark:hover:bg-slate-600 transition-colors">
+                        <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-slate-400" />
+                      </button>
+                    </div>
+
+                    <h5 className="font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                      {review.title}
+                    </h5>
+                    <p className="text-gray-700 dark:text-slate-300 mb-4">{review.content}</p>
+
+                    <div className="flex items-center gap-4">
+                      <button className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
+                        <ThumbsUp className="h-4 w-4" />
+                        <span>{review.helpful}</span>
+                      </button>
+                      <button className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
+                        <MessageCircle className="h-4 w-4" />
+                        <span>{review.comments}</span>
+                      </button>
+                      <button className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
+                        <Share2 className="h-4 w-4" />
+                        <span>Share</span>
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {activeTab === "discussions" && (
+            <div className="space-y-6">
+              {discussions.length === 0 ? (
+                <div className="text-center py-12">
+                  <User className="h-12 w-12 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-2">
+                    No Discussions Yet
+                  </h3>
+                  <p className="text-gray-600 dark:text-slate-400">
+                    Start a discussion about this book!
+                  </p>
+                </div>
+              ) : (
+                discussions.map((discussion) => (
+                  <div
+                    key={discussion.id}
+                    className="bg-amber-50 dark:bg-slate-700/50 rounded-lg p-6 border border-amber-200 dark:border-slate-600"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center">
+                          <User className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-slate-100">
+                            {discussion.author}
+                          </h4>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600 dark:text-slate-400">
+                              {new Date(discussion.createdAt).toLocaleDateString()}
+                            </span>
+                            {discussion.isPinned && (
+                              <span className="text-xs bg-amber-200 dark:bg-slate-600 text-amber-800 dark:text-slate-200 px-2 py-1 rounded">
+                                Pinned
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <button className="p-2 rounded-lg hover:bg-amber-100 dark:hover:bg-slate-600 transition-colors">
+                        <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-slate-400" />
+                      </button>
+                    </div>
+
+                    <h5 className="font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                      {discussion.title}
+                    </h5>
+                    <p className="text-gray-700 dark:text-slate-300 mb-4">{discussion.content}</p>
+
+                    <div className="flex items-center gap-4">
+                      <button className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
+                        <Heart className="h-4 w-4" />
+                        <span>{discussion.likes}</span>
+                      </button>
+                      <button className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
+                        <MessageCircle className="h-4 w-4" />
+                        <span>{discussion.replies}</span>
+                      </button>
+                      <button className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
+                        <Eye className="h-4 w-4" />
+                        <span>{discussion.views}</span>
+                      </button>
+                      <button className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
+                        <Share2 className="h-4 w-4" />
+                        <span>Share</span>
+                      </button>
+                    </div>
+
+                    {discussion.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        {discussion.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="px-2 py-1 bg-amber-200 dark:bg-slate-600 text-amber-800 dark:text-slate-200 rounded text-xs"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Wrapped version with error boundary for use in pages
+export function BookDetailFeatureWithBoundary({ bookId }: { bookId: string }) {
+  return <BookDetailFeature bookId={bookId} />;
+}
