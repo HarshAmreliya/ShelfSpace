@@ -14,7 +14,7 @@ if str(current_dir) not in sys.path:
 
 import logging
 import json
-from typing import List, Dict, Any, AsyncGenerator
+from typing import List, Dict, Any, AsyncGenerator, Optional
 from collections import defaultdict
 
 try:
