@@ -133,7 +133,7 @@ class Chatbot:
 
             search_results = self.vector_db.search(
                 query_vector = query_vector,
-                top_k = 3,
+                top_k = 5,
                 additional_filters = filter_dict,
                 intent=intent
             )
