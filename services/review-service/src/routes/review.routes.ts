@@ -1,8 +1,8 @@
 import express, { Request, Response } from "express";
 import prisma from "../prisma.js";
 import { createReviewSchema, updateReviewSchema } from "../schemas.js";
-import { isAuthenticated } from "../middlewares/auth.ts";
-import type { Review } from "../types/review.d.ts";
+import { isAuthenticated } from "../middlewares/auth.js";
+import type { Review } from "../types/review.d.js";
 import { z } from "zod";
 
 const router = express.Router();
@@ -19,7 +19,7 @@ router.post(
     if (!parseResult.success) {
       return res
         .status(400)
-        .json({ error: "Invalid input", details: parseResult.error.errors });
+        .json({ error: "Invalid input", details: parseResult.error.issues });
     }
 
     try {
@@ -55,6 +55,17 @@ router.get(
         where: { bookId },
         skip: offset,
         take: limit,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          rating: true,
+          reviewText: true,
+          tldr: true,
+          userId: true,
+          bookId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
       res.json(reviews);
     } catch (error) {
@@ -85,6 +96,17 @@ router.get(
         where: { userId },
         skip: offset,
         take: limit,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          rating: true,
+          reviewText: true,
+          tldr: true,
+          userId: true,
+          bookId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
       res.json(reviews);
     } catch (error) {
@@ -105,6 +127,16 @@ router.get(
     try {
       const review = await prisma.review.findUnique({
         where: { id },
+        select: {
+          id: true,
+          rating: true,
+          reviewText: true,
+          tldr: true,
+          userId: true,
+          bookId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
       if (!review) {
         return res.status(404).json({ error: "Review not found" });
@@ -130,11 +162,14 @@ router.put(
     if (!parseResult.success) {
       return res
         .status(400)
-        .json({ error: "Invalid input", details: parseResult.error.errors });
+        .json({ error: "Invalid input", details: parseResult.error.issues });
     }
 
     try {
-      const review = await prisma.review.findUnique({ where: { id } });
+      const review = await prisma.review.findUnique({
+        where: { id },
+        select: { id: true, userId: true },
+      });
       if (!review) {
         return res.status(404).json({ error: "Review not found" });
       }
@@ -145,6 +180,16 @@ router.put(
       const updatedReview = await prisma.review.update({
         where: { id },
         data: parseResult.data,
+        select: {
+          id: true,
+          rating: true,
+          reviewText: true,
+          tldr: true,
+          userId: true,
+          bookId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
       res.json(updatedReview);
     } catch (error) {
@@ -164,7 +209,10 @@ router.delete(
   ) => {
     const { id } = req.params;
     try {
-      const review = await prisma.review.findUnique({ where: { id } });
+      const review = await prisma.review.findUnique({
+        where: { id },
+        select: { id: true, userId: true },
+      });
       if (!review) {
         return res.status(404).json({ error: "Review not found" });
       }

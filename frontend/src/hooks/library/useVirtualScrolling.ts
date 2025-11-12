@@ -20,7 +20,7 @@ export function useVirtualScrolling({
   viewMode,
   threshold = 50,
 }: UseVirtualScrollingOptions): UseVirtualScrollingReturn {
-  const [containerHeight, setContainerHeight] = useState(0);
+  const [_containerHeight, setContainerHeight] = useState(0);
 
   useEffect(() => {
     const updateHeight = () => {

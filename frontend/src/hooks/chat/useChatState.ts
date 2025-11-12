@@ -4,11 +4,10 @@
 import { useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { ChatState, ChatActions } from "../../../types/state";
-import { Message } from "../../../types/Message";
-import { initialMessages } from "../../services/mockData/chat";
+import { Message, MessageStatus } from "../../../types/chat";
 
 const initialState: Omit<ChatState, "isLoading" | "error"> = {
-  messages: initialMessages,
+  messages: [],
   inputMessage: "",
   isTyping: false,
   chatMode: "general",
@@ -33,10 +32,14 @@ export function useChatState() {
         setError(null);
 
         const userMessage: Message = {
-          id: state.messages.length + 1,
+          id: `${state.messages.length + 1}`,
           type: "user",
           content: textToSend,
-          timestamp: new Date(),
+          status: "sending" as MessageStatus,
+          conversationId: state.activeConversation || "default",
+          isEdited: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
 
         setState((prev) => ({

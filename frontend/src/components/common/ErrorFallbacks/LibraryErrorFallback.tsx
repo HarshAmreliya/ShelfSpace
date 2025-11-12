@@ -4,10 +4,10 @@ import React from "react";
 import { BookOpen, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { ErrorFallbackProps } from "../../../types/error";
+import { ErrorFallbackProps } from "@/components/common/ErrorBoundary";
 
 export const LibraryErrorFallback: React.FC<ErrorFallbackProps> = ({
-  error,
+  error: _error,
   retry,
   errorId,
 }) => {

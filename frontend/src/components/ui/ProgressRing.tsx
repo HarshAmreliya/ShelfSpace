@@ -20,7 +20,7 @@ export function ProgressRing({
   strokeWidth = 8,
   color = "#f59e0b",
   backgroundColor = "#e5e7eb",
-  animated = true,
+  animated: _animated = true,
   showPercentage = true,
   className = "",
   children
@@ -82,7 +82,7 @@ export function AnimatedCounter({ value, className = "" }: { value: number; clas
 export function GradientProgressBar({
   progress,
   height = 8,
-  animated = true,
+  animated: _animated = true,
   showPercentage = false,
   className = ""
 }: {

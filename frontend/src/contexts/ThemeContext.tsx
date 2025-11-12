@@ -36,9 +36,13 @@ export function ThemeProvider({
   // Function to get the actual theme based on system preference
   const getActualTheme = useCallback((themeValue: Theme): "light" | "dark" => {
     if (themeValue === "system") {
-      return window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
+      // Only check matchMedia in browser environment
+      if (typeof window !== "undefined") {
+        return window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+      }
+      return "light"; // Default to light on server
     }
     return themeValue;
   }, []);
@@ -46,6 +50,9 @@ export function ThemeProvider({
   // Function to apply theme to DOM
   const applyTheme = useCallback(
     (themeValue: Theme) => {
+      // Only run in browser environment
+      if (typeof window === "undefined") return;
+
       const root = document.documentElement;
       const actual = getActualTheme(themeValue);
 
@@ -66,12 +73,7 @@ export function ThemeProvider({
       setThemeState(newTheme);
       applyTheme(newTheme);
 
-      // Persist theme preference
-      try {
-        localStorage.setItem("theme", newTheme);
-      } catch (error) {
-        console.error("Failed to save theme preference:", error);
-      }
+      // Theme preference not persisted
     },
     [applyTheme]
   );
@@ -84,32 +86,8 @@ export function ThemeProvider({
 
   // Initialize theme on mount
   useEffect(() => {
-    // Try to load saved theme
-    try {
-      const savedTheme = localStorage.getItem("theme") as Theme | null;
-      if (savedTheme && ["light", "dark", "system"].includes(savedTheme)) {
-        setThemeState(savedTheme);
-
-        // Apply theme directly to avoid dependency loop
-        const root = document.documentElement;
-        const actual =
-          savedTheme === "system"
-            ? window.matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light"
-            : savedTheme;
-
-        if (actual === "dark") {
-          root.classList.add("dark");
-        } else {
-          root.classList.remove("dark");
-        }
-        setActualTheme(actual);
-        return;
-      }
-    } catch (error) {
-      console.error("Failed to load saved theme:", error);
-    }
+    // Only run in browser environment
+    if (typeof window === "undefined") return;
 
     // Apply default theme directly
     setThemeState(defaultTheme);
@@ -127,10 +105,13 @@ export function ThemeProvider({
       root.classList.remove("dark");
     }
     setActualTheme(actual);
-  }, [defaultTheme]); // Remove applyTheme dependency
+  }, [defaultTheme]);
 
   // Listen for system theme changes when using system theme
   useEffect(() => {
+    // Only run in browser environment
+    if (typeof window === "undefined") return;
+
     if (theme === "system") {
       const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
@@ -150,6 +131,7 @@ export function ThemeProvider({
       mediaQuery.addEventListener("change", handleChange);
       return () => mediaQuery.removeEventListener("change", handleChange);
     }
+    return undefined;
   }, [theme]); // Remove applyTheme dependency
 
   const contextValue: ThemeContextType = {

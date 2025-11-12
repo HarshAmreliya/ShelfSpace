@@ -8,7 +8,7 @@ export function useUserSetup() {
   const { data: session, status } = useSession();
   const [needsPreferences, setNeedsPreferences] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const checkUserSetup = async () => {

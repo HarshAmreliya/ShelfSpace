@@ -1,8 +1,9 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AnimatedCard, StaggerContainer, StaggerItem, FloatingElement } from '@/components/ui';
 import { Clock, BookOpen, Star, Heart, Users, Trophy, BookMarked, Plus } from 'lucide-react';
+import { useReadingLists } from '@/hooks/data/useReadingLists';
 
 interface ActivityItem {
   id: string;
@@ -10,6 +11,7 @@ interface ActivityItem {
   title: string;
   description: string;
   time: string;
+  timestamp: Date;
   icon: string;
   color: string;
   book?: {
@@ -24,118 +26,161 @@ interface ActivityItem {
   };
 }
 
-const mockActivities: ActivityItem[] = [
-  {
-    id: '1',
-    type: 'read',
-    title: 'Finished Reading',
-    description: 'Completed "The Seven Husbands of Evelyn Hugo"',
-    time: '2 hours ago',
-    icon: '📚',
-    color: 'from-green-400 to-emerald-500',
-    book: {
-      title: 'The Seven Husbands of Evelyn Hugo',
-      author: 'Taylor Jenkins Reid',
-      cover: '📖'
-    },
-    metadata: {
-      pages: 400,
-      genre: 'Historical Fiction'
+function formatTimeAgo(date: Date): string {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  const intervals = {
+    year: 31536000,
+    month: 2592000,
+    week: 604800,
+    day: 86400,
+    hour: 3600,
+    minute: 60,
+  };
+  
+  for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+    const interval = Math.floor(seconds / secondsInUnit);
+    if (interval >= 1) {
+      return `${interval} ${unit}${interval !== 1 ? 's' : ''} ago`;
     }
-  },
-  {
-    id: '2',
-    type: 'rated',
-    title: 'Rated 5 Stars',
-    description: 'Gave "Project Hail Mary" a perfect rating',
-    time: '1 day ago',
-    icon: '⭐',
-    color: 'from-yellow-400 to-amber-500',
-    book: {
-      title: 'Project Hail Mary',
-      author: 'Andy Weir',
-      cover: '🚀'
-    },
-    metadata: {
-      rating: 5
-    }
-  },
-  {
-    id: '3',
-    type: 'added',
-    title: 'Added to Wishlist',
-    description: 'Added "Dune" to your reading list',
-    time: '3 days ago',
-    icon: '❤️',
-    color: 'from-pink-400 to-rose-500',
-    book: {
-      title: 'Dune',
-      author: 'Frank Herbert',
-      cover: '🏜️'
-    }
-  },
-  {
-    id: '4',
-    type: 'started',
-    title: 'Started Reading',
-    description: 'Began "Atomic Habits"',
-    time: '1 week ago',
-    icon: '📖',
-    color: 'from-blue-400 to-indigo-500',
-    book: {
-      title: 'Atomic Habits',
-      author: 'James Clear',
-      cover: '⚛️'
-    },
-    metadata: {
-      genre: 'Self-Help'
-    }
-  },
-  {
-    id: '5',
-    type: 'achievement',
-    title: 'Achievement Unlocked',
-    description: 'Completed 7-day reading streak!',
-    time: '1 week ago',
-    icon: '🏆',
-    color: 'from-purple-400 to-violet-500'
-  },
-  {
-    id: '6',
-    type: 'joined',
-    title: 'Joined Book Club',
-    description: 'Joined "Fantasy Readers" book club',
-    time: '2 weeks ago',
-    icon: '👥',
-    color: 'from-cyan-400 to-teal-500'
   }
-];
-
-const getActivityIcon = (type: ActivityItem['type']) => {
-  const icons = {
-    read: BookOpen,
-    rated: Star,
-    added: Heart,
-    joined: Users,
-    achievement: Trophy,
-    started: BookMarked
-  };
-  return icons[type] || Clock;
-};
-
-const getActivityColor = (type: ActivityItem['type']) => {
-  const colors = {
-    read: 'text-green-600 dark:text-green-400',
-    rated: 'text-yellow-600 dark:text-yellow-400',
-    added: 'text-pink-600 dark:text-pink-400',
-    joined: 'text-cyan-600 dark:text-cyan-400',
-    achievement: 'text-purple-600 dark:text-purple-400',
-    started: 'text-blue-600 dark:text-blue-400'
-  };
-  return colors[type] || 'text-gray-600 dark:text-gray-400';
-};
+  return 'just now';
+}
 
 export function ActivityTimeline() {
+  const { data: readingLists } = useReadingLists({ includeBooks: true });
+  
+  // Generate activities from reading lists and books
+  const activities = useMemo(() => {
+    const items: ActivityItem[] = [];
+    
+    if (!readingLists) return items;
+    
+    // Collect all books with their timestamps
+    readingLists.forEach((list: any) => {
+      const books = list.books || [];
+      const listName = list.name.toLowerCase();
+      
+      books.forEach((book: any) => {
+        if (!book.addedAt) return;
+        
+        const addedDate = new Date(book.addedAt);
+        const isFinished = listName.includes('finished') || listName.includes('read') || listName.includes('completed');
+        const isCurrentlyReading = listName.includes('currently') || listName.includes('reading');
+        const isWantToRead = listName.includes('want') || listName.includes('wish');
+        
+        if (isFinished) {
+          items.push({
+            id: `read-${book.id}`,
+            type: 'read',
+            title: 'Finished Reading',
+            description: `Completed "${book.title}"`,
+            time: formatTimeAgo(addedDate),
+            timestamp: addedDate,
+            icon: '📚',
+            color: 'from-green-400 to-emerald-500',
+            book: {
+              title: book.title || 'Unknown',
+              author: book.author || 'Unknown',
+              cover: book.coverImage || book.cover || '📖',
+            },
+            metadata: {
+              pages: book.pages,
+              genre: book.genres?.[0],
+            },
+          });
+        } else if (isCurrentlyReading) {
+          items.push({
+            id: `started-${book.id}`,
+            type: 'started',
+            title: 'Started Reading',
+            description: `Began "${book.title}"`,
+            time: formatTimeAgo(addedDate),
+            timestamp: addedDate,
+            icon: '📖',
+            color: 'from-blue-400 to-indigo-500',
+            book: {
+              title: book.title || 'Unknown',
+              author: book.author || 'Unknown',
+              cover: book.coverImage || book.cover || '📖',
+            },
+            metadata: {
+              genre: book.genres?.[0],
+            },
+          });
+        } else if (isWantToRead) {
+          items.push({
+            id: `added-${book.id}`,
+            type: 'added',
+            title: 'Added to Wishlist',
+            description: `Added "${book.title}" to your reading list`,
+            time: formatTimeAgo(addedDate),
+            timestamp: addedDate,
+            icon: '❤️',
+            color: 'from-pink-400 to-rose-500',
+            book: {
+              title: book.title || 'Unknown',
+              author: book.author || 'Unknown',
+              cover: book.coverImage || book.cover || '📖',
+            },
+          });
+        }
+        
+        // Add rating activity if book has rating
+        if (book.rating && book.rating >= 1 && book.rating <= 5) {
+          items.push({
+            id: `rated-${book.id}`,
+            type: 'rated',
+            title: `Rated ${book.rating} Stars`,
+            description: `Gave "${book.title}" a ${book.rating}-star rating`,
+            time: formatTimeAgo(addedDate), // Using addedAt as proxy for rating time
+            timestamp: addedDate,
+            icon: '⭐',
+            color: 'from-yellow-400 to-amber-500',
+            book: {
+              title: book.title || 'Unknown',
+              author: book.author || 'Unknown',
+              cover: book.coverImage || book.cover || '📖',
+            },
+            metadata: {
+              rating: book.rating,
+            },
+          });
+        }
+      });
+    });
+    
+    // Sort by timestamp (newest first) and limit to most recent
+    return items
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, 20); // Show last 20 activities
+  }, [readingLists]);
+
+  // Note: For reviews created separately, we'd need to fetch reviews and add them
+  // For now, we show activities from reading list changes
+
+  const getActivityIcon = (type: ActivityItem['type']) => {
+    const icons = {
+      read: BookOpen,
+      rated: Star,
+      added: Heart,
+      joined: Users,
+      achievement: Trophy,
+      started: BookMarked
+    };
+    return icons[type] || Clock;
+  };
+
+  const getActivityColor = (type: ActivityItem['type']) => {
+    const colors = {
+      read: 'text-green-600 dark:text-green-400',
+      rated: 'text-yellow-600 dark:text-yellow-400',
+      added: 'text-pink-600 dark:text-pink-400',
+      joined: 'text-cyan-600 dark:text-cyan-400',
+      achievement: 'text-purple-600 dark:text-purple-400',
+      started: 'text-blue-600 dark:text-blue-400'
+    };
+    return colors[type] || 'text-gray-600 dark:text-gray-400';
+  };
   return (
     <AnimatedCard variant="glass" hover className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -151,7 +196,7 @@ export function ActivityTimeline() {
           <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
             <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </div>
-          <FloatingElement intensity="low" className="text-2xl opacity-60">📚</FloatingElement>
+          <FloatingElement className="text-2xl opacity-60">📚</FloatingElement>
         </div>
       </div>
 
@@ -160,7 +205,13 @@ export function ActivityTimeline() {
         <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-amber-200 via-amber-300 to-transparent dark:from-amber-800 dark:via-amber-700"></div>
 
         <StaggerContainer className="space-y-6">
-          {mockActivities.map((activity, index) => {
+          {activities.length === 0 ? (
+            <div className="text-center py-12">
+              <Clock className="h-12 w-12 text-gray-400 dark:text-slate-600 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-slate-400">No recent activity. Start adding books to your library!</p>
+            </div>
+          ) : (
+            activities.map((activity, index) => {
             const IconComponent = getActivityIcon(activity.type);
             const iconColor = getActivityColor(activity.type);
 
@@ -169,7 +220,7 @@ export function ActivityTimeline() {
                 <div className="relative flex items-start space-x-4">
                   {/* Timeline dot */}
                   <div className={`relative z-10 flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br ${activity.color} shadow-lg flex items-center justify-center`}>
-                    <FloatingElement intensity="low" className="text-lg">
+                    <FloatingElement className="text-lg">
                       {activity.icon}
                     </FloatingElement>
                   </div>
@@ -198,7 +249,7 @@ export function ActivityTimeline() {
                           {/* Book details */}
                           {activity.book && (
                             <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg mb-3">
-                              <FloatingElement intensity="low" className="text-2xl flex-shrink-0">
+                              <FloatingElement className="text-2xl flex-shrink-0">
                                 {activity.book.cover}
                               </FloatingElement>
                               <div className="flex-1 min-w-0">
@@ -247,7 +298,7 @@ export function ActivityTimeline() {
                 </div>
               </StaggerItem>
             );
-          })}
+          }))}
         </StaggerContainer>
 
         {/* Load more button */}

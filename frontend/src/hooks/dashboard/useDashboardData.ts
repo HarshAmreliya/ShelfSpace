@@ -7,93 +7,8 @@ import {
   ReadingGroup,
   Activity,
 } from "../../../types/models";
-
-// Mock data - in a real app, this would come from an API
-const mockCurrentlyReading: Book[] = [
-  {
-    id: "1",
-    title: "The Design of Everyday Things",
-    author: "Don Norman",
-    cover: "/book-covers/design-of-everyday-things.jpg",
-    rating: 4.5,
-    readingProgress: 65,
-    status: "reading",
-    dateAdded: "2024-01-15",
-    lastRead: "2024-01-20",
-    pages: 368,
-    genre: "Design",
-    tags: ["UX", "Psychology"],
-  },
-  {
-    id: "2",
-    title: "Atomic Habits",
-    author: "James Clear",
-    cover: "/book-covers/atomic-habits.jpg",
-    rating: 4.8,
-    readingProgress: 30,
-    status: "reading",
-    dateAdded: "2024-01-10",
-    lastRead: "2024-01-19",
-    pages: 320,
-    genre: "Self-Help",
-    tags: ["Productivity", "Habits"],
-  },
-];
-
-const mockRecommendations: Recommendation[] = [
-  {
-    id: "1",
-    book: {
-      id: "3",
-      title: "Deep Work",
-      author: "Cal Newport",
-      cover: "/book-covers/deep-work.jpg",
-      rating: 4.6,
-      status: "want-to-read",
-      dateAdded: "2024-01-20",
-      pages: 296,
-      genre: "Productivity",
-    },
-    reason: "Based on your interest in productivity and focus",
-    confidence: 0.92,
-  },
-];
-
-const mockReadingGroups: ReadingGroup[] = [
-  {
-    id: "1",
-    name: "Design Thinkers",
-    description: "Exploring design principles and user experience",
-    memberCount: 24,
-    currentBook: "The Design of Everyday Things",
-    nextMeeting: "2024-01-25",
-    isActive: true,
-  },
-];
-
-const mockRecentActivity: Activity[] = [
-  {
-    id: "1",
-    type: "reading_progress",
-    description: 'Updated reading progress for "Atomic Habits"',
-    timestamp: "2024-01-20T10:30:00Z",
-    bookId: "2",
-  },
-  {
-    id: "2",
-    type: "book_added",
-    description: 'Added "Deep Work" to Want to Read list',
-    timestamp: "2024-01-19T15:45:00Z",
-    bookId: "3",
-  },
-];
-
-const mockStats = {
-  totalBooks: 47,
-  readingTime: 23,
-  readingGoal: 85,
-  activeGroups: 3,
-};
+import { useReadingLists } from "../data/useReadingLists";
+import { bookService } from "@/lib/book-service";
 
 interface CacheEntry<T> {
   data: T;
@@ -129,10 +44,16 @@ export function useDashboardData() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [readingGroups, setReadingGroups] = useState<ReadingGroup[]>([]);
   const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
-  const [stats, setStats] = useState(mockStats);
+  const [stats, setStats] = useState({
+    totalBooks: 0,
+    readingTime: 0,
+    readingGoal: 52,
+    activeGroups: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [lastFetch, setLastFetch] = useState<number>(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const { data: readingLists } = useReadingLists({ includeBooks: true });
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     // Cancel any ongoing request
@@ -156,7 +77,7 @@ export function useDashboardData() {
           getCachedData<ReadingGroup[]>("readingGroups");
         const cachedRecentActivity =
           getCachedData<Activity[]>("recentActivity");
-        const cachedStats = getCachedData<typeof mockStats>("stats");
+        const cachedStats = getCachedData<typeof stats>("stats");
 
         if (
           cachedCurrentlyReading &&
@@ -175,8 +96,76 @@ export function useDashboardData() {
         }
       }
 
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      // Fetch currently reading books from reading lists
+      const currentlyReadingList = readingLists?.find(
+        (list: any) => list.name.toLowerCase().includes('currently') || list.name.toLowerCase() === 'reading'
+      );
+      const currentlyReadingBooks = currentlyReadingList?.books?.filter(
+        (book: any) => book.status === 'currently-reading' || !book.status
+      ) || [];
+
+      // Fetch recommendations from book service
+      let recommendationsData: Recommendation[] = [];
+      try {
+        const booksResponse = await bookService.getBooks({ page: 1, limit: 5 });
+        recommendationsData = booksResponse.data.slice(0, 5).map(book => ({
+          id: book.id,
+          book: {
+            id: book.id,
+            title: book.title,
+            author: book.author,
+            cover: book.coverImage || book.cover || '',
+            rating: book.averageRating || book.rating || 0,
+            status: (book.status === 'currently-reading' ? 'reading' : book.status === 'read' ? 'completed' : book.status || 'want-to-read') as "want-to-read" | "reading" | "completed" | "paused",
+            dateAdded: book.addedAt || book.createdAt,
+            pages: book.pages || 0,
+            genre: book.genres?.[0] || 'General',
+          },
+          reason: "Based on your reading preferences",
+          confidence: 0.85,
+        }));
+      } catch (err) {
+        console.error('Error fetching recommendations:', err);
+      }
+
+      // Calculate stats from reading lists
+      let totalBooks = 0;
+      let totalPages = 0;
+      readingLists?.forEach((list: any) => {
+        const books = list.books || [];
+        totalBooks += books.length;
+        books.forEach((book: any) => {
+          if (book.pages) totalPages += book.pages;
+        });
+      });
+
+      const readingTime = Math.round(totalPages * 2 / 60); // Estimate hours
+
+      // Fetch groups from GroupService
+      let groupsData: ReadingGroup[] = [];
+      try {
+        const { GroupService } = await import("@/lib/group-service");
+        const groupsResponse = await GroupService.list({ limit: 10, offset: 0 });
+        groupsData = groupsResponse.map((g: any) => ({
+          id: g.id,
+          name: g.name,
+          description: g.description || "",
+          memberCount: g.memberships?.length || 0,
+          currentBook: "", // Not in backend schema yet
+          nextMeeting: "", // Not in backend schema yet
+          isActive: true,
+        }));
+      } catch (err) {
+        console.error('Error fetching groups:', err);
+      }
+
+      // Calculate stats after groups are fetched
+      const statsData = {
+        totalBooks,
+        readingTime,
+        readingGoal: 52, // Default goal
+        activeGroups: groupsData.length,
+      };
 
       // Check if request was aborted
       if (signal.aborted) {
@@ -184,17 +173,17 @@ export function useDashboardData() {
       }
 
       // Cache the data
-      setCachedData("currentlyReading", mockCurrentlyReading);
-      setCachedData("recommendations", mockRecommendations);
-      setCachedData("readingGroups", mockReadingGroups);
-      setCachedData("recentActivity", mockRecentActivity);
-      setCachedData("stats", mockStats);
+      setCachedData("currentlyReading", currentlyReadingBooks);
+      setCachedData("recommendations", recommendationsData);
+      setCachedData("readingGroups", groupsData);
+      setCachedData("recentActivity", []);
+      setCachedData("stats", statsData);
 
-      setCurrentlyReading(mockCurrentlyReading);
-      setRecommendations(mockRecommendations);
-      setReadingGroups(mockReadingGroups);
-      setRecentActivity(mockRecentActivity);
-      setStats(mockStats);
+      setCurrentlyReading(currentlyReadingBooks as any);
+      setRecommendations(recommendationsData);
+      setReadingGroups(groupsData);
+      setRecentActivity([]);
+      setStats(statsData);
       setLastFetch(Date.now());
       setIsLoading(false);
     } catch (error) {
@@ -203,7 +192,7 @@ export function useDashboardData() {
         setIsLoading(false);
       }
     }
-  }, []);
+  }, [readingLists, readingGroups]);
 
   useEffect(() => {
     fetchData();

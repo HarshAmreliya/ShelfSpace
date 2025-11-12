@@ -5,11 +5,6 @@ import {
   Bell,
   Mail,
   MessageCircle,
-  BookOpen,
-  Users,
-  Star,
-  Calendar,
-  Shield,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -44,13 +39,16 @@ export function NotificationsSettings() {
   });
 
   const handleToggle = (category: keyof typeof notifications, setting: string) => {
-    setNotifications(prev => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        [setting]: !prev[category][setting as keyof typeof prev[category]],
-      },
-    }));
+    setNotifications(prev => {
+      const categorySettings = prev[category];
+      return {
+        ...prev,
+        [category]: {
+          ...categorySettings,
+          [setting]: !(categorySettings as Record<string, boolean | number>)[setting],
+        },
+      };
+    });
   };
 
   const handleVolumeChange = (volume: number) => {

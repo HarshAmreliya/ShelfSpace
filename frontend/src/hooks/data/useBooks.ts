@@ -32,6 +32,10 @@ export function useBooks(options: UseBooksOptions = {}) {
     isValidating: false,
     lastFetched: null,
     pagination: null,
+    page: page || 1,
+    limit: limit || 20,
+    total: 0,
+    hasMore: false,
   });
 
   const retryCountRef = useRef(0);
@@ -55,7 +59,7 @@ export function useBooks(options: UseBooksOptions = {}) {
   // Check if data is stale
   const isStale = useCallback(() => {
     if (!state.lastFetched) return true;
-    return Date.now() - state.lastFetched.getTime() > staleTime;
+    return Date.now() - state.lastFetched > staleTime;
   }, [state.lastFetched, staleTime]);
 
   // Get cached data
@@ -98,7 +102,7 @@ export function useBooks(options: UseBooksOptions = {}) {
             isLoading: false,
             isError: false,
             error: null,
-            lastFetched: new Date(),
+            lastFetched: Date.now(),
           }));
           return cachedData.data;
         }
@@ -121,12 +125,12 @@ export function useBooks(options: UseBooksOptions = {}) {
 
       try {
         const response = await libraryService.getBooks({
-          listId,
-          filter,
+          ...(listId && { listId }),
+          ...(filter && { filter }),
           page,
           limit,
           options: { timeout: 10000 },
-        });
+        } as any);
 
         if (abortControllerRef.current?.signal.aborted) {
           return;
@@ -136,17 +140,17 @@ export function useBooks(options: UseBooksOptions = {}) {
         const pagination = response.pagination;
 
         // Cache the data
-        setCachedData(data, pagination);
+        setCachedData(data as any, pagination);
 
         setState((prev) => ({
           ...prev,
-          data,
+          data: data as any,
           pagination,
           isLoading: false,
           isValidating: false,
           isError: false,
           error: null,
-          lastFetched: new Date(),
+          lastFetched: Date.now(),
         }));
 
         retryCountRef.current = 0;
@@ -216,8 +220,8 @@ export function useBooks(options: UseBooksOptions = {}) {
           typeof updater === "function" ? updater(prev.data) : updater;
         return {
           ...prev,
-          data: newData,
-          lastFetched: new Date(),
+          data: newData as any,
+          lastFetched: Date.now(),
         };
       });
 

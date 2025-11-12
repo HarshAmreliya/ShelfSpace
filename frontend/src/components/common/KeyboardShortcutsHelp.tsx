@@ -34,6 +34,7 @@ export function KeyboardShortcutsHelp({
       // Restore focus when modal closes
       focusManagement.restoreFocus(previousFocus);
     }
+    return undefined;
   }, [isOpen, previousFocus]);
 
   const formatShortcut = (shortcut: KeyboardShortcut): string => {
@@ -146,7 +147,7 @@ export function KeyboardShortcutsHelp({
         </div>
 
         <div className="flex justify-end p-6 border-t border-gray-200">
-          <Button onClick={onClose} autoFocus>
+          <Button onClick={onClose}>
             Close
           </Button>
         </div>

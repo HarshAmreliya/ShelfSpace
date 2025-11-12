@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback } from "react";
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "lucide-react";
 
 interface Toast {
@@ -37,19 +37,19 @@ export function useToastNotifications() {
 
   return {
     success: useCallback((title: string, message?: string) => {
-      addToast({ type: "success", title, message });
+      addToast({ type: "success", title, ...(message && { message }) });
     }, [addToast]),
-    
+
     error: useCallback((title: string, message?: string) => {
-      addToast({ type: "error", title, message });
+      addToast({ type: "error", title, ...(message && { message }) });
     }, [addToast]),
-    
+
     warning: useCallback((title: string, message?: string) => {
-      addToast({ type: "warning", title, message });
+      addToast({ type: "warning", title, ...(message && { message }) });
     }, [addToast]),
-    
+
     info: useCallback((title: string, message?: string) => {
-      addToast({ type: "info", title, message });
+      addToast({ type: "info", title, ...(message && { message }) });
     }, [addToast])
   };
 }

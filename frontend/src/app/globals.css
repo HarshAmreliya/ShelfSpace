@@ -2,11 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import micro-interactions and animations */
+@import "../styles/animations.css";
+
 @layer base {
   html {
-    font-family: 'Inter', sans-serif;
-    color: theme('colors.text');
-    background: theme('colors.background');
+    font-family: "Inter", sans-serif;
+    color: theme("colors.text");
+    background: theme("colors.background");
   }
 
   body {
@@ -14,16 +17,33 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-bold;
   }
 
-  h1 { @apply text-h1; }
-  h2 { @apply text-h2; }
-  h3 { @apply text-h3; }
-  h4 { @apply text-h4; }
-  h5 { @apply text-h5; }
-  h6 { @apply text-h6; }
+  h1 {
+    @apply text-h1;
+  }
+  h2 {
+    @apply text-h2;
+  }
+  h3 {
+    @apply text-h3;
+  }
+  h4 {
+    @apply text-h4;
+  }
+  h5 {
+    @apply text-h5;
+  }
+  h6 {
+    @apply text-h6;
+  }
 
   p {
     @apply text-body-base;
@@ -58,7 +78,7 @@
   /* Custom Scrollbar Styles */
   .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: theme('colors.amber.400') theme('colors.amber.100');
+    scrollbar-color: theme("colors.amber.400") theme("colors.amber.100");
   }
 
   .custom-scrollbar::-webkit-scrollbar {
@@ -67,50 +87,50 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: theme('colors.amber.100');
+    background: theme("colors.amber.100");
     border-radius: 4px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: theme('colors.amber.400');
+    background: theme("colors.amber.400");
     border-radius: 4px;
-    border: 1px solid theme('colors.amber.200');
+    border: 1px solid theme("colors.amber.200");
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: theme('colors.amber.500');
+    background: theme("colors.amber.500");
   }
 
   .custom-scrollbar::-webkit-scrollbar-corner {
-    background: theme('colors.amber.100');
+    background: theme("colors.amber.100");
   }
 
   /* Dark mode scrollbar styles */
   .dark .custom-scrollbar {
-    scrollbar-color: theme('colors.amber.500') theme('colors.slate.700');
+    scrollbar-color: theme("colors.amber.500") theme("colors.slate.700");
   }
 
   .dark .custom-scrollbar::-webkit-scrollbar-track {
-    background: theme('colors.slate.700');
+    background: theme("colors.slate.700");
   }
 
   .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: theme('colors.amber.500');
-    border: 1px solid theme('colors.slate.600');
+    background: theme("colors.amber.500");
+    border: 1px solid theme("colors.slate.600");
   }
 
   .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: theme('colors.amber.400');
+    background: theme("colors.amber.400");
   }
 
   .dark .custom-scrollbar::-webkit-scrollbar-corner {
-    background: theme('colors.slate.700');
+    background: theme("colors.slate.700");
   }
 
   /* Apply custom scrollbar to all scrollable elements */
   * {
     scrollbar-width: thin;
-    scrollbar-color: theme('colors.amber.400') theme('colors.amber.100');
+    scrollbar-color: theme("colors.amber.400") theme("colors.amber.100");
   }
 
   *::-webkit-scrollbar {
@@ -119,45 +139,43 @@
   }
 
   *::-webkit-scrollbar-track {
-    background: theme('colors.amber.100');
+    background: theme("colors.amber.100");
     border-radius: 4px;
   }
 
   *::-webkit-scrollbar-thumb {
-    background: theme('colors.amber.400');
+    background: theme("colors.amber.400");
     border-radius: 4px;
-    border: 1px solid theme('colors.amber.200');
+    border: 1px solid theme("colors.amber.200");
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background: theme('colors.amber.500');
+    background: theme("colors.amber.500");
   }
 
   *::-webkit-scrollbar-corner {
-    background: theme('colors.amber.100');
+    background: theme("colors.amber.100");
   }
 
   /* Dark mode global scrollbar styles */
   .dark * {
-    scrollbar-color: theme('colors.amber.500') theme('colors.slate.700');
+    scrollbar-color: theme("colors.amber.500") theme("colors.slate.700");
   }
 
   .dark *::-webkit-scrollbar-track {
-    background: theme('colors.slate.700');
+    background: theme("colors.slate.700");
   }
 
   .dark *::-webkit-scrollbar-thumb {
-    background: theme('colors.amber.500');
-    border: 1px solid theme('colors.slate.600');
+    background: theme("colors.amber.500");
+    border: 1px solid theme("colors.slate.600");
   }
 
   .dark *::-webkit-scrollbar-thumb:hover {
-    background: theme('colors.amber.400');
+    background: theme("colors.amber.400");
   }
 
   .dark *::-webkit-scrollbar-corner {
-    background: theme('colors.slate.700');
+    background: theme("colors.slate.700");
   }
 }
-
-

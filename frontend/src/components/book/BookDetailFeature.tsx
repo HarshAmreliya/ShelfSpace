@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -14,14 +14,15 @@ import {
   Bookmark,
   BookmarkCheck,
   MoreHorizontal,
-  Clock,
   Eye,
   Heart,
-  Flag
 } from "lucide-react";
 import { Book } from "@/types/book";
-import { BookReview, BookDiscussion } from "@/types/bookDetail";
-import { mockBookDetails, mockBookReviews, mockBookDiscussions } from "@/services/mockData/bookDetails";
+import { BookDiscussion } from "@/types/bookDetail";
+import { bookService } from "@/lib/book-service";
+import { useReviews } from "@/hooks/data/useReviews";
+import { useSession } from "next-auth/react";
+import { useEffect } from "react";
 
 interface BookDetailFeatureProps {
   bookId: string;
@@ -29,24 +30,64 @@ interface BookDetailFeatureProps {
 
 export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<"overview" | "reviews" | "discussions">("overview");
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [book, setBook] = useState<Book | null>(null);
+  const [bookLoading, setBookLoading] = useState(true);
+  const [bookError, setBookError] = useState<string | null>(null);
 
-  // Get book details from mock data
-  const book = useMemo(() => {
-    return mockBookDetails.find(b => b.id === bookId);
+  // Fetch book details from API
+  useEffect(() => {
+    let cancelled = false;
+    setBookLoading(true);
+    setBookError(null);
+    
+    bookService.getBookById(bookId)
+      .then((bookData) => {
+        if (!cancelled) {
+          setBook(bookData);
+          setBookLoading(false);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error("Error fetching book:", error);
+          setBookError(error.message || "Failed to load book");
+          setBookLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [bookId]);
 
-  // Get reviews and discussions for this book
-  const reviews = useMemo(() => {
-    return mockBookReviews.filter(r => r.bookId === bookId);
-  }, [bookId]);
+  // Reviews from API
+  const { reviews, loading: reviewsLoading, error: reviewsError, createReview } = useReviews(bookId);
 
-  const discussions = useMemo(() => {
-    return mockBookDiscussions.filter(d => d.bookId === bookId);
-  }, [bookId]);
+  // Discussions - keeping empty for now as there's no discussions backend endpoint yet
+  const discussions: BookDiscussion[] = [];
 
-  if (!book) {
+  if (bookLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full shadow-lg mb-6 animate-pulse">
+            <BookOpen className="h-10 w-10 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-3 font-serif">
+            Loading Book...
+          </h1>
+          <p className="text-gray-600 dark:text-slate-300">
+            Please wait while we fetch the book details.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (bookError || !book) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 flex items-center justify-center">
         <div className="text-center">
@@ -54,10 +95,10 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
             <BookOpen className="h-10 w-10 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-3 font-serif">
-            Book Not Found
+            {bookError ? "Error Loading Book" : "Book Not Found"}
           </h1>
           <p className="text-gray-600 dark:text-slate-300 mb-6">
-            The book you're looking for doesn't exist.
+            {bookError || "The book you're looking for doesn't exist."}
           </p>
           <button
             onClick={() => router.back()}
@@ -85,6 +126,26 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
     } else {
       navigator.clipboard.writeText(window.location.href);
     }
+  };
+
+  const [newReviewText, setNewReviewText] = useState("");
+  const [newTldr, setNewTldr] = useState("");
+  const [newRating, setNewRating] = useState(5);
+  const onCreateReview = async () => {
+    if (newReviewText.trim().length < 10) {
+      alert("Review text must be at least 10 characters long");
+      return;
+    }
+    const trimmedTldr = newTldr.trim();
+    await createReview({
+      bookId,
+      reviewText: newReviewText,
+      rating: newRating,
+      ...(trimmedTldr && { tldr: trimmedTldr })
+    });
+    setNewReviewText("");
+    setNewTldr("");
+    setNewRating(5);
   };
 
   return (
@@ -141,14 +202,14 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
               </div>
 
               {/* Rating and Stats */}
-              <div className="flex items-center gap-6 mb-6">
+                <div className="flex items-center gap-6 mb-6">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
                         className={`h-5 w-5 ${
-                          i < Math.floor(book.averageRating || 0)
+                          i < Math.floor((book.averageRating || 0))
                             ? "text-amber-400 fill-current"
                             : "text-gray-300 dark:text-slate-600"
                         }`}
@@ -156,35 +217,43 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
                     ))}
                   </div>
                   <span className="text-gray-600 dark:text-slate-400">
-                    {book.averageRating?.toFixed(1)} ({book.ratingsCount} ratings)
+                    {book.averageRating?.toFixed(1) || "N/A"} ({book.ratingsCount || 0} ratings)
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-gray-600 dark:text-slate-400">
-                  <Calendar className="h-4 w-4" />
-                  <span>{book.publishedYear}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-600 dark:text-slate-400">
-                  <BookOpen className="h-4 w-4" />
-                  <span>{book.pages} pages</span>
-                </div>
+                {book.publishedYear && (
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-slate-400">
+                    <Calendar className="h-4 w-4" />
+                    <span>{book.publishedYear}</span>
+                  </div>
+                )}
+                {book.pages && (
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-slate-400">
+                    <BookOpen className="h-4 w-4" />
+                    <span>{book.pages} pages</span>
+                  </div>
+                )}
               </div>
 
               {/* Genres */}
-              <div className="flex flex-wrap gap-2 mb-6">
-                {book.genres.map((genre) => (
-                  <span
-                    key={genre}
-                    className="px-3 py-1 bg-amber-100 dark:bg-slate-700 text-amber-700 dark:text-slate-300 rounded-full text-sm font-medium"
-                  >
-                    {genre}
-                  </span>
-                ))}
-              </div>
+              {book.genres && book.genres.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {book.genres.map((genre) => (
+                    <span
+                      key={genre}
+                      className="px-3 py-1 bg-amber-100 dark:bg-slate-700 text-amber-700 dark:text-slate-300 rounded-full text-sm font-medium"
+                    >
+                      {genre}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {/* Description */}
-              <p className="text-gray-700 dark:text-slate-300 leading-relaxed">
-                {book.description}
-              </p>
+              {book.description && (
+                <p className="text-gray-700 dark:text-slate-300 leading-relaxed">
+                  {book.description}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -245,14 +314,18 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
                     Reading Progress
                   </h3>
                   <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-slate-400">Status:</span>
-                      <span className="text-gray-900 dark:text-slate-100 capitalize">{book.status}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-slate-400">Progress:</span>
-                      <span className="text-gray-900 dark:text-slate-100">{book.readingProgress || 0}%</span>
-                    </div>
+                    {book.status && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-slate-400">Status:</span>
+                        <span className="text-gray-900 dark:text-slate-100 capitalize">{book.status}</span>
+                      </div>
+                    )}
+                    {(book.readingProgress !== undefined || book.progress !== undefined) && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-slate-400">Progress:</span>
+                        <span className="text-gray-900 dark:text-slate-100">{book.readingProgress || book.progress || 0}%</span>
+                      </div>
+                    )}
                     {book.startedAt && (
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-slate-400">Started:</span>
@@ -286,7 +359,45 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
 
           {activeTab === "reviews" && (
             <div className="space-y-6">
-              {reviews.length === 0 ? (
+              {session?.user ? (
+                <div className="bg-amber-50 dark:bg-slate-700/50 rounded-lg p-6 border border-amber-200 dark:border-slate-600">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">Write a review</h3>
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <select className="px-3 py-2 rounded border border-amber-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm" value={newRating} onChange={(e) => setNewRating(parseInt(e.target.value))}>
+                        {[1,2,3,4,5].map(v => <option key={v} value={v}>{v}★</option>)}
+                      </select>
+                      <button onClick={onCreateReview} className="px-4 py-2 rounded bg-amber-500 hover:bg-amber-600 text-white text-sm">Submit</button>
+                    </div>
+                    <input 
+                      className="w-full px-3 py-2 rounded border border-amber-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm" 
+                      placeholder="TL;DR (optional)" 
+                      value={newTldr} 
+                      onChange={(e) => setNewTldr(e.target.value)} 
+                    />
+                    <textarea 
+                      className="w-full px-3 py-2 rounded border border-amber-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm min-h-[120px]" 
+                      placeholder="Write your review (minimum 10 characters)..." 
+                      value={newReviewText} 
+                      onChange={(e) => setNewReviewText(e.target.value)} 
+                    />
+                    {newReviewText.length > 0 && newReviewText.length < 10 && (
+                      <p className="text-xs text-red-600">Review must be at least 10 characters ({newReviewText.length}/10)</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-600 dark:text-slate-400">Sign in to write a review.</div>
+              )}
+
+              {reviewsLoading && (
+                <div className="text-sm text-gray-600 dark:text-slate-400">Loading reviews...</div>
+              )}
+              {reviewsError && (
+                <div className="text-sm text-red-600">{reviewsError}</div>
+              )}
+
+              {(!reviews || reviews.length === 0) ? (
                 <div className="text-center py-12">
                   <MessageCircle className="h-12 w-12 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-2">
@@ -309,10 +420,8 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
                         </div>
                         <div>
                           <h4 className="font-semibold text-gray-900 dark:text-slate-100">
-                            {review.author}
-                            {review.isVerified && (
-                              <span className="ml-2 text-amber-500 text-sm">✓ Verified</span>
-                            )}
+                            {/* Author name unknown; backend returns userId only */}
+                            Anonymous
                           </h4>
                           <div className="flex items-center gap-2">
                             <div className="flex items-center">
@@ -338,19 +447,21 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
                       </button>
                     </div>
 
-                    <h5 className="font-semibold text-gray-900 dark:text-slate-100 mb-2">
-                      {review.title}
-                    </h5>
-                    <p className="text-gray-700 dark:text-slate-300 mb-4">{review.content}</p>
+                    {review.tldr && (
+                      <div className="mb-2 p-2 bg-amber-100 dark:bg-slate-600 rounded">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">TL;DR: {review.tldr}</p>
+                      </div>
+                    )}
+                    <p className="text-gray-700 dark:text-slate-300 mb-4 whitespace-pre-wrap">{review.reviewText}</p>
 
                     <div className="flex items-center gap-4">
                       <button className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
                         <ThumbsUp className="h-4 w-4" />
-                        <span>{review.helpful}</span>
+                        <span>0</span>
                       </button>
                       <button className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
                         <MessageCircle className="h-4 w-4" />
-                        <span>{review.comments}</span>
+                        <span>0</span>
                       </button>
                       <button className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
                         <Share2 className="h-4 w-4" />

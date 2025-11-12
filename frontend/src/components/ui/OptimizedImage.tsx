@@ -49,7 +49,7 @@ export function OptimizedImage({
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry?.isIntersecting) {
           setIsInView(true);
           observer.disconnect();
         }
@@ -68,7 +68,7 @@ export function OptimizedImage({
   }, [priority, loading]);
 
   // Generate optimized image URL
-  const getOptimizedSrc = (originalSrc: string, width?: number, quality?: number) => {
+  const getOptimizedSrc = (originalSrc: string, _width?: number, _quality?: number) => {
     // If it's a local image, return as-is
     if (originalSrc.startsWith('/') || originalSrc.startsWith('./')) {
       return originalSrc;
@@ -167,8 +167,8 @@ export function ImageGallery({ images, className = "" }: ImageGalleryProps) {
         <OptimizedImage
           src={images[selectedIndex]?.src || ""}
           alt={images[selectedIndex]?.alt || ""}
-          width={images[selectedIndex]?.width}
-          height={images[selectedIndex]?.height}
+          {...(images[selectedIndex]?.width && { width: images[selectedIndex].width })}
+          {...(images[selectedIndex]?.height && { height: images[selectedIndex].height })}
           className="w-full h-64 md:h-96 rounded-lg"
           priority
         />

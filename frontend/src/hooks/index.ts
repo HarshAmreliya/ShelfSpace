@@ -7,12 +7,6 @@ export * from "./chat";
 export * from "./data";
 
 // Persistence hooks
-export { useLocalStorage } from "./useLocalStorage";
-export {
-  usePersistedState,
-  usePersistedPreferences,
-  usePersistedSettings,
-} from "./usePersistedState";
 export { useImageLoader } from "./useImageLoader";
 
 // Accessibility hooks
@@ -22,5 +16,3 @@ export {
 } from "./useKeyboardNavigation";
 
 // Re-export types
-export type { UseLocalStorageOptions } from "./useLocalStorage";
-export type { UsePersistedStateOptions } from "./usePersistedState";

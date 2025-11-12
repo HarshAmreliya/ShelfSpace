@@ -36,19 +36,20 @@ export function useLibraryFilters({
 
     // Apply genre filter
     if (filters.genre) {
-      result = result.filter((book) => book.genre === filters.genre);
+      result = result.filter((book) => book.genres?.includes(filters.genre as string));
     }
 
     // Apply status filter
     if (filters.status) {
       result = result.filter((book) => {
+        const bookStatus = (book as any).status;
         switch (filters.status) {
           case "reading":
-            return book.isCurrentlyReading;
+            return bookStatus === "currently-reading" || bookStatus === "reading";
           case "completed":
-            return book.isRead;
+            return bookStatus === "read" || bookStatus === "completed";
           case "want-to-read":
-            return book.isWishlist;
+            return bookStatus === "want-to-read";
           default:
             return true;
         }
@@ -68,8 +69,8 @@ export function useLibraryFilters({
           break;
         case "dateAdded":
           comparison =
-            new Date(b.dateAdded || "").getTime() -
-            new Date(a.dateAdded || "").getTime();
+            new Date((b as any).addedAt || (b as any).createdAt || "").getTime() -
+            new Date((a as any).addedAt || (a as any).createdAt || "").getTime();
           break;
         case "rating":
           comparison = (b.rating || 0) - (a.rating || 0);
@@ -86,7 +87,7 @@ export function useLibraryFilters({
 
   // Available genres from the books
   const availableGenres = useMemo(() => {
-    const genres = new Set(books.map((book) => book.genre).filter(Boolean));
+    const genres = new Set(books.flatMap((book) => book.genres || []).filter(Boolean));
     return Array.from(genres).sort();
   }, [books]);
 

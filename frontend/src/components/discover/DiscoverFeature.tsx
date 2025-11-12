@@ -1,24 +1,24 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { DiscoverErrorFallback } from "@/components/common/ErrorFallbacks/DiscoverErrorFallback";
-import { useReadingLists } from "@/hooks/data/useReadingLists";
+import { bookService } from "@/lib/book-service";
 import { BookCard } from "@/components/common/BookCard/BookCard";
 import { BookListItem } from "@/components/library/components/BookListItem";
 import { cn } from "@/utils/cn";
 import { PageSkeleton } from "@/components/common/LoadingStates/PageSkeleton";
 import { Book } from "@/types/book";
-import { ReadingList } from "@/types/library";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   BookOpen,
   Search,
-  Star,
-  Clock,
   Grid,
   List,
   ArrowUpNarrowWide,
   ArrowDownNarrowWide,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 type ViewMode = "grid" | "list";
@@ -27,93 +27,64 @@ type SortOrder = "asc" | "desc";
 
 export function DiscoverFeature() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+  const debouncedSearch = useDebounce(searchQuery, 500);
+  const [selectedGenre, setSelectedGenre] = useState<string>("");
   const [sortBy, setSortBy] = useState<SortBy>("title");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [page, setPage] = useState(1);
+  
+  const [books, setBooks] = useState<Book[]>([]);
+  const [genres, setGenres] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { data: readingLists, isLoading: isLoadingReadingLists } = useReadingLists({ includeBooks: true });
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<{
+    page: number;
+    totalPages: number;
+    total: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  } | null>(null);
 
+  // Fetch genres on mount
   useEffect(() => {
-    // Simulate data loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
+    bookService.getGenres()
+      .then(setGenres)
+      .catch((err) => console.error("Failed to fetch genres:", err));
   }, []);
 
-  const allBooks = useMemo((): Book[] => {
-    if (isLoadingReadingLists || !readingLists) return [];
-    const books = readingLists.flatMap((list: ReadingList) => list.books || []);
-    // Ensure unique books if a book can be in multiple lists
-    const uniqueBooks = Array.from(new Map(books.map((book: Book) => [book.id, book])).values()) as Book[];
-    return uniqueBooks;
-  }, [readingLists, isLoadingReadingLists]);
-
-  const genres = useMemo(() => {
-    const uniqueGenres = new Set(allBooks.flatMap((book: Book) => book.genres || []));
-    return Array.from(uniqueGenres).sort();
-  }, [allBooks]);
-
-  const filteredAndSortedBooks = useMemo(() => {
-    let filtered = allBooks.filter((book: Book) =>
-      book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    if (selectedGenre) {
-      filtered = filtered.filter((book: Book) => book.genres.includes(selectedGenre));
+  // Fetch books when filters change
+  const fetchBooks = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await bookService.getBooks({
+        page,
+        ...(selectedGenre && { genre: selectedGenre }),
+        ...(debouncedSearch && { search: debouncedSearch }),
+        sortBy: sortOrder,
+      });
+      setBooks(result.data);
+      setPagination(result.pagination);
+    } catch (err: any) {
+      setError(err?.message || "Failed to load books");
+      console.error("Error fetching books:", err);
+    } finally {
+      setIsLoading(false);
     }
+  }, [page, selectedGenre, debouncedSearch, sortBy, sortOrder]);
 
-    filtered.sort((a: Book, b: Book) => {
-      let compareA: any;
-      let compareB: any;
+  useEffect(() => {
+    fetchBooks();
+  }, [fetchBooks]);
 
-      switch (sortBy) {
-        case "title":
-          compareA = a.title.toLowerCase();
-          compareB = b.title.toLowerCase();
-          break;
-        case "author":
-          compareA = a.author.toLowerCase();
-          compareB = b.author.toLowerCase();
-          break;
-        case "rating":
-          compareA = a.rating || 0;
-          compareB = b.rating || 0;
-          break;
-        case "publishedYear":
-          compareA = a.publishedYear || 0;
-          compareB = b.publishedYear || 0;
-          break;
-        default:
-          compareA = a.title.toLowerCase();
-          compareB = b.title.toLowerCase();
-      }
+  // Reset to page 1 when filters change (except page itself)
+  useEffect(() => {
+    setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGenre, debouncedSearch, sortBy, sortOrder]);
 
-      if (compareA < compareB) return sortOrder === "asc" ? -1 : 1;
-      if (compareA > compareB) return sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    return filtered;
-  }, [allBooks, searchQuery, selectedGenre, sortBy, sortOrder]);
-
-  const trendingBooks = useMemo(() => {
-    return allBooks
-      .filter((book: Book) => (book.averageRating || 0) >= 4.0)
-      .sort((a: Book, b: Book) => (b.averageRating || 0) - (a.averageRating || 0))
-      .slice(0, 5); // Top 5 trending
-  }, [allBooks]);
-
-  const recentlyAddedBooks = useMemo(() => {
-    return allBooks
-      .sort((a: Book, b: Book) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime())
-      .slice(0, 5); // 5 most recently added
-  }, [allBooks]);
-
-  if (isLoading || isLoadingReadingLists) {
+  if (isLoading && !books.length) {
     return <PageSkeleton variant="discover" />;
   }
 
@@ -159,8 +130,8 @@ export function DiscoverFeature() {
               <select
                 id="genre-filter"
                 name="genre-filter"
-                value={selectedGenre || ""}
-                onChange={(e) => setSelectedGenre(e.target.value || null)}
+                value={selectedGenre}
+                onChange={(e) => setSelectedGenre(e.target.value)}
                 className="w-full px-4 py-3 border border-amber-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               >
                 <option value="">All Genres</option>
@@ -227,60 +198,82 @@ export function DiscoverFeature() {
             </div>
           </div>
 
-          {/* Trending Books Section */}
-          {trendingBooks.length > 0 && (
-            <section className="mb-10">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-slate-100 font-serif mb-6 flex items-center">
-                <Star className="h-7 w-7 text-yellow-500 mr-3 fill-current" />
-                Trending Now
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                {trendingBooks.map(book => (
-                  <BookCard key={book.id} book={book} />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Recently Added Books Section */}
-          {recentlyAddedBooks.length > 0 && (
-            <section className="mb-10">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-slate-100 font-serif mb-6 flex items-center">
-                <Clock className="h-7 w-7 text-blue-500 mr-3" />
-                Recently Added
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                {recentlyAddedBooks.map(book => (
-                  <BookCard key={book.id} book={book} />
-                ))}
-              </div>
-            </section>
-          )}
-
           {/* All Books Section */}
           <section>
             <h2 className="text-3xl font-bold text-gray-900 dark:text-slate-100 font-serif mb-6 flex items-center">
               <BookOpen className="h-7 w-7 text-amber-600 mr-3" />
-              All Books ({filteredAndSortedBooks.length})
+              {pagination ? `All Books (${pagination.total} total)` : "All Books"}
             </h2>
-            {filteredAndSortedBooks.length === 0 ? (
+
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
+
+            {books.length === 0 && !isLoading ? (
               <div className="text-center p-10 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-amber-200 dark:border-slate-700">
                 <p className="text-gray-600 dark:text-slate-400 text-lg">
                   No books found matching your criteria. Try adjusting your search or filters.
                 </p>
               </div>
-            ) : viewMode === "grid" ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {filteredAndSortedBooks.map(book => (
-                  <BookCard key={book.id} book={book} />
-                ))}
-              </div>
             ) : (
-              <div className="space-y-4">
-                {filteredAndSortedBooks.map(book => (
-                  <BookListItem key={book.id} book={book} />
-                ))}
-              </div>
+              <>
+                {viewMode === "grid" ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                    {books.map(book => (
+                      <BookCard key={book.id} book={book} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {books.map(book => (
+                      <BookListItem key={book.id} book={book} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Pagination Controls */}
+                {pagination && pagination.totalPages > 1 && (
+                  <div className="mt-8 flex items-center justify-center gap-4">
+                    <button
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={!pagination.hasPrev || isLoading}
+                      className={cn(
+                        "px-4 py-2 rounded-lg border border-amber-200 dark:border-slate-600",
+                        "bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100",
+                        "hover:bg-amber-50 dark:hover:bg-slate-600 transition-colors",
+                        "flex items-center gap-2",
+                        (!pagination.hasPrev || isLoading) && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-700 dark:text-slate-300">
+                        Page {pagination.page} of {pagination.totalPages}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                      disabled={!pagination.hasNext || isLoading}
+                      className={cn(
+                        "px-4 py-2 rounded-lg border border-amber-200 dark:border-slate-600",
+                        "bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100",
+                        "hover:bg-amber-50 dark:hover:bg-slate-600 transition-colors",
+                        "flex items-center gap-2",
+                        (!pagination.hasNext || isLoading) && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </section>
         </div>

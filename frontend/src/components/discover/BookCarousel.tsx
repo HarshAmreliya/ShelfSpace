@@ -2,7 +2,7 @@
 
 import React from "react";
 import { BookCard } from "@/components/common/BookCard";
-import { Book } from "@/types/models";
+import { Book } from "@/types/book";
 
 interface BookCarouselProps {
   title: string;
@@ -18,7 +18,7 @@ const BookCarousel: React.FC<BookCarouselProps> = ({ title, books }) => {
       <div className="flex overflow-x-auto scrollbar-hide pb-2 px-2 space-x-4">
         {books.map((book) => (
           <div key={book.id} className="min-w-[150px] flex-shrink-0">
-            <BookCard book={book} variant="grid" />
+            <BookCard book={book} />
           </div>
         ))}
       </div>

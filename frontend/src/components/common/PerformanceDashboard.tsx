@@ -1,16 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  Activity, 
-  Zap, 
-  Database, 
-  Network, 
-  Cpu, 
+import {
+  Activity,
+  Zap,
+  Database,
+  Network,
+  Cpu,
   MemoryStick,
   HardDrive,
   Wifi,
-  WifiOff,
   AlertTriangle,
   CheckCircle,
   X
@@ -58,11 +57,11 @@ export function PerformanceDashboard({ isOpen, onClose }: PerformanceDashboardPr
       const memoryUsage = memoryInfo ? memoryInfo.usedJSHeapSize / memoryInfo.jsHeapSizeLimit * 100 : 0;
 
       // Get network requests count
-      const networkEntries = performance.getEntriesByType('resource');
+      const networkEntries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
       const networkRequests = networkEntries.length;
 
       // Calculate cache hit rate
-      const cacheHits = networkEntries.filter(entry => 
+      const cacheHits = networkEntries.filter(entry =>
         entry.transferSize === 0 && entry.decodedBodySize > 0
       ).length;
       const cacheHitRate = networkRequests > 0 ? (cacheHits / networkRequests) * 100 : 0;
@@ -92,7 +91,9 @@ export function PerformanceDashboard({ isOpen, onClose }: PerformanceDashboardPr
           const lcpObserver = new PerformanceObserver((list) => {
             const entries = list.getEntries();
             const lastEntry = entries[entries.length - 1];
-            setMetrics(prev => prev ? { ...prev, largestContentfulPaint: lastEntry.startTime } : null);
+            if (lastEntry) {
+              setMetrics(prev => prev ? { ...prev, largestContentfulPaint: lastEntry.startTime } : null);
+            }
           });
           lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
         } catch (e) {

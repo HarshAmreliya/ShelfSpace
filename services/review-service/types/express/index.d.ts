@@ -1,4 +1,4 @@
-1declare namespace Express {
+declare namespace Express {
   export interface Request {
     userId?: string;
   }

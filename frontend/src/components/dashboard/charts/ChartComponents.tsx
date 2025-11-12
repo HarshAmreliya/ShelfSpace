@@ -2,7 +2,6 @@
 
 import React from 'react';
 import {
-  LineChart,
   Line,
   AreaChart,
   Area,
@@ -17,8 +16,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  RadialBarChart,
-  RadialBar,
   ComposedChart
 } from 'recharts';
 import { AnimatedCard } from '@/components/ui';
@@ -205,7 +202,7 @@ export function GenreDistributionChart({ data }: GenreDistributionChartProps) {
               borderRadius: '8px',
               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
             }}
-            formatter={(value: any, name: any, props: any) => [
+            formatter={(value: any, _name: any, props: any) => [
               `${value} books`,
               props.payload.name
             ]}
@@ -260,7 +257,7 @@ export function ReadingGoalsChart({ data }: ReadingGoalsChartProps) {
               borderRadius: '8px',
               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
             }}
-            formatter={(value: any, name: any, props: any) => [
+            formatter={(value: any, _name: any, _props: any) => [
               `${value.toFixed(1)}%`,
               'Progress'
             ]}

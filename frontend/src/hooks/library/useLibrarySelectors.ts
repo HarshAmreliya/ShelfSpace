@@ -108,15 +108,15 @@ export function useLibrarySelectors({
     return readingLists.map((list) => ({
       id: list.id,
       name: list.name,
-      bookCount: list.books.length,
+      bookCount: list.books?.length || 0,
       color: list.color,
       icon: list.icon,
       isDefault: list.isDefault,
       lastUpdated:
-        list.books.length > 0
+        list.books && list.books.length > 0
           ? Math.max(
               ...list.books.map((book) =>
-                new Date(book.createdAt || 0).getTime()
+                new Date((book as any).createdAt || 0).getTime()
               )
             )
           : 0,

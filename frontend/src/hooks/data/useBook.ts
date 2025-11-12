@@ -44,7 +44,7 @@ export function useBook(
   // Check if data is stale
   const isStale = useCallback(() => {
     if (!state.lastFetched) return true;
-    return Date.now() - state.lastFetched.getTime() > staleTime;
+    return Date.now() - state.lastFetched > staleTime;
   }, [state.lastFetched, staleTime]);
 
   // Get cached data
@@ -96,7 +96,7 @@ export function useBook(
             isLoading: false,
             isError: false,
             error: null,
-            lastFetched: new Date(),
+            lastFetched: Date.now(),
           }));
           return cachedData;
         }
@@ -127,16 +127,16 @@ export function useBook(
         const data = response.data;
 
         // Cache the data
-        setCachedData(data);
+        setCachedData(data as any);
 
         setState((prev) => ({
           ...prev,
-          data,
+          data: data as any,
           isLoading: false,
           isValidating: false,
           isError: false,
           error: null,
-          lastFetched: new Date(),
+          lastFetched: Date.now(),
         }));
 
         retryCountRef.current = 0;
@@ -204,7 +204,7 @@ export function useBook(
         return {
           ...prev,
           data: newData,
-          lastFetched: new Date(),
+          lastFetched: Date.now(),
         };
       });
 

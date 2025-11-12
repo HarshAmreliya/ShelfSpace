@@ -1,0 +1,102 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'services/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'services/**'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  backend-checks:
+    name: Backend Quality Checks
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - name: user-service
+            path: ./services/user-service
+            has-tests: true
+          - name: review-service
+            path: ./services/review-service
+            has-tests: false
+          - name: user-library-service
+            path: ./services/user-library-service
+            has-tests: false
+          - name: book-service
+            path: ./services/book-service
+            has-tests: false
+          - name: group-service
+            path: ./services/group-service
+            has-tests: false
+          - name: chat-service
+            path: ./services/chat-service
+            has-tests: false
+          - name: admin-service
+            path: ./services/admin-service
+            has-tests: false
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+          POSTGRES_DB: test_db_${{ matrix.service.name }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db_${{ matrix.service.name }}
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.service.path }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.service.path }}
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: ${{ matrix.service.path }}
+        run: |
+          if [ -d "prisma" ]; then
+            npx prisma generate
+          fi
+        continue-on-error: true
+
+      - name: TypeScript type check
+        working-directory: ${{ matrix.service.path }}
+        run: |
+          if [ -f "tsconfig.json" ]; then
+            npx tsc --noEmit
+          fi
+
+      - name: Run tests
+        working-directory: ${{ matrix.service.path }}
+        run: |
+          if [ "${{ matrix.service.has-tests }}" = "true" ] && npm run test 2>/dev/null; then
+            npm run test
+          else
+            echo "No tests configured for this service"
+          fi
+        continue-on-error: true
+

@@ -42,7 +42,7 @@ export function useReadingLists(options: UseReadingListsOptions = {}) {
   // Check if data is stale
   const isStale = useCallback(() => {
     if (!state.lastFetched) return true;
-    return Date.now() - state.lastFetched.getTime() > staleTime;
+    return Date.now() - state.lastFetched > staleTime;
   }, [state.lastFetched, staleTime]);
 
   // Get cached data
@@ -83,7 +83,7 @@ export function useReadingLists(options: UseReadingListsOptions = {}) {
             isLoading: false,
             isError: false,
             error: null,
-            lastFetched: new Date(),
+            lastFetched: Date.now(),
           }));
           return cachedData;
         }
@@ -117,22 +117,22 @@ export function useReadingLists(options: UseReadingListsOptions = {}) {
         const data = response.data;
 
         // Cache the data
-        setCachedData(data);
+        setCachedData(data as any);
 
         setState((prev) => ({
           ...prev,
-          data,
+          data: data as any,
           isLoading: false,
           isValidating: false,
           isError: false,
           error: null,
-          lastFetched: new Date(),
+          lastFetched: Date.now(),
         }));
 
         retryCountRef.current = 0;
-        onSuccess?.(data);
+        onSuccess?.(data as any);
 
-        return data;
+        return data as any;
       } catch (error) {
         if (abortControllerRef.current?.signal.aborted) {
           return;
@@ -196,7 +196,7 @@ export function useReadingLists(options: UseReadingListsOptions = {}) {
         return {
           ...prev,
           data: newData,
-          lastFetched: new Date(),
+          lastFetched: Date.now(),
         };
       });
 

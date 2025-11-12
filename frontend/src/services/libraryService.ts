@@ -16,13 +16,12 @@ import {
   NotFoundError,
   ConflictError,
 } from "./types";
+import { bookService } from "@/lib/book-service";
+import { getSession } from "next-auth/react";
+import axios from "axios";
 
-// Mock data imports (will be replaced with API calls in production)
-import {
-  generateMockBooks,
-  mockReadingLists,
-  DataTransformer,
-} from "./mockData";
+// Library service API client
+const LIBRARY_SERVICE_BASE_URL = "/api/library/reading-lists";
 
 /**
  * LibraryService handles all library-related data operations
@@ -45,33 +44,50 @@ export class LibraryService {
     params: GetReadingListsParams = {}
   ): Promise<ServiceResponse<ReadingList[]>> {
     try {
-      // In development: return mock data
-      // In production: make API call to GET /api/reading-lists
+      const session = await getSession();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      
+      if (session?.accessToken) {
+        headers["Authorization"] = `Bearer ${session.accessToken}`;
+      }
 
-      const lists = [...mockReadingLists];
+      const url = `${LIBRARY_SERVICE_BASE_URL}${params.includeBooks ? "?includeBooks=true" : ""}`;
+      const response = await axios.get<ReadingList[]>(url, { headers });
 
       // Optionally include books in the response
-      if (params.includeBooks) {
-        const booksResponse = await this.getBooks({ options: params.options });
-        const allBooks = booksResponse.data;
+      if (params.includeBooks && response.data) {
+        // Fetch books efficiently by fetching them in parallel for each list
+        // For now, we'll fetch all books and filter - in production, consider a batch endpoint
+        try {
+          const allBooksResponse = await this.getBooks({ options: params.options });
+          const allBooks = allBooksResponse.data;
 
-        lists.forEach((list) => {
-          list.books = allBooks.filter((book) =>
-            list.bookIds.includes(book.id)
-          );
-        });
+          response.data.forEach((list) => {
+            list.books = allBooks.filter((book) =>
+              list.bookIds.includes(book.id)
+            );
+          });
+        } catch (err) {
+          // If book fetching fails, still return lists without books
+          console.warn("Failed to fetch books for reading lists:", err);
+          response.data.forEach((list) => {
+            list.books = [];
+          });
+        }
       }
 
       return {
-        data: lists,
+        data: response.data,
         success: true,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new ServiceError(
         "Failed to fetch reading lists",
         "FETCH_READING_LISTS_ERROR",
-        500,
+        error.response?.status || 500,
         error
       );
     }
@@ -84,53 +100,76 @@ export class LibraryService {
     params: GetBooksParams = {}
   ): Promise<PaginatedResponse<Book>> {
     try {
-      // Get mock books using the new infrastructure
-      const mockBooks = generateMockBooks();
+      let booksResponse;
 
-      // Apply filters if provided
-      let filteredBooks = mockBooks;
-
-      if (params.filter) {
-        filteredBooks = this.applyBookFilters(mockBooks, params.filter);
-      }
-
+      // If filtering by listId, get books from reading list first
       if (params.listId) {
-        const listsResponse = await this.getReadingLists();
+        const listsResponse = await this.getReadingLists({ includeBooks: false });
         const targetList = listsResponse.data.find(
           (list) => list.id === params.listId
         );
-        if (targetList) {
-          filteredBooks = filteredBooks.filter((book) =>
+        if (targetList && targetList.bookIds.length > 0) {
+          // Fetch books by IDs from reading list
+          // Note: We'll need to fetch all and filter, or add a batch endpoint
+          booksResponse = await bookService.getBooks({
+            page: params.page || 1,
+            limit: params.limit || 20,
+            sortBy: params.filter?.sortOrder === "desc" ? "desc" : "asc",
+          });
+          // Filter to only books in the list
+          booksResponse.data = booksResponse.data.filter((book) =>
             targetList.bookIds.includes(book.id)
           );
+        } else {
+          // Empty list
+          return {
+            data: [],
+            pagination: {
+              page: params.page || 1,
+              limit: params.limit || 20,
+              total: 0,
+              totalPages: 0,
+              hasNext: false,
+              hasPrev: false,
+            },
+            success: true,
+            timestamp: new Date().toISOString(),
+          };
         }
+      } else if (params.filter?.search) {
+        // Use search endpoint if search query provided
+        booksResponse = await bookService.searchBooks(
+          params.filter.search,
+          params.page || 1
+        );
+      } else {
+        // Get all books with filters
+        booksResponse = await bookService.getBooks({
+          page: params.page || 1,
+          limit: params.limit || 20,
+          author: params.filter?.author,
+          sortBy: params.filter?.sortOrder === "desc" ? "desc" : "asc",
+          search: params.filter?.search,
+        });
       }
 
-      // Apply pagination
-      const page = params.page || 1;
-      const limit = params.limit || 20;
-      const startIndex = (page - 1) * limit;
-      const endIndex = startIndex + limit;
-      const paginatedBooks = filteredBooks.slice(startIndex, endIndex);
+      // Apply additional client-side filters if needed
+      let filteredBooks = booksResponse.data;
+      if (params.filter) {
+        filteredBooks = this.applyBookFilters(filteredBooks, params.filter);
+      }
 
       return {
-        data: paginatedBooks,
-        pagination: {
-          page,
-          limit,
-          total: filteredBooks.length,
-          totalPages: Math.ceil(filteredBooks.length / limit),
-          hasNext: endIndex < filteredBooks.length,
-          hasPrev: page > 1,
-        },
+        data: filteredBooks,
+        pagination: booksResponse.pagination,
         success: true,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new ServiceError(
         "Failed to fetch books",
         "FETCH_BOOKS_ERROR",
-        500,
+        error.response?.status || 500,
         error
       );
     }
@@ -141,26 +180,21 @@ export class LibraryService {
    */
   async getBook(id: ID): Promise<ServiceResponse<Book>> {
     try {
-      const booksResponse = await this.getBooks();
-      const book = booksResponse.data.find((b) => b.id === id);
-
-      if (!book) {
-        throw new NotFoundError("Book", id);
-      }
+      const book = await bookService.getBookById(id);
 
       return {
         data: book,
         success: true,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
-      if (error instanceof NotFoundError) {
-        throw error;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        throw new NotFoundError("Book", id);
       }
       throw new ServiceError(
         `Failed to fetch book with id ${id}`,
         "FETCH_BOOK_ERROR",
-        500,
+        error.response?.status || 500,
         error
       );
     }
@@ -174,25 +208,58 @@ export class LibraryService {
       // Validate required fields
       this.validateBookInput(bookInput);
 
-      // In production: POST /api/books
-      const newBook = DataTransformer.transformBookInputToBook(
-        bookInput,
-        Date.now().toString()
-      );
+      const session = await getSession();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      
+      if (session?.accessToken) {
+        headers["Authorization"] = `Bearer ${session.accessToken}`;
+      }
+
+      // Transform to backend format
+      const backendBook = {
+        title: bookInput.title,
+        authors: [{ name: bookInput.author }],
+        description: bookInput.description,
+        genres: bookInput.genres || [],
+        isbn13: bookInput.isbn,
+        num_pages: bookInput.pages,
+        publication_year: bookInput.publishedYear?.toString(),
+        language_code: bookInput.language,
+        image_url: bookInput.coverImage || bookInput.cover,
+      };
+
+      const response = await axios.post(`${this.baseUrl}/books`, backendBook, { headers });
+      const book = response.data;
+
+      // Transform back to frontend format
+      const frontendBook: Book = {
+        id: book.book_id || book._id,
+        title: book.title,
+        author: book.authors?.[0]?.name || "Unknown",
+        ...bookInput,
+        genres: bookInput.genres || [],
+        status: "want-to-read",
+        progress: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        addedAt: new Date().toISOString(),
+      };
 
       return {
-        data: newBook,
+        data: frontendBook,
         success: true,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof ValidationError) {
         throw error;
       }
       throw new ServiceError(
         "Failed to create book",
         "CREATE_BOOK_ERROR",
-        500,
+        error.response?.status || 500,
         error
       );
     }
@@ -282,39 +349,37 @@ export class LibraryService {
       // Validate required fields
       this.validateReadingListInput(params.list);
 
-      // Check for name conflicts
-      const existingLists = await this.getReadingLists();
-      const nameExists = existingLists.data.some(
-        (list) => list.name.toLowerCase() === params.list.name.toLowerCase()
-      );
-
-      if (nameExists) {
-        throw new ConflictError("A reading list with this name already exists");
+      const session = await getSession();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      
+      if (session?.accessToken) {
+        headers["Authorization"] = `Bearer ${session.accessToken}`;
       }
 
-      // In production: POST /api/reading-lists
-      const newList = DataTransformer.transformReadingListInputToReadingList(
+      const response = await axios.post<ReadingList>(
+        LIBRARY_SERVICE_BASE_URL,
         params.list,
-        Date.now().toString(),
-        "user-1"
+        { headers }
       );
 
-      // Set sort order
-      newList.sortOrder = existingLists.data.length + 1;
-
       return {
-        data: newList,
+        data: response.data,
         success: true,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
-      if (error instanceof ValidationError || error instanceof ConflictError) {
+    } catch (error: any) {
+      if (error instanceof ValidationError) {
         throw error;
+      }
+      if (error.response?.status === 409) {
+        throw new ConflictError("A reading list with this name already exists");
       }
       throw new ServiceError(
         "Failed to create reading list",
         "CREATE_READING_LIST_ERROR",
-        500,
+        error.response?.status || 500,
         error
       );
     }
@@ -327,59 +392,45 @@ export class LibraryService {
     params: UpdateReadingListParams
   ): Promise<ServiceResponse<ReadingList>> {
     try {
-      // Get existing list
-      const existingLists = await this.getReadingLists();
-      const existingList = existingLists.data.find(
-        (list) => list.id === params.id
-      );
-
-      if (!existingList) {
-        throw new NotFoundError("Reading list", params.id);
-      }
-
       // Validate updates
       if (params.updates.name) {
         this.validateReadingListInput({ name: params.updates.name });
-
-        // Check for name conflicts (excluding current list)
-        const nameExists = existingLists.data.some(
-          (list) =>
-            list.id !== params.id &&
-            list.name.toLowerCase() === params.updates.name!.toLowerCase()
-        );
-
-        if (nameExists) {
-          throw new ConflictError(
-            "A reading list with this name already exists"
-          );
-        }
       }
 
-      // In production: PUT /api/reading-lists/:id
-      const updatedList: ReadingList = {
-        ...existingList,
-        ...params.updates,
-        bookCount: params.updates.bookIds?.length ?? existingList.bookCount,
-        updatedAt: new Date().toISOString(),
+      const session = await getSession();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
       };
+      
+      if (session?.accessToken) {
+        headers["Authorization"] = `Bearer ${session.accessToken}`;
+      }
+
+      const response = await axios.put<ReadingList>(
+        `${LIBRARY_SERVICE_BASE_URL}/${params.id}`,
+        params.updates,
+        { headers }
+      );
 
       return {
-        data: updatedList,
+        data: response.data,
         success: true,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
-      if (
-        error instanceof ValidationError ||
-        error instanceof NotFoundError ||
-        error instanceof ConflictError
-      ) {
+    } catch (error: any) {
+      if (error instanceof ValidationError) {
         throw error;
+      }
+      if (error.response?.status === 404) {
+        throw new NotFoundError("Reading list", params.id);
+      }
+      if (error.response?.status === 409) {
+        throw new ConflictError("A reading list with this name already exists");
       }
       throw new ServiceError(
         `Failed to update reading list with id ${params.id}`,
         "UPDATE_READING_LIST_ERROR",
-        500,
+        error.response?.status || 500,
         error
       );
     }
@@ -392,37 +443,33 @@ export class LibraryService {
     params: DeleteReadingListParams
   ): Promise<ServiceResponse<void>> {
     try {
-      // Get existing list
-      const existingLists = await this.getReadingLists();
-      const existingList = existingLists.data.find(
-        (list) => list.id === params.id
-      );
-
-      if (!existingList) {
-        throw new NotFoundError("Reading list", params.id);
+      const session = await getSession();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      
+      if (session?.accessToken) {
+        headers["Authorization"] = `Bearer ${session.accessToken}`;
       }
 
-      // Prevent deletion of default lists
-      if (existingList.isDefault) {
-        throw new ValidationError("Cannot delete default reading lists");
-      }
-
-      // In production: DELETE /api/reading-lists/:id
-      // For now, just return success
+      await axios.delete(`${LIBRARY_SERVICE_BASE_URL}/${params.id}`, { headers });
 
       return {
         data: undefined,
         success: true,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
-      if (error instanceof ValidationError || error instanceof NotFoundError) {
-        throw error;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        throw new NotFoundError("Reading list", params.id);
+      }
+      if (error.response?.status === 400) {
+        throw new ValidationError("Cannot delete default reading lists");
       }
       throw new ServiceError(
         `Failed to delete reading list with id ${params.id}`,
         "DELETE_READING_LIST_ERROR",
-        500,
+        error.response?.status || 500,
         error
       );
     }
@@ -433,45 +480,45 @@ export class LibraryService {
    */
   async moveBooks(params: MoveBooksParams): Promise<ServiceResponse<void>> {
     try {
-      // Validate that target list exists
-      const lists = await this.getReadingLists();
-      const targetList = lists.data.find(
-        (list) => list.id === params.targetListId
-      );
-
-      if (!targetList) {
-        throw new NotFoundError("Reading list", params.targetListId);
+      const session = await getSession();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      
+      if (session?.accessToken) {
+        headers["Authorization"] = `Bearer ${session.accessToken}`;
       }
 
-      // Validate that all books exist
-      const books = await this.getBooks();
-      const existingBookIds = books.data.map((book) => book.id);
-      const invalidBookIds = params.bookIds.filter(
-        (id) => !existingBookIds.includes(id)
+      // Extract source list ID from params (assuming it's in the URL path)
+      // The API expects: POST /reading-lists/:id/move-books
+      // We need to know which list to move FROM - this should be in params
+      const sourceListId = (params as any).sourceListId || params.targetListId;
+      
+      await axios.post(
+        `${LIBRARY_SERVICE_BASE_URL}/${sourceListId}/move-books`,
+        {
+          bookIds: params.bookIds,
+          targetListId: params.targetListId,
+        },
+        { headers }
       );
-
-      if (invalidBookIds.length > 0) {
-        throw new ValidationError(
-          `Books not found: ${invalidBookIds.join(", ")}`
-        );
-      }
-
-      // In production: POST /api/reading-lists/:id/move-books
-      // For now, just return success
 
       return {
         data: undefined,
         success: true,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
-      if (error instanceof ValidationError || error instanceof NotFoundError) {
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        throw new NotFoundError("Reading list", params.targetListId);
+      }
+      if (error instanceof ValidationError) {
         throw error;
       }
       throw new ServiceError(
         "Failed to move books",
         "MOVE_BOOKS_ERROR",
-        500,
+        error.response?.status || 500,
         error
       );
     }
@@ -480,14 +527,26 @@ export class LibraryService {
   // Private helper methods
 
   private validateBookInput(input: Partial<BookInput>): void {
-    const errors = DataTransformer.validateBookData(input as any);
+    const errors: string[] = [];
+    if (!input.title || input.title.trim().length === 0) {
+      errors.push("Title is required");
+    }
+    if (!input.author || input.author.trim().length === 0) {
+      errors.push("Author is required");
+    }
     if (errors.length > 0) {
       throw new ValidationError(errors.join(", "));
     }
   }
 
   private validateReadingListInput(input: Partial<ReadingListInput>): void {
-    const errors = DataTransformer.validateReadingListData(input as any);
+    const errors: string[] = [];
+    if (input.name && input.name.trim().length === 0) {
+      errors.push("Name cannot be empty");
+    }
+    if (input.name && input.name.length > 100) {
+      errors.push("Name must be less than 100 characters");
+    }
     if (errors.length > 0) {
       throw new ValidationError(errors.join(", "));
     }

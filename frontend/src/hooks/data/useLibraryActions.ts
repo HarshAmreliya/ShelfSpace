@@ -56,23 +56,6 @@ export function useLibraryActions(): LibraryActionsHook {
     readingLists: [],
   });
 
-  // Register invalidation callbacks
-  const registerInvalidation = useCallback(
-    (type: "books" | "readingLists", callback: () => void) => {
-      invalidationCallbacksRef.current[type].push(callback);
-
-      // Return cleanup function
-      return () => {
-        const callbacks = invalidationCallbacksRef.current[type];
-        const index = callbacks.indexOf(callback);
-        if (index > -1) {
-          callbacks.splice(index, 1);
-        }
-      };
-    },
-    []
-  );
-
   // Invalidation functions
   const invalidateBooks = useCallback(() => {
     invalidationCallbacksRef.current.books.forEach((callback) => callback());
@@ -98,7 +81,7 @@ export function useLibraryActions(): LibraryActionsHook {
       setCreateBookState({ isLoading: true, error: null });
 
       try {
-        const response = await libraryService.createBook(input);
+        const response = await libraryService.createBook(input as any);
         const book = response.data;
 
         setCreateBookState({ isLoading: false, error: null });
@@ -107,10 +90,10 @@ export function useLibraryActions(): LibraryActionsHook {
         invalidateBooks();
         invalidateReadingLists(); // Lists might need to update book counts
 
-        options?.onSuccess?.(book, input);
-        options?.onSettled?.(book, null, input);
+        options?.onSuccess?.(book as any, input);
+        options?.onSettled?.(book as any, undefined, input);
 
-        return book;
+        return book as any;
       } catch (error) {
         const errorObj =
           error instanceof Error ? error : new Error("Failed to create book");
@@ -134,7 +117,7 @@ export function useLibraryActions(): LibraryActionsHook {
       setUpdateBookState({ isLoading: true, error: null });
 
       try {
-        const response = await libraryService.updateBook(params);
+        const response = await libraryService.updateBook(params as any);
         const book = response.data;
 
         setUpdateBookState({ isLoading: false, error: null });
@@ -142,10 +125,10 @@ export function useLibraryActions(): LibraryActionsHook {
         // Invalidate relevant caches
         invalidateBooks();
 
-        options?.onSuccess?.(book, params);
-        options?.onSettled?.(book, null, params);
+        options?.onSuccess?.(book as any, params);
+        options?.onSettled?.(book as any, undefined, params);
 
-        return book;
+        return book as any;
       } catch (error) {
         const errorObj =
           error instanceof Error ? error : new Error("Failed to update book");
@@ -175,7 +158,7 @@ export function useLibraryActions(): LibraryActionsHook {
         invalidateReadingLists(); // Lists might need to update book counts
 
         options?.onSuccess?.(undefined, id);
-        options?.onSettled?.(undefined, null, id);
+        options?.onSettled?.(undefined, undefined, id);
       } catch (error) {
         const errorObj =
           error instanceof Error ? error : new Error("Failed to delete book");
@@ -201,7 +184,7 @@ export function useLibraryActions(): LibraryActionsHook {
 
       try {
         const response = await libraryService.createReadingList({
-          list: input,
+          list: input as any,
         });
         const readingList = response.data;
 
@@ -210,10 +193,10 @@ export function useLibraryActions(): LibraryActionsHook {
         // Invalidate relevant caches
         invalidateReadingLists();
 
-        options?.onSuccess?.(readingList, input);
-        options?.onSettled?.(readingList, null, input);
+        options?.onSuccess?.(readingList as any, input);
+        options?.onSettled?.(readingList as any, undefined, input);
 
-        return readingList;
+        return readingList as any;
       } catch (error) {
         const errorObj =
           error instanceof Error
@@ -242,7 +225,7 @@ export function useLibraryActions(): LibraryActionsHook {
       setUpdateReadingListState({ isLoading: true, error: null });
 
       try {
-        const response = await libraryService.updateReadingList(params);
+        const response = await libraryService.updateReadingList(params as any);
         const readingList = response.data;
 
         setUpdateReadingListState({ isLoading: false, error: null });
@@ -250,10 +233,10 @@ export function useLibraryActions(): LibraryActionsHook {
         // Invalidate relevant caches
         invalidateReadingLists();
 
-        options?.onSuccess?.(readingList, params);
-        options?.onSettled?.(readingList, null, params);
+        options?.onSuccess?.(readingList as any, params);
+        options?.onSettled?.(readingList as any, undefined, params);
 
-        return readingList;
+        return readingList as any;
       } catch (error) {
         const errorObj =
           error instanceof Error
@@ -284,7 +267,7 @@ export function useLibraryActions(): LibraryActionsHook {
         invalidateReadingLists();
 
         options?.onSuccess?.(undefined, id);
-        options?.onSettled?.(undefined, null, id);
+        options?.onSettled?.(undefined, undefined, id);
       } catch (error) {
         const errorObj =
           error instanceof Error
@@ -322,7 +305,7 @@ export function useLibraryActions(): LibraryActionsHook {
         invalidateReadingLists();
 
         options?.onSuccess?.(undefined, params);
-        options?.onSettled?.(undefined, null, params);
+        options?.onSettled?.(undefined, undefined, params);
       } catch (error) {
         const errorObj =
           error instanceof Error ? error : new Error("Failed to move books");

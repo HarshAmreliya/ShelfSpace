@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Book } from "@/types/models";
+import { Book } from "@/types/book";
 
 export interface BookCardActions {
   onView?: (book: Book) => void | undefined;

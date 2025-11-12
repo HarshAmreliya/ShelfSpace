@@ -1,8 +1,8 @@
 import React from "react";
 import { BookOpen, ArrowLeft } from "lucide-react";
-import { ErrorFallbackProps } from "../../../../types/error";
+import { ErrorFallbackProps } from "@/components/common/ErrorBoundary";
 
-export function DiscoverErrorFallback({ error, resetError }: ErrorFallbackProps) {
+export function DiscoverErrorFallback({ error, retry }: ErrorFallbackProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 flex items-center justify-center">
       <div className="text-center max-w-md mx-auto px-6">
@@ -17,7 +17,7 @@ export function DiscoverErrorFallback({ error, resetError }: ErrorFallbackProps)
         </p>
         <div className="space-y-3">
           <button
-            onClick={resetError}
+            onClick={retry}
             className="w-full inline-flex items-center justify-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
           >
             Try Again

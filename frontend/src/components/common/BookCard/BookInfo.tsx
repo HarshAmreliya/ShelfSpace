@@ -4,7 +4,7 @@ import React, { memo } from "react";
 import { Star, BookOpen, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/utils/cn";
-import { Book } from "../../../../types";
+import { Book } from "@/types/book";
 
 interface BookInfoProps {
   book: Book;
@@ -54,9 +54,9 @@ export const BookInfo: React.FC<BookInfoProps> = memo(({
       </p>
 
       <div className="flex items-center space-x-4 mt-2">
-        {showGenre && book.genre && (
+        {showGenre && book.genres?.[0] && (
           <span className="text-xs text-gray-400 dark:text-gray-500">
-            {book.genre}
+            {book.genres[0]}
           </span>
         )}
         {showPages && book.pages && (
@@ -79,17 +79,17 @@ export const BookInfo: React.FC<BookInfoProps> = memo(({
         <Badge className={statusColor} size="xs">
           {formattedStatus}
         </Badge>
-        {showLastRead && book.lastRead && (
+        {showLastRead && book.lastReadAt && (
           <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center">
             <Clock className="h-3 w-3 mr-1" />
-            Last read {new Date(book.lastRead).toLocaleDateString()}
+            Last read {new Date(book.lastReadAt).toLocaleDateString()}
           </span>
         )}
       </div>
 
       {showProgress &&
         book.readingProgress !== undefined &&
-        book.status === "reading" && (
+        book.status === "currently-reading" && (
           <div className="mt-3 space-y-1">
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
               <span>Reading Progress</span>

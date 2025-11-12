@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Search, X, Loader2 } from "lucide-react";
-import { useDebounce, useDebouncedCallback } from "@/hooks/useDebounce";
+import { useDebouncedCallback } from "@/hooks/useDebounce";
 
 interface SearchInputProps {
   placeholder?: string;
@@ -30,7 +30,7 @@ export function SearchInput({
   variant = "default"
 }: SearchInputProps) {
   const [query, setQuery] = useState("");
-  const [isFocused, setIsFocused] = useState(false);
+  const [_isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);

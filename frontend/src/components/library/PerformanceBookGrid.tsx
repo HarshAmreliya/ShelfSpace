@@ -91,7 +91,7 @@ export function PerformanceBookGrid({
   }, [books]);
 
   // Render individual book item
-  const renderBookItem = (book: Book, index: number) => (
+  const renderBookItem = (book: Book, _index: number) => (
     <div
       key={book.id}
       className="group relative bg-white dark:bg-slate-800 rounded-lg shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden"
@@ -286,7 +286,7 @@ export function PerformanceBookList({
   }, [books, debouncedSearchQuery]);
 
   // Render book list item
-  const renderBookItem = (book: Book, index: number) => (
+  const renderBookItem = (book: Book, _index: number) => (
     <div
       key={book.id}
       className="flex items-center space-x-4 p-4 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer border-b border-gray-200 dark:border-slate-600 last:border-b-0"

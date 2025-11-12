@@ -1,17 +1,16 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnimatedCard, StaggerContainer, StaggerItem, FloatingElement, GradientProgressBar } from '@/components/ui';
-import { 
-  Star, 
-  Heart, 
-  BookOpen, 
-  Plus, 
-  Sparkles, 
-  TrendingUp,
-  Clock,
-  Users
+import {
+  Star,
+  Heart,
+  BookOpen,
+  Plus,
+  Sparkles
 } from 'lucide-react';
+import { bookService } from '@/lib/book-service';
+import { Book } from '@/types/book';
 
 interface Recommendation {
   id: string;
@@ -29,86 +28,57 @@ interface Recommendation {
   isBookClubPick?: boolean;
 }
 
-const mockRecommendations: Recommendation[] = [
-  {
-    id: '1',
-    title: 'The Midnight Library',
-    author: 'Matt Haig',
-    cover: '🌙',
-    rating: 4.2,
-    genre: 'Fantasy',
-    pages: 304,
-    description: 'A novel about infinite possibilities and the power of choice.',
-    reason: 'Based on your love for fantasy and philosophical themes',
-    matchScore: 95,
-    isNewRelease: true
-  },
-  {
-    id: '2',
-    title: 'Klara and the Sun',
-    author: 'Kazuo Ishiguro',
-    cover: '🤖',
-    rating: 4.1,
-    genre: 'Science Fiction',
-    pages: 320,
-    description: 'A story about artificial intelligence and what it means to be human.',
-    reason: 'Similar to your recent sci-fi reads',
-    matchScore: 88,
-    isTrending: true
-  },
-  {
-    id: '3',
-    title: 'The Seven Moons of Maali Almeida',
-    author: 'Shehan Karunatilaka',
-    cover: '🌙',
-    rating: 4.5,
-    genre: 'Literary Fiction',
-    pages: 400,
-    description: 'A ghost story set in war-torn Sri Lanka.',
-    reason: 'Award-winning literary fiction you might enjoy',
-    matchScore: 82,
-    isBookClubPick: true
-  },
-  {
-    id: '4',
-    title: 'Project Hail Mary',
-    author: 'Andy Weir',
-    cover: '🚀',
-    rating: 4.8,
-    genre: 'Science Fiction',
-    pages: 496,
-    description: 'A lone astronaut must save the earth from disaster.',
-    reason: 'Perfect match for your sci-fi preferences',
-    matchScore: 92
-  },
-  {
-    id: '5',
-    title: 'The Invisible Life of Addie LaRue',
-    author: 'V.E. Schwab',
-    cover: '👻',
-    rating: 4.3,
-    genre: 'Fantasy',
-    pages: 448,
-    description: 'A woman makes a deal with the devil and becomes immortal.',
-    reason: 'Fantasy with historical elements you love',
-    matchScore: 89
-  },
-  {
-    id: '6',
-    title: 'Atomic Habits',
-    author: 'James Clear',
-    cover: '⚛️',
-    rating: 4.7,
-    genre: 'Self-Help',
-    pages: 320,
-    description: 'An easy and proven way to build good habits.',
-    reason: 'Based on your interest in productivity books',
-    matchScore: 85
-  }
-];
+// Transform Book to Recommendation format
+function transformBookToRecommendation(book: Book, index: number): Recommendation {
+  return {
+    id: book.id,
+    title: book.title,
+    author: book.author,
+    cover: book.coverImage || book.cover || '📚',
+    rating: book.averageRating || book.rating || 0,
+    genre: book.genres?.[0] || 'General',
+    pages: book.pages || 0,
+    description: book.description || '',
+    reason: `Based on your reading preferences and genre interests`,
+    matchScore: 85 + (index % 10), // Placeholder match score
+    isNewRelease: index % 3 === 0,
+    isTrending: index % 4 === 0,
+    isBookClubPick: index % 5 === 0,
+  };
+}
 
 export function RecommendationsGrid() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Fetch books from API - using a general search or recent books
+        const response = await bookService.getBooks({ 
+          page: 1, 
+          limit: 6,
+          sortBy: 'desc' 
+        });
+        const transformed = response.data.map((book, index) => 
+          transformBookToRecommendation(book, index)
+        );
+        setRecommendations(transformed);
+      } catch (err: any) {
+        console.error('Error fetching recommendations:', err);
+        setError('Failed to load recommendations');
+        setRecommendations([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecommendations();
+  }, []);
 
   const toggleFavorite = (id: string) => {
     setFavorites(prev => {
@@ -137,12 +107,31 @@ export function RecommendationsGrid() {
           <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
             <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </div>
-          <FloatingElement intensity="low" className="text-2xl opacity-60">✨</FloatingElement>
+          <FloatingElement className="text-2xl opacity-60">✨</FloatingElement>
         </div>
       </div>
 
-      <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockRecommendations.map((book, index) => (
+      {loading && (
+        <div className="text-center py-8 text-gray-600 dark:text-slate-400">
+          Loading recommendations...
+        </div>
+      )}
+
+      {error && (
+        <div className="text-center py-8 text-red-600 dark:text-red-400">
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && recommendations.length === 0 && (
+        <div className="text-center py-8 text-gray-600 dark:text-slate-400">
+          No recommendations available at the moment.
+        </div>
+      )}
+
+      {!loading && !error && recommendations.length > 0 && (
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {recommendations.map((book, index) => (
           <StaggerItem key={book.id} className="delay-100">
             <AnimatedCard 
               variant="default" 
@@ -153,7 +142,7 @@ export function RecommendationsGrid() {
               {/* Book cover and badges */}
               <div className="relative mb-4">
                 <div className="flex items-center justify-center w-16 h-20 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg mx-auto">
-                  <FloatingElement intensity="low" className="text-3xl">
+                  <FloatingElement className="text-3xl">
                     {book.cover}
                   </FloatingElement>
                 </div>
@@ -251,6 +240,7 @@ export function RecommendationsGrid() {
           </StaggerItem>
         ))}
       </StaggerContainer>
+      )}
 
       {/* Load more recommendations */}
       <div className="mt-6 text-center">

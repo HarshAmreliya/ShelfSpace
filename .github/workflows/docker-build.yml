@@ -1,0 +1,89 @@
+name: Docker Build & Push
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/shelfspace
+
+jobs:
+  build-and-push:
+    name: Build and Push Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        service:
+          - name: frontend
+            context: ./frontend
+            dockerfile: ./frontend/Dockerfile
+          - name: user-service
+            context: ./services/user-service
+            dockerfile: ./services/user-service/Dockerfile
+          - name: user-library-service
+            context: ./services/user-library-service
+            dockerfile: ./services/user-library-service/Dockerfile
+          - name: review-service
+            context: ./services/review-service
+            dockerfile: ./services/review-service/Dockerfile
+          - name: book-service
+            context: ./services/book-service
+            dockerfile: ./services/book-service/Dockerfile
+          - name: group-service
+            context: ./services/group-service
+            dockerfile: ./services/group-service/Dockerfile
+          - name: chat-service
+            context: ./services/chat-service
+            dockerfile: ./services/chat-service/Dockerfile
+          - name: admin-service
+            context: ./services/admin-service
+            dockerfile: ./services/admin-service/Dockerfile
+          - name: chatbot-service
+            context: ./services/chatbot-service
+            dockerfile: ./services/chatbot-service/Dockerfile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service.name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+

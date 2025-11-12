@@ -3,12 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { NavigationPreferences } from "../../../types/navigation";
 
-const NAVIGATION_PREFERENCES_KEY = "shelfspace-navigation-preferences";
-
 const defaultPreferences: NavigationPreferences = {
   isCollapsed: false,
   favoriteItems: [],
-  customOrder: undefined,
 };
 
 export function useNavigationPreferences() {
@@ -16,34 +13,16 @@ export function useNavigationPreferences() {
     useState<NavigationPreferences>(defaultPreferences);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load preferences from localStorage on mount
+  // Load preferences on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(NAVIGATION_PREFERENCES_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setPreferences({ ...defaultPreferences, ...parsed });
-      }
-    } catch (error) {
-      console.warn("Failed to load navigation preferences:", error);
-    } finally {
-      setIsLoaded(true);
-    }
+    setIsLoaded(true);
   }, []);
 
-  // Save preferences to localStorage
+  // Save preferences
   const savePreferences = useCallback(
     (newPreferences: Partial<NavigationPreferences>) => {
       setPreferences((current) => {
         const updated = { ...current, ...newPreferences };
-        try {
-          localStorage.setItem(
-            NAVIGATION_PREFERENCES_KEY,
-            JSON.stringify(updated)
-          );
-        } catch (error) {
-          console.warn("Failed to save navigation preferences:", error);
-        }
         return updated;
       });
     },
@@ -65,14 +44,6 @@ export function useNavigationPreferences() {
         if (!favoriteItems.includes(itemName)) {
           favoriteItems.push(itemName);
           const updated = { ...current, favoriteItems };
-          try {
-            localStorage.setItem(
-              NAVIGATION_PREFERENCES_KEY,
-              JSON.stringify(updated)
-            );
-          } catch (error) {
-            console.warn("Failed to save navigation preferences:", error);
-          }
           return updated;
         }
         return current;
@@ -88,14 +59,6 @@ export function useNavigationPreferences() {
           (name) => name !== itemName
         );
         const updated = { ...current, favoriteItems };
-        try {
-          localStorage.setItem(
-            NAVIGATION_PREFERENCES_KEY,
-            JSON.stringify(updated)
-          );
-        } catch (error) {
-          console.warn("Failed to save navigation preferences:", error);
-        }
         return updated;
       });
     },
@@ -106,14 +69,6 @@ export function useNavigationPreferences() {
     (customOrder: string[]) => {
       setPreferences((current) => {
         const updated = { ...current, customOrder };
-        try {
-          localStorage.setItem(
-            NAVIGATION_PREFERENCES_KEY,
-            JSON.stringify(updated)
-          );
-        } catch (error) {
-          console.warn("Failed to save navigation preferences:", error);
-        }
         return updated;
       });
     },
@@ -122,11 +77,6 @@ export function useNavigationPreferences() {
 
   const resetPreferences = useCallback(() => {
     setPreferences(defaultPreferences);
-    try {
-      localStorage.removeItem(NAVIGATION_PREFERENCES_KEY);
-    } catch (error) {
-      console.warn("Failed to reset navigation preferences:", error);
-    }
   }, []);
 
   return {

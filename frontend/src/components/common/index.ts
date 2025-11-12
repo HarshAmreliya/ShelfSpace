@@ -21,4 +21,4 @@ export {
 export { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 
 // Common components
-export { BookCard, default as BookCard } from "./BookCard";
+export { BookCard } from "./BookCard";

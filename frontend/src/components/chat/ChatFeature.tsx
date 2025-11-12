@@ -6,16 +6,7 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { ChatErrorFallback } from "@/components/common/ErrorFallbacks/ChatErrorFallback";
 import { useChatState } from "@/hooks/chat/useChatState";
 import { useTheme } from "@/contexts/ThemeContext";
-import { 
-  MessageCircle, 
-  Send, 
-  Trash2, 
-  BookOpen,
-  User,
-  Menu,
-  X,
-  History
-} from "lucide-react";
+import { Send, Trash2, BookOpen, User, Menu, X, History } from "lucide-react";
 
 export interface ChatFeatureProps {
   className?: string;
@@ -27,30 +18,43 @@ export function ChatFeature({ className }: ChatFeatureProps) {
     inputMessage,
     isTyping,
     isLoading,
-    error,
+    error: _error,
     actions,
   } = useChatState();
 
-  const { actualTheme } = useTheme();
+  const { actualTheme: _actualTheme } = useTheme();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  // Mock chat history data
-  const chatHistory = [
-    { id: 1, title: "Book Recommendations", preview: "Can you suggest some fantasy novels?", timestamp: "2 hours ago" },
-    { id: 2, title: "Writing Help", preview: "Help me brainstorm ideas for a sci-fi novel", timestamp: "1 day ago" },
-    { id: 3, title: "Literary Analysis", preview: "Explain the themes in 1984", timestamp: "3 days ago" },
-    { id: 4, title: "Reading Goals", preview: "How can I read more books this year?", timestamp: "1 week ago" },
-  ];
+  // TODO: Fetch chat history from API
+  // For now, show empty state or recent conversations
+  const chatHistory: Array<{
+    id: number;
+    title: string;
+    preview: string;
+    timestamp: string;
+  }> = [];
 
   return (
     <ErrorBoundary fallback={ChatErrorFallback}>
-      <div className={`h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 ${className || ""}`}>
+      <div
+        className={`h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 ${
+          className || ""
+        }`}
+      >
         {/* Decorative book-themed background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 text-6xl opacity-5 dark:opacity-10">💬</div>
-          <div className="absolute top-40 right-20 text-4xl opacity-5 dark:opacity-10">📚</div>
-          <div className="absolute bottom-20 left-1/4 text-5xl opacity-5 dark:opacity-10">✍️</div>
-          <div className="absolute bottom-40 right-1/3 text-3xl opacity-5 dark:opacity-10">✨</div>
+          <div className="absolute top-20 left-10 text-6xl opacity-5 dark:opacity-10">
+            💬
+          </div>
+          <div className="absolute top-40 right-20 text-4xl opacity-5 dark:opacity-10">
+            📚
+          </div>
+          <div className="absolute bottom-20 left-1/4 text-5xl opacity-5 dark:opacity-10">
+            ✍️
+          </div>
+          <div className="absolute bottom-40 right-1/3 text-3xl opacity-5 dark:opacity-10">
+            ✨
+          </div>
         </div>
 
         <div className="relative h-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -148,7 +152,9 @@ export function ChatFeature({ className }: ChatFeatureProps) {
                           Welcome to ShelfAI
                         </h3>
                         <p className="text-lg text-gray-600 dark:text-slate-300 italic">
-                          "The more that you read, the more things you will know. The more that you learn, the more places you'll go." - Dr. Seuss
+                          "The more that you read, the more things you will
+                          know. The more that you learn, the more places you'll
+                          go." - Dr. Seuss
                         </p>
                       </div>
                     </div>
@@ -157,71 +163,132 @@ export function ChatFeature({ className }: ChatFeatureProps) {
                       {messages.map((message, index) => (
                         <div
                           key={index}
-                          className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}
+                          className={`flex ${
+                            message.type === "user"
+                              ? "justify-end"
+                              : "justify-start"
+                          }`}
                         >
-                          <div className={`flex items-start space-x-3 max-w-4xl ${message.type === "user" ? "flex-row-reverse space-x-reverse" : ""}`}>
+                          <div
+                            className={`flex items-start space-x-3 max-w-4xl ${
+                              message.type === "user"
+                                ? "flex-row-reverse space-x-reverse"
+                                : ""
+                            }`}
+                          >
                             {/* Avatar */}
-                            <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
-                              message.type === "user" 
-                                ? "bg-gradient-to-br from-indigo-500 to-purple-600" 
-                                : "bg-gradient-to-br from-amber-400 to-orange-500"
-                            }`}>
+                            <div
+                              className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
+                                message.type === "user"
+                                  ? "bg-gradient-to-br from-indigo-500 to-purple-600"
+                                  : "bg-gradient-to-br from-amber-400 to-orange-500"
+                              }`}
+                            >
                               {message.type === "user" ? (
                                 <User className="h-5 w-5 text-white" />
                               ) : (
                                 <BookOpen className="h-5 w-5 text-white" />
                               )}
                             </div>
-                            
+
                             {/* Message Bubble */}
-                            <div className={`flex-1 ${
-                              message.type === "user" ? "flex justify-end" : "flex justify-start"
-                            }`}>
-                              <div className={`px-6 py-4 rounded-2xl shadow-lg max-w-3xl relative ${
+                            <div
+                              className={`flex-1 ${
                                 message.type === "user"
-                                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
-                                  : "bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-700 dark:to-slate-600 text-gray-900 dark:text-slate-100 border border-amber-200 dark:border-slate-600"
-                              }`}>
+                                  ? "flex justify-end"
+                                  : "flex justify-start"
+                              }`}
+                            >
+                              <div
+                                className={`px-6 py-4 rounded-2xl shadow-lg max-w-3xl relative ${
+                                  message.type === "user"
+                                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
+                                    : "bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-700 dark:to-slate-600 text-gray-900 dark:text-slate-100 border border-amber-200 dark:border-slate-600"
+                                }`}
+                              >
                                 {/* Message tail */}
-                                <div className={`absolute top-4 w-0 h-0 ${
-                                  message.type === "user" 
-                                    ? "right-[-8px] border-l-[8px] border-l-indigo-500" 
-                                    : "left-[-8px] border-r-[8px] border-r-amber-200 dark:border-r-slate-600"
-                                } border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent`}></div>
-                                
+                                <div
+                                  className={`absolute top-4 w-0 h-0 ${
+                                    message.type === "user"
+                                      ? "right-[-8px] border-l-[8px] border-l-indigo-500"
+                                      : "left-[-8px] border-r-[8px] border-r-amber-200 dark:border-r-slate-600"
+                                  } border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent`}
+                                ></div>
+
                                 <div className="prose prose-sm max-w-none dark:prose-invert">
                                   {message.type === "ai" ? (
                                     <ReactMarkdown
                                       components={{
-                                        p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
-                                        strong: ({ children }) => <strong className="font-semibold text-amber-600 dark:text-amber-400">{children}</strong>,
-                                        em: ({ children }) => <em className="italic text-blue-600 dark:text-blue-400">{children}</em>,
-                                        ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
-                                        li: ({ children }) => <li className="text-gray-700 dark:text-slate-300">{children}</li>,
-                                        h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-gray-900 dark:text-slate-100">{children}</h1>,
-                                        h2: ({ children }) => <h2 className="text-base font-semibold mb-2 text-gray-900 dark:text-slate-100">{children}</h2>,
-                                        h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 text-gray-900 dark:text-slate-100">{children}</h3>,
+                                        p: ({ children }) => (
+                                          <p className="mb-2 last:mb-0 leading-relaxed">
+                                            {children}
+                                          </p>
+                                        ),
+                                        strong: ({ children }) => (
+                                          <strong className="font-semibold text-amber-600 dark:text-amber-400">
+                                            {children}
+                                          </strong>
+                                        ),
+                                        em: ({ children }) => (
+                                          <em className="italic text-blue-600 dark:text-blue-400">
+                                            {children}
+                                          </em>
+                                        ),
+                                        ul: ({ children }) => (
+                                          <ul className="list-disc list-inside mb-2 space-y-1">
+                                            {children}
+                                          </ul>
+                                        ),
+                                        li: ({ children }) => (
+                                          <li className="text-gray-700 dark:text-slate-300">
+                                            {children}
+                                          </li>
+                                        ),
+                                        h1: ({ children }) => (
+                                          <h1 className="text-lg font-bold mb-2 text-gray-900 dark:text-slate-100">
+                                            {children}
+                                          </h1>
+                                        ),
+                                        h2: ({ children }) => (
+                                          <h2 className="text-base font-semibold mb-2 text-gray-900 dark:text-slate-100">
+                                            {children}
+                                          </h2>
+                                        ),
+                                        h3: ({ children }) => (
+                                          <h3 className="text-sm font-semibold mb-1 text-gray-900 dark:text-slate-100">
+                                            {children}
+                                          </h3>
+                                        ),
                                       }}
                                     >
                                       {message.content}
                                     </ReactMarkdown>
                                   ) : (
-                                    <p className="mb-0 leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                                    <p className="mb-0 leading-relaxed whitespace-pre-wrap">
+                                      {message.content}
+                                    </p>
                                   )}
                                 </div>
-                                
+
                                 {/* Message timestamp */}
-                                <div className={`text-xs mt-2 opacity-70 ${
-                                  message.type === "user" ? "text-indigo-100" : "text-gray-500 dark:text-slate-400"
-                                }`}>
-                                  {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                <div
+                                  className={`text-xs mt-2 opacity-70 ${
+                                    message.type === "user"
+                                      ? "text-indigo-100"
+                                      : "text-gray-500 dark:text-slate-400"
+                                  }`}
+                                >
+                                  {new Date().toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
                                 </div>
                               </div>
                             </div>
                           </div>
                         </div>
                       ))}
-                      
+
                       {/* Typing Indicator */}
                       {isTyping && (
                         <div className="flex justify-start">
@@ -234,10 +301,18 @@ export function ChatFeature({ className }: ChatFeatureProps) {
                               <div className="flex items-center space-x-2">
                                 <div className="flex space-x-1">
                                   <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
-                                  <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-                                  <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                                  <div
+                                    className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
+                                    style={{ animationDelay: "0.1s" }}
+                                  ></div>
+                                  <div
+                                    className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
+                                    style={{ animationDelay: "0.2s" }}
+                                  ></div>
                                 </div>
-                                <span className="text-sm text-gray-600 dark:text-slate-300 italic">ShelfAI is thinking...</span>
+                                <span className="text-sm text-gray-600 dark:text-slate-300 italic">
+                                  ShelfAI is thinking...
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -253,7 +328,9 @@ export function ChatFeature({ className }: ChatFeatureProps) {
                     <div className="flex-1">
                       <textarea
                         value={inputMessage}
-                        onChange={(e) => actions.setInputMessage(e.target.value)}
+                        onChange={(e) =>
+                          actions.setInputMessage(e.target.value)
+                        }
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();

@@ -15,4 +15,5 @@ model Message {
   timestamp DateTime @default(now())
 
   @@index([groupId])
+  @@index([groupId, timestamp])
 }

@@ -41,7 +41,7 @@ export const updateBookSchema = z.object({
 
 export const getBookByIdSchema = z.object({
   params: z.object({
-    id: z.string(),
+    bookId: z.string(),
   }),
 });
 

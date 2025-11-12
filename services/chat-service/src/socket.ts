@@ -1,18 +1,37 @@
 import { Server } from "socket.io";
 import { createServer } from "http";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { createClient } from "redis";
 import prisma from "./prisma.js";
 import { createMessageSchema } from "./schemas.js";
 import axios from "axios";
 
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || "http://localhost:3001";
 const GROUP_SERVICE_URL = process.env.GROUP_SERVICE_URL || "http://localhost:3005";
+const REDIS_URL = process.env.REDIS_URL || "redis://redis:6379";
 
-export default function initializeSocket(httpServer: ReturnType<typeof createServer>) {
+export default async function initializeSocket(httpServer: ReturnType<typeof createServer>) {
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:3000").split(",").map((o) => o.trim());
   const io = new Server(httpServer, {
     cors: {
-      origin: "*", // In production, restrict this to your frontend URL
+      origin: allowedOrigins,
+      credentials: true,
     },
   });
+
+  // Setup Redis adapter for horizontal scaling
+  try {
+    const pubClient = createClient({ url: REDIS_URL });
+    const subClient = pubClient.duplicate();
+
+    await Promise.all([pubClient.connect(), subClient.connect()]);
+
+    io.adapter(createAdapter(pubClient, subClient));
+    console.log("Socket.IO Redis adapter initialized");
+  } catch (error) {
+    console.error("Failed to initialize Redis adapter:", error);
+    console.log("Continuing without Redis adapter (single instance mode)");
+  }
 
   // Socket.io Authentication Middleware
   io.use(async (socket: any, next) => {

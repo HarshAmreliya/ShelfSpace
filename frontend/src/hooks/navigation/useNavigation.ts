@@ -55,6 +55,7 @@ export function useNavigation(): UseNavigationReturn {
 
   // Sync active tab with pathname changes
   useEffect(() => {
+    if (!pathname) return;
     const pathSegments = pathname.split("/").filter(Boolean);
     let newActiveTab = "dashboard";
     
@@ -121,6 +122,7 @@ export function useNavigation(): UseNavigationReturn {
   const throttledKeyboardNavigation = useMemo(
     () =>
       throttle((event: KeyboardEvent, items: NavigationItemData[]) => {
+        if (!pathname) return;
         const currentPathSegments = pathname.split("/").filter(Boolean);
         let currentPage = "dashboard";
         
@@ -259,6 +261,7 @@ export function useNavigation(): UseNavigationReturn {
   // Helper functions
   const isActive = useCallback(
     (href: string) => {
+      if (!pathname) return false;
       const tabName = href.replace("/", "");
       const currentPathSegments = pathname.split("/").filter(Boolean);
       

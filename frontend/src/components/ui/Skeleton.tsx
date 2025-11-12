@@ -92,7 +92,7 @@ SkeletonText.displayName = "SkeletonText";
 
 const SkeletonAvatar = forwardRef<
   HTMLDivElement,
-  Omit<SkeletonProps, "variant" | "width" | "height">
+  Omit<SkeletonProps, "variant" | "width" | "height"> & { size?: "xs" | "sm" | "md" | "lg" | "xl" }
 >(({ size = "md", ...props }, ref) => {
   const sizeMap = {
     xs: { width: 24, height: 24 },

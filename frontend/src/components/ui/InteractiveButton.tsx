@@ -28,7 +28,7 @@ export function InteractiveButton({
   icon: Icon,
   iconPosition = "left",
   className = "",
-  ripple = false,
+  ripple: _ripple = false,
   glow = false,
   fullWidth = false
 }: InteractiveButtonProps) {

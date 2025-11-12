@@ -99,7 +99,7 @@ export function PageLoading({ text = "Loading..." }: { text?: string }) {
 }
 
 export function InlineLoading({ text, size = "sm" }: { text?: string; size?: "sm" | "md" | "lg" }) {
-  return <EnhancedLoading variant="spinner" size={size} text={text} />;
+  return <EnhancedLoading variant="spinner" size={size} {...(text && { text })} />;
 }
 
 export function ButtonLoading({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {

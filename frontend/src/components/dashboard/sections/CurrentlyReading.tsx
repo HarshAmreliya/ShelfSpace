@@ -1,8 +1,10 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AnimatedCard, StaggerContainer, StaggerItem, FloatingElement, GradientProgressBar } from '@/components/ui';
 import { BookOpen, Clock, Star, Play, Pause, BookMarked } from 'lucide-react';
+import { useReadingLists } from '@/hooks/data/useReadingLists';
+import { Book } from '@/types/book';
 
 interface CurrentlyReadingBook {
   id: string;
@@ -19,56 +21,51 @@ interface CurrentlyReadingBook {
   readingSpeed?: number; // pages per day
 }
 
-const mockCurrentlyReading: CurrentlyReadingBook[] = [
-  {
-    id: '1',
-    title: 'The Seven Husbands of Evelyn Hugo',
-    author: 'Taylor Jenkins Reid',
-    cover: '📖',
-    progress: 78,
-    currentPage: 312,
-    totalPages: 400,
-    rating: 4.6,
-    genre: 'Historical Fiction',
-    startDate: '2024-01-15',
-    estimatedFinish: '2024-01-25',
-    readingSpeed: 15
-  },
-  {
-    id: '2',
-    title: 'Project Hail Mary',
-    author: 'Andy Weir',
-    cover: '🚀',
-    progress: 45,
-    currentPage: 223,
-    totalPages: 496,
-    rating: 4.8,
-    genre: 'Science Fiction',
-    startDate: '2024-01-10',
-    estimatedFinish: '2024-02-05',
-    readingSpeed: 12
-  },
-  {
-    id: '3',
-    title: 'Atomic Habits',
-    author: 'James Clear',
-    cover: '⚛️',
-    progress: 92,
-    currentPage: 294,
-    totalPages: 320,
-    rating: 4.7,
-    genre: 'Self-Help',
-    startDate: '2024-01-05',
-    estimatedFinish: '2024-01-20',
-    readingSpeed: 8
-  }
-];
+// Transform Book from library to CurrentlyReadingBook format
+function transformBook(book: Book): CurrentlyReadingBook {
+  const progress = book.readingProgress || book.progress || 0;
+  const pages = book.pages || 0;
+  const currentPage = Math.round((progress / 100) * pages);
+  
+  return {
+    id: book.id,
+    title: book.title,
+    author: book.author,
+    cover: book.coverImage || book.cover || '📖',
+    progress,
+    currentPage,
+    totalPages: pages,
+    rating: book.averageRating || book.rating || 0,
+    genre: book.genres?.[0] || 'General',
+    startDate: book.startedAt || book.addedAt || new Date().toISOString(),
+    readingSpeed: 10, // Default reading speed
+  };
+}
 
 export function CurrentlyReading() {
-  const totalBooks = mockCurrentlyReading.length;
-  const averageProgress = Math.round(
-    mockCurrentlyReading.reduce((sum, book) => sum + book.progress, 0) / totalBooks
-  );
+  const { data: readingLists, isLoading, error } = useReadingLists({ includeBooks: true });
+
+  // Get books from "Currently Reading" list
+  const currentlyReadingBooks = useMemo(() => {
+    if (!readingLists) return [];
+    
+    const currentlyReadingList = readingLists.find(
+      (list: any) => list.name.toLowerCase().includes('currently') || list.name.toLowerCase() === 'reading'
+    );
+    
+    if (!currentlyReadingList || !currentlyReadingList.books) return [];
+    
+    return currentlyReadingList.books
+      .filter((book: any) => book.status === 'currently-reading' || !book.status)
+      .map((book: any) => transformBook(book));
+  }, [readingLists]);
+
+  const totalBooks = currentlyReadingBooks.length;
+  const averageProgress = totalBooks > 0
+    ? Math.round(
+        currentlyReadingBooks.reduce((sum: number, book: any) => sum + book.progress, 0) / totalBooks
+      )
+    : 0;
 
   return (
     <AnimatedCard variant="glass" hover className="p-6">
@@ -85,7 +82,7 @@ export function CurrentlyReading() {
           <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
             <BookOpen className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </div>
-          <FloatingElement intensity="low" className="text-2xl opacity-60">📚</FloatingElement>
+          <FloatingElement className="text-2xl opacity-60">📚</FloatingElement>
         </div>
       </div>
 
@@ -107,9 +104,29 @@ export function CurrentlyReading() {
         />
       </div>
 
-      {/* Books List */}
-      <StaggerContainer className="space-y-4">
-        {mockCurrentlyReading.map((book, index) => (
+      {isLoading && (
+        <div className="text-center py-8 text-gray-600 dark:text-slate-400">
+          Loading your reading progress...
+        </div>
+      )}
+
+      {error && (
+        <div className="text-center py-8 text-red-600 dark:text-red-400">
+          Failed to load reading progress
+        </div>
+      )}
+
+      {!isLoading && !error && totalBooks === 0 && (
+        <div className="text-center py-8 text-gray-600 dark:text-slate-400">
+          <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>You're not currently reading any books.</p>
+          <p className="text-sm mt-2">Add books to your "Currently Reading" list to track your progress!</p>
+        </div>
+      )}
+
+      {!isLoading && !error && totalBooks > 0 && (
+        <StaggerContainer className="space-y-4">
+        {currentlyReadingBooks.map((book: any, index: number) => (
           <StaggerItem key={book.id} className="delay-100">
             <AnimatedCard 
               variant="default" 
@@ -121,7 +138,7 @@ export function CurrentlyReading() {
                 {/* Book Cover */}
                 <div className="flex-shrink-0">
                   <div className="w-16 h-20 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg flex items-center justify-center">
-                    <FloatingElement intensity="low" className="text-2xl">
+                    <FloatingElement className="text-2xl">
                       {book.cover}
                     </FloatingElement>
                   </div>
@@ -202,6 +219,7 @@ export function CurrentlyReading() {
           </StaggerItem>
         ))}
       </StaggerContainer>
+      )}
 
       {/* Add new book button */}
       <div className="mt-6 text-center">

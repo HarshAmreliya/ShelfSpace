@@ -99,14 +99,15 @@ export function useVirtualization<T>(
       container.addEventListener('scroll', handleScroll, { passive: true });
       return () => container.removeEventListener('scroll', handleScroll);
     }
+    return undefined;
   }, [handleScroll]);
 
   return {
-    virtualItems,
+    virtualItems: virtualItems as VirtualizationResult<T>['virtualItems'],
     totalHeight,
     scrollToIndex,
     scrollToOffset,
-    containerRef
+    containerRef: containerRef as React.RefObject<HTMLDivElement>
   };
 }
 
@@ -133,7 +134,7 @@ export function VirtualList<T>({
   const {
     virtualItems,
     totalHeight,
-    scrollToIndex,
+    scrollToIndex: _scrollToIndex,
     containerRef
   } = useVirtualization(items, {
     itemHeight,
@@ -266,6 +267,7 @@ export function VirtualGrid<T>({
       container.addEventListener('scroll', handleScroll, { passive: true });
       return () => container.removeEventListener('scroll', handleScroll);
     }
+    return undefined;
   }, [handleScroll]);
 
   return (
@@ -284,7 +286,7 @@ export function VirtualGrid<T>({
           position: 'relative'
         }}
       >
-        {virtualItems.map(({ index, startX, startY, item }) => (
+        {virtualItems.map(({ index, startX, startY, item }) => item ? (
           <div
             key={index}
             style={{
@@ -295,9 +297,9 @@ export function VirtualGrid<T>({
               width: itemWidth
             }}
           >
-            {renderItem(item, index)}
+            {renderItem(item as T, index)}
           </div>
-        ))}
+        ) : null)}
       </div>
     </div>
   );

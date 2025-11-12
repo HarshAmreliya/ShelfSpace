@@ -2,12 +2,24 @@ import type { Metadata } from "next";
 import "./globals.css";
 import AuthProvider from "@/components/auth/AuthProvider";
 import { CombinedProvider } from "@/contexts/CombinedProvider";
-import { ToastProvider } from "@/components/ui";
+import GoogleAnalytics from "@/components/common/GoogleAnalytics";
 
 export const metadata: Metadata = {
   title: "ShelfSpace - Your Reading Sanctuary",
-  description: "AI-powered book management and reading companion. Track your reading progress, discover new books, and connect with fellow readers.",
-  keywords: ["books", "reading", "library", "AI", "book management", "reading tracker"],
+  description:
+    "AI-powered book management and reading companion. Track your reading progress, discover new books, and connect with fellow readers.",
+  keywords: [
+    "books",
+    "reading",
+    "library",
+    "AI",
+    "book management",
+    "reading tracker",
+    "book recommendations",
+    "reading groups",
+    "book reviews",
+    "personal library",
+  ],
   authors: [{ name: "ShelfSpace Team" }],
   creator: "ShelfSpace",
   publisher: "ShelfSpace",
@@ -16,31 +28,34 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'),
+  metadataBase: new URL(
+    process.env["NEXT_PUBLIC_APP_URL"] || "http://localhost:3000"
+  ),
   alternates: {
-    canonical: '/',
+    canonical: "/",
   },
   openGraph: {
     title: "ShelfSpace - Your Reading Sanctuary",
     description: "AI-powered book management and reading companion",
-    url: '/',
-    siteName: 'ShelfSpace',
+    url: "/",
+    siteName: "ShelfSpace",
     images: [
       {
-        url: '/og-image.png',
+        url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: 'ShelfSpace - Your Reading Sanctuary',
+        alt: "ShelfSpace - Your Reading Sanctuary",
       },
     ],
-    locale: 'en_US',
-    type: 'website',
+    locale: "en_US",
+    type: "website",
   },
   twitter: {
-    card: 'summary_large_image',
+    card: "summary_large_image",
     title: "ShelfSpace - Your Reading Sanctuary",
     description: "AI-powered book management and reading companion",
-    images: ['/og-image.png'],
+    images: ["/og-image.png"],
+    creator: "@shelfspace",
   },
   robots: {
     index: true,
@@ -48,19 +63,19 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
-  manifest: '/manifest.json',
+  manifest: "/manifest.json",
 };
 
 export const viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#f59e0b',
+  themeColor: "#f59e0b",
 };
 
 export default function RootLayout({
@@ -79,13 +94,10 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="ShelfSpace" />
       </head>
       <body className="font-sans">
-        <ToastProvider>
-          <AuthProvider>
-            <CombinedProvider>
-              {children}
-            </CombinedProvider>
-          </AuthProvider>
-        </ToastProvider>
+        <AuthProvider>
+          <CombinedProvider>{children}</CombinedProvider>
+        </AuthProvider>
+        <GoogleAnalytics />
       </body>
     </html>
   );

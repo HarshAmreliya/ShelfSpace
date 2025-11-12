@@ -1,5 +1,3 @@
-import { error } from "console";
-// AFTER
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";

@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ReadingList {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  color       String?
+  icon        String?
+  isPublic    Boolean  @default(false)
+  isDefault   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  books ReadingListBook[]
+
+  @@index([userId])
+  @@index([userId, isDefault])
+}
+
+model ReadingListBook {
+  id            String       @id @default(uuid())
+  readingListId String
+  bookId        String
+  addedAt       DateTime     @default(now())
+  sortOrder     Int          @default(0)
+
+  readingList   ReadingList  @relation(fields: [readingListId], references: [id], onDelete: Cascade)
+
+  @@unique([readingListId, bookId])
+  @@index([readingListId])
+  @@index([bookId])
+}
+

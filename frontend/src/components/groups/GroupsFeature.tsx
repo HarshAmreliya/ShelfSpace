@@ -1,150 +1,73 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { PageSkeleton } from "@/components/common/LoadingStates/PageSkeleton";
 import { Group } from "@/types/groups";
+import { useGroups } from "@/hooks/data/useGroups";
+import { GroupService, type GroupDTO } from "@/lib/group-service";
 import {
   Users,
   Search,
   Plus,
-  Star,
   MessageCircle,
   Calendar,
   UserPlus,
   BookOpen,
   TrendingUp,
-  Filter,
   Grid,
   List,
-  Eye,
   Clock,
-  Pin,
-  Lock,
+  X,
 } from "lucide-react";
 
 type ViewMode = "grid" | "list";
 type SortBy = "name" | "memberCount" | "bookCount" | "createdAt";
 type SortOrder = "asc" | "desc";
 
-// Temporary group data for demonstration
-const temporaryGroups: Group[] = [
-  {
-    id: "1",
-    name: "Fantasy Book Club",
-    description: "A magical journey through fantasy worlds! We read and discuss the best fantasy novels, from classic Tolkien to modern masterpieces.",
-    memberCount: 1247,
-    bookCount: 89,
-    tags: ["Fantasy", "Magic", "Adventure"],
-    isJoined: false,
-    isPublic: true,
-    createdAt: "2024-01-15T10:00:00Z",
-    updatedAt: "2024-01-20T15:30:00Z",
-    createdBy: "user123",
-    recentActivity: "Discussion about 'The Name of the Wind'",
-    nextMeeting: "2024-02-15T19:00:00Z"
-  },
-  {
-    id: "2",
-    name: "Sci-Fi Enthusiasts",
-    description: "Exploring the cosmos of science fiction literature. From Asimov to contemporary sci-fi, we dive deep into futuristic worlds and ideas.",
-    memberCount: 892,
-    bookCount: 156,
-    tags: ["Science Fiction", "Space", "Technology"],
-    isJoined: true,
-    isPublic: true,
-    createdAt: "2024-01-10T08:00:00Z",
-    updatedAt: "2024-01-22T12:15:00Z",
-    createdBy: "user456",
-    recentActivity: "Book recommendation: 'Dune' series",
-    nextMeeting: "2024-02-10T18:30:00Z"
-  },
-  {
-    id: "3",
-    name: "Mystery & Thriller Readers",
-    description: "Unraveling mysteries one page at a time! Join us for spine-chilling discussions about the best mystery and thriller novels.",
-    memberCount: 634,
-    bookCount: 78,
-    tags: ["Mystery", "Thriller", "Crime"],
-    isJoined: false,
-    isPublic: true,
-    createdAt: "2024-01-05T14:00:00Z",
-    updatedAt: "2024-01-21T09:45:00Z",
-    createdBy: "user789",
-    recentActivity: "Spoiler discussion: 'Gone Girl' ending",
-    nextMeeting: "2024-02-12T20:00:00Z"
-  },
-  {
-    id: "4",
-    name: "Romance Book Lovers",
-    description: "Celebrating love stories in all their forms! From contemporary romance to historical fiction, we share our favorite heartwarming reads.",
-    memberCount: 2156,
-    bookCount: 234,
-    tags: ["Romance", "Contemporary", "Historical Fiction"],
-    isJoined: true,
-    isPublic: true,
-    createdAt: "2024-01-01T12:00:00Z",
-    updatedAt: "2024-01-23T16:20:00Z",
-    createdBy: "user321",
-    recentActivity: "Monthly book swap event",
-    nextMeeting: "2024-02-08T19:30:00Z"
-  },
-  {
-    id: "5",
-    name: "Non-Fiction Explorers",
-    description: "Expanding our minds through non-fiction! We explore biographies, history, science, and self-improvement books together.",
-    memberCount: 445,
-    bookCount: 67,
-    tags: ["Non-Fiction", "Biography", "History"],
-    isJoined: false,
-    isPublic: true,
-    createdAt: "2024-01-12T16:00:00Z",
-    updatedAt: "2024-01-20T11:30:00Z",
-    createdBy: "user654",
-    recentActivity: "Discussion: 'Sapiens' by Yuval Noah Harari",
-    nextMeeting: "2024-02-14T17:00:00Z"
-  },
-  {
-    id: "6",
-    name: "Classic Literature Society",
-    description: "Honoring the timeless classics! We read and analyze the greatest works of literature from different eras and cultures.",
-    memberCount: 723,
-    bookCount: 145,
-    tags: ["Classics", "Literature", "Poetry"],
-    isJoined: false,
-    isPublic: true,
-    createdAt: "2024-01-08T09:00:00Z",
-    updatedAt: "2024-01-19T14:15:00Z",
-    createdBy: "user987",
-    recentActivity: "Reading: 'Pride and Prejudice' discussion",
-    nextMeeting: "2024-02-16T18:00:00Z"
-  }
-];
+// Transform backend GroupDTO to frontend Group type
+function transformGroup(dto: GroupDTO, currentUserId?: string): Group {
+  const isJoined = currentUserId ? dto.memberships.some((m) => m.userId === currentUserId) : false;
+  return {
+    id: dto.id,
+    name: dto.name,
+    description: dto.description || "",
+    memberCount: dto.memberships.length,
+    bookCount: 0, // Not available from backend yet
+    isPublic: true, // Default, not in schema yet
+    isJoined,
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt,
+    createdBy: dto.createdById,
+    tags: [], // Not in schema yet
+  };
+}
 
 export function GroupsFeature() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [searchQuery, setSearchQuery] = useState("");
+  // TODO: Implement debounced search functionality
+  // const debouncedSearch = useDebounce(searchQuery, 300);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>("memberCount");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [isLoading, setIsLoading] = useState(true);
   const [showJoinedOnly, setShowJoinedOnly] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupDescription, setNewGroupDescription] = useState("");
 
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
+  const { groups: groupsDTO, loading, error, refresh, createGroup } = useGroups();
 
+  // Transform backend groups to frontend format
   const allGroups = useMemo(() => {
-    return temporaryGroups;
-  }, []);
+    return groupsDTO.map((dto) => transformGroup(dto, session?.user?.id));
+  }, [groupsDTO, session?.user?.id]);
 
   const tags = useMemo(() => {
-    const uniqueTags = new Set(allGroups.flatMap(group => group.tags));
+    const uniqueTags = new Set(allGroups.flatMap((group) => group.tags));
     return Array.from(uniqueTags).sort();
   }, [allGroups]);
 
@@ -204,21 +127,57 @@ export function GroupsFeature() {
       .slice(0, 3);
   }, [allGroups]);
 
-  const handleJoinGroup = (groupId: string) => {
-    console.log(`Joining group ${groupId}`);
-    // In a real app, this would make an API call
-  };
+  const handleJoinGroup = useCallback(
+    async (groupId: string) => {
+      try {
+        await GroupService.join(groupId);
+        refresh(); // Refresh to update membership status
+      } catch (err: any) {
+        console.error("Failed to join group:", err);
+        alert(err?.response?.data?.error || "Failed to join group");
+      }
+    },
+    [refresh]
+  );
 
-  const handleLeaveGroup = (groupId: string) => {
-    console.log(`Leaving group ${groupId}`);
-    // In a real app, this would make an API call
-  };
+  const handleLeaveGroup = useCallback(
+    async (groupId: string) => {
+      try {
+        await GroupService.leave(groupId);
+        refresh(); // Refresh to update membership status
+      } catch (err: any) {
+        console.error("Failed to leave group:", err);
+        alert(err?.response?.data?.error || "Failed to leave group");
+      }
+    },
+    [refresh]
+  );
 
   const handleViewGroup = (groupId: string) => {
     router.push(`/groups/${groupId}`);
   };
 
-  if (isLoading) {
+  const handleCreateGroup = useCallback(async () => {
+    if (!newGroupName.trim()) {
+      alert("Group name is required");
+      return;
+    }
+    try {
+      const trimmedDescription = newGroupDescription.trim();
+      await createGroup({
+        name: newGroupName.trim(),
+        ...(trimmedDescription && { description: trimmedDescription }),
+      });
+      setShowCreateModal(false);
+      setNewGroupName("");
+      setNewGroupDescription("");
+    } catch (err: any) {
+      console.error("Failed to create group:", err);
+      alert(err?.response?.data?.error || "Failed to create group");
+    }
+  }, [newGroupName, newGroupDescription, createGroup]);
+
+  if (loading && allGroups.length === 0) {
     return <PageSkeleton variant="groups" />;
   }
 
@@ -233,7 +192,7 @@ export function GroupsFeature() {
       </div>
 
       <div className="relative container mx-auto px-4 py-8 z-20">
-        {/* Header */}
+          {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-extrabold text-gray-900 dark:text-slate-100 mb-6 font-serif">
             Reading Groups
@@ -256,12 +215,18 @@ export function GroupsFeature() {
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">
-                {allGroups.reduce((sum, group) => sum + group.bookCount, 0)}
+                {allGroups.filter((g) => g.isJoined).length}
               </div>
-              <div className="text-sm text-gray-600 dark:text-slate-400">Books Discussed</div>
+              <div className="text-sm text-gray-600 dark:text-slate-400">Your Groups</div>
             </div>
           </div>
         </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        )}
 
         {/* Search and Filters */}
         <div className="bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-lg border border-amber-200 dark:border-slate-700 p-6 mb-8">
@@ -389,10 +354,17 @@ export function GroupsFeature() {
             <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 font-serif">
               All Groups
             </h2>
-            <button className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors">
-              <Plus className="h-4 w-4" />
-              Create Group
-            </button>
+            {session?.user ? (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                Create Group
+              </button>
+            ) : (
+              <p className="text-sm text-gray-600 dark:text-slate-400">Sign in to create a group</p>
+            )}
           </div>
 
           {filteredAndSortedGroups.length === 0 ? (
@@ -439,6 +411,76 @@ export function GroupsFeature() {
           )}
         </div>
       </div>
+
+      {/* Create Group Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Create New Group</h2>
+              <button
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setNewGroupName("");
+                  setNewGroupDescription("");
+                }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-600 dark:text-slate-400" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                  Group Name *
+                </label>
+                <input
+                  type="text"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  placeholder="Enter group name"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  maxLength={50}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={newGroupDescription}
+                  onChange={(e) => setNewGroupDescription(e.target.value)}
+                  placeholder="Describe your group (optional)"
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  maxLength={255}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCreateGroup}
+                  className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
+                >
+                  Create Group
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setNewGroupName("");
+                    setNewGroupDescription("");
+                  }}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-300 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -502,10 +544,12 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, onJoin, onLeave, onView })
           <MessageCircle className="h-3 w-3 mr-1" />
           Recent: {group.recentActivity}
         </div>
-        <div className="flex items-center">
-          <Calendar className="h-3 w-3 mr-1" />
-          Next meeting: {new Date(group.nextMeeting).toLocaleDateString()}
-        </div>
+        {group.nextMeeting && (
+          <div className="flex items-center">
+            <Calendar className="h-3 w-3 mr-1" />
+            Next meeting: {new Date(group.nextMeeting).toLocaleDateString()}
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2">
@@ -566,8 +610,8 @@ const GroupListItem: React.FC<GroupCardProps> = ({ group, onJoin, onLeave, onVie
               {group.bookCount} books
             </div>
             <div className="flex items-center">
-              <MessageCircle className="h-4 w-4 mr-1" />
-              {group.recentActivity}
+              <Clock className="h-4 w-4 mr-1" />
+              Created {new Date(group.createdAt).toLocaleDateString()}
             </div>
           </div>
         </div>

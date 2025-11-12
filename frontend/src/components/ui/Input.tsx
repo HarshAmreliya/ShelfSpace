@@ -97,7 +97,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             )}
             disabled={disabled}
             data-testid={testId}
-            aria-invalid={hasError}
+            aria-invalid={hasError ? true : undefined}
             aria-describedby={
               error
                 ? `${inputId}-error`

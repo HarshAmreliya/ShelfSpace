@@ -24,7 +24,7 @@ export function OptimizedProvider<T>({
   children,
   value,
   context,
-  isEqual = (prev, next) => prev === next,
+  isEqual: _isEqual = (prev, next) => prev === next,
 }: OptimizedProviderProps<T>) {
   const contextValue = useMemo(() => {
     // Use a version number to force re-renders only when needed
@@ -61,13 +61,13 @@ export function createOptimizedHook<T>(
 }
 
 // Selector hook for fine-grained subscriptions
-export function createSelectorHook<T, R>(
+export function createSelectorHook<T>(
   context: React.Context<OptimizedContextValue<T> | null>,
   contextName: string
 ) {
   return function useSelector<S>(
     selector: (state: T) => S,
-    isEqual?: (prev: S, next: S) => boolean
+    _isEqual?: (prev: S, next: S) => boolean
   ) {
     const contextValue = useContext(context);
     if (!contextValue) {

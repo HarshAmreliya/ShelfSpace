@@ -24,7 +24,7 @@ export function useDebouncedCallback<T extends (...args: any[]) => any>(
   callback: T,
   delay: number
 ): T {
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const debouncedCallback = useCallback(
     (...args: Parameters<T>) => {
@@ -85,12 +85,12 @@ export function useAdvancedDebounce<T extends (...args: any[]) => any>(
 ): T {
   const { leading = false, trailing = true, maxWait } = options;
   
-  const timeoutRef = useRef<NodeJS.Timeout>();
-  const maxTimeoutRef = useRef<NodeJS.Timeout>();
-  const lastCallTimeRef = useRef<number>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const maxTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const lastCallTimeRef = useRef<number | undefined>(undefined);
   const lastInvokeTimeRef = useRef<number>(0);
-  const lastArgsRef = useRef<Parameters<T>>();
-  const lastThisRef = useRef<any>();
+  const lastArgsRef = useRef<Parameters<T> | undefined>(undefined);
+  const lastThisRef = useRef<any>(undefined);
 
   const debouncedCallback = useCallback(
     function(this: any, ...args: Parameters<T>) {
@@ -156,7 +156,7 @@ export function useThrottle<T extends (...args: any[]) => any>(
   delay: number
 ): T {
   const lastCallTimeRef = useRef<number>(0);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const throttledCallback = useCallback(
     (...args: Parameters<T>) => {
@@ -213,7 +213,7 @@ export function useResizeDebounce(
   callback: (width: number, height: number) => void,
   delay: number = 250
 ) {
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   useEffect(() => {
     const handleResize = () => {

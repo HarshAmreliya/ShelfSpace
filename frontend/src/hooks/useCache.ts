@@ -3,18 +3,24 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
 // Simple cache hook
-export function useCache<T>(key: string, fetcher: () => Promise<T>, ttl: number = 5 * 60 * 1000) {
+export function useCache<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+  ttl: number = 5 * 60 * 1000
+) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const cacheRef = useRef<Map<string, { data: T; timestamp: number; ttl: number }>>(new Map());
+  const cacheRef = useRef<
+    Map<string, { data: T; timestamp: number; ttl: number }>
+  >(new Map());
 
   const fetchData = useCallback(async () => {
     const cached = cacheRef.current.get(key);
     const now = Date.now();
 
     // Check if cached data is still valid
-    if (cached && (now - cached.timestamp) < cached.ttl) {
+    if (cached && now - cached.timestamp < cached.ttl) {
       setData(cached.data);
       return cached.data;
     }
@@ -27,12 +33,12 @@ export function useCache<T>(key: string, fetcher: () => Promise<T>, ttl: number 
       cacheRef.current.set(key, {
         data: result,
         timestamp: now,
-        ttl
+        ttl,
       });
       setData(result);
       return result;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
+      const error = err instanceof Error ? err : new Error("Unknown error");
       setError(error);
       throw error;
     } finally {
@@ -57,11 +63,9 @@ export function useCache<T>(key: string, fetcher: () => Promise<T>, ttl: number 
   return { data, loading, error, refresh, invalidate };
 }
 
-// Advanced cache with persistence
+// Advanced cache (persistence disabled)
 interface CacheOptions {
   ttl?: number;
-  persist?: boolean;
-  storage?: 'localStorage' | 'sessionStorage';
   serialize?: (data: any) => string;
   deserialize?: (data: string) => any;
 }
@@ -73,16 +77,16 @@ export function useAdvancedCache<T>(
 ) {
   const {
     ttl = 5 * 60 * 1000,
-    persist = false,
-    storage = 'localStorage',
     serialize = JSON.stringify,
-    deserialize = JSON.parse
+    deserialize = JSON.parse,
   } = options;
 
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const cacheRef = useRef<Map<string, { data: T; timestamp: number; ttl: number }>>(new Map());
+  const cacheRef = useRef<
+    Map<string, { data: T; timestamp: number; ttl: number }>
+  >(new Map());
 
   // Load from persistent storage
   useEffect(() => {
@@ -92,8 +96,8 @@ export function useAdvancedCache<T>(
         if (stored) {
           const parsed = deserialize(stored);
           const now = Date.now();
-          
-          if ((now - parsed.timestamp) < parsed.ttl) {
+
+          if (now - parsed.timestamp < parsed.ttl) {
             cacheRef.current.set(key, parsed);
             setData(parsed.data);
           } else {
@@ -101,28 +105,31 @@ export function useAdvancedCache<T>(
           }
         }
       } catch (err) {
-        console.warn('Failed to load from cache:', err);
+        console.warn("Failed to load from cache:", err);
       }
     }
   }, [key, persist, storage, deserialize]);
 
   // Save to persistent storage
-  const saveToStorage = useCallback((cacheData: { data: T; timestamp: number; ttl: number }) => {
-    if (persist) {
-      try {
-        window[storage].setItem(`cache_${key}`, serialize(cacheData));
-      } catch (err) {
-        console.warn('Failed to save to cache:', err);
+  const saveToStorage = useCallback(
+    (cacheData: { data: T; timestamp: number; ttl: number }) => {
+      if (persist) {
+        try {
+          window[storage].setItem(`cache_${key}`, serialize(cacheData));
+        } catch (err) {
+          console.warn("Failed to save to cache:", err);
+        }
       }
-    }
-  }, [key, persist, storage, serialize]);
+    },
+    [key, persist, storage, serialize]
+  );
 
   const fetchData = useCallback(async () => {
     const cached = cacheRef.current.get(key);
     const now = Date.now();
 
     // Check if cached data is still valid
-    if (cached && (now - cached.timestamp) < cached.ttl) {
+    if (cached && now - cached.timestamp < cached.ttl) {
       setData(cached.data);
       return cached.data;
     }
@@ -135,15 +142,15 @@ export function useAdvancedCache<T>(
       const cacheData = {
         data: result,
         timestamp: now,
-        ttl
+        ttl,
       };
-      
+
       cacheRef.current.set(key, cacheData);
       saveToStorage(cacheData);
       setData(result);
       return result;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
+      const error = err instanceof Error ? err : new Error("Unknown error");
       setError(error);
       throw error;
     } finally {
@@ -154,12 +161,12 @@ export function useAdvancedCache<T>(
   const invalidate = useCallback(() => {
     cacheRef.current.delete(key);
     setData(null);
-    
+
     if (persist) {
       try {
         window[storage].removeItem(`cache_${key}`);
       } catch (err) {
-        console.warn('Failed to remove from cache:', err);
+        console.warn("Failed to remove from cache:", err);
       }
     }
   }, [key, persist, storage]);
@@ -172,13 +179,15 @@ export function useAdvancedCache<T>(
   const clearAll = useCallback(() => {
     cacheRef.current.clear();
     setData(null);
-    
+
     if (persist) {
       try {
-        const keys = Object.keys(window[storage]).filter(k => k.startsWith('cache_'));
-        keys.forEach(k => window[storage].removeItem(k));
+        const keys = Object.keys(window[storage]).filter((k) =>
+          k.startsWith("cache_")
+        );
+        keys.forEach((k) => window[storage].removeItem(k));
       } catch (err) {
-        console.warn('Failed to clear cache:', err);
+        console.warn("Failed to clear cache:", err);
       }
     }
   }, [persist, storage]);
@@ -192,22 +201,27 @@ export function useAdvancedCache<T>(
 
 // Cache manager hook
 export function useCacheManager() {
-  const cacheRef = useRef<Map<string, { data: any; timestamp: number; ttl: number }>>(new Map());
+  const cacheRef = useRef<
+    Map<string, { data: any; timestamp: number; ttl: number }>
+  >(new Map());
 
-  const set = useCallback((key: string, data: any, ttl: number = 5 * 60 * 1000) => {
-    cacheRef.current.set(key, {
-      data,
-      timestamp: Date.now(),
-      ttl
-    });
-  }, []);
+  const set = useCallback(
+    (key: string, data: any, ttl: number = 5 * 60 * 1000) => {
+      cacheRef.current.set(key, {
+        data,
+        timestamp: Date.now(),
+        ttl,
+      });
+    },
+    []
+  );
 
   const get = useCallback((key: string) => {
     const cached = cacheRef.current.get(key);
     if (!cached) return null;
 
     const now = Date.now();
-    if ((now - cached.timestamp) >= cached.ttl) {
+    if (now - cached.timestamp >= cached.ttl) {
       cacheRef.current.delete(key);
       return null;
     }
@@ -220,7 +234,7 @@ export function useCacheManager() {
     if (!cached) return false;
 
     const now = Date.now();
-    if ((now - cached.timestamp) >= cached.ttl) {
+    if (now - cached.timestamp >= cached.ttl) {
       cacheRef.current.delete(key);
       return false;
     }
@@ -249,12 +263,12 @@ export function useCacheManager() {
     const keysToDelete: string[] = [];
 
     cacheRef.current.forEach((value, key) => {
-      if ((now - value.timestamp) >= value.ttl) {
+      if (now - value.timestamp >= value.ttl) {
         keysToDelete.push(key);
       }
     });
 
-    keysToDelete.forEach(key => cacheRef.current.delete(key));
+    keysToDelete.forEach((key) => cacheRef.current.delete(key));
   }, []);
 
   // Auto cleanup every minute
@@ -271,13 +285,13 @@ export function useCacheManager() {
     clear,
     size,
     keys,
-    cleanup
+    cleanup,
   };
 }
 
 // SWR-like hook
 export function useSWR<T>(
-  key: string,
+  _key: string,
   fetcher: () => Promise<T>,
   options: {
     revalidateOnFocus?: boolean;
@@ -290,7 +304,7 @@ export function useSWR<T>(
     revalidateOnFocus = true,
     revalidateOnReconnect = true,
     refreshInterval,
-    dedupingInterval = 2000
+    dedupingInterval = 2000,
   } = options;
 
   const [data, setData] = useState<T | null>(null);
@@ -300,7 +314,7 @@ export function useSWR<T>(
 
   const mutate = useCallback(async () => {
     const now = Date.now();
-    
+
     // Dedupe requests
     if (now - lastFetchRef.current < dedupingInterval) {
       return data;
@@ -315,7 +329,7 @@ export function useSWR<T>(
       setData(result);
       return result;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
+      const error = err instanceof Error ? err : new Error("Unknown error");
       setError(error);
       throw error;
     } finally {
@@ -333,8 +347,8 @@ export function useSWR<T>(
     if (!revalidateOnFocus) return;
 
     const handleFocus = () => mutate();
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, [revalidateOnFocus, mutate]);
 
   // Revalidate on reconnect
@@ -342,8 +356,8 @@ export function useSWR<T>(
     if (!revalidateOnReconnect) return;
 
     const handleOnline = () => mutate();
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
   }, [revalidateOnReconnect, mutate]);
 
   // Refresh interval

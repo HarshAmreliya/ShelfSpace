@@ -1,9 +1,10 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AnimatedCard, StaggerContainer, StaggerItem, AnimatedCounter, GradientProgressBar } from '@/components/ui';
 import { ReadingGoalsChart } from '../charts/ChartComponents';
 import { Target, Trophy, Calendar, TrendingUp, BookOpen, Clock, Star } from 'lucide-react';
+import { useReadingLists } from '@/hooks/data/useReadingLists';
 
 interface ReadingGoal {
   id: string;
@@ -19,90 +20,127 @@ interface ReadingGoal {
   category: 'books' | 'pages' | 'time' | 'rating' | 'streak';
 }
 
-const mockGoals: ReadingGoal[] = [
-  {
-    id: '1',
-    title: 'Books This Year',
-    description: 'Annual reading goal',
-    current: 189,
-    target: 200,
-    unit: 'books',
-    icon: <BookOpen className="h-5 w-5" />,
-    color: 'from-amber-400 to-orange-500',
-    deadline: 'Dec 31, 2024',
-    category: 'books'
-  },
-  {
-    id: '2',
-    title: 'Pages This Month',
-    description: 'Monthly page target',
-    current: 2840,
-    target: 3000,
-    unit: 'pages',
-    icon: <BookOpen className="h-5 w-5" />,
-    color: 'from-blue-400 to-indigo-500',
-    deadline: 'Jan 31, 2024',
-    category: 'pages'
-  },
-  {
-    id: '3',
-    title: 'Reading Streak',
-    description: 'Consecutive days of reading',
-    current: 28,
-    target: 30,
-    unit: 'days',
-    icon: <TrendingUp className="h-5 w-5" />,
-    color: 'from-green-400 to-emerald-500',
-    category: 'streak'
-  },
-  {
-    id: '4',
-    title: 'Average Rating',
-    description: 'Maintain high quality reads',
-    current: 4.3,
-    target: 4.5,
-    unit: 'stars',
-    icon: <Star className="h-5 w-5" />,
-    color: 'from-purple-400 to-violet-500',
-    category: 'rating'
-  },
-  {
-    id: '5',
-    title: 'Reading Time',
-    description: 'Hours spent reading this month',
-    current: 45,
-    target: 60,
-    unit: 'hours',
-    icon: <Clock className="h-5 w-5" />,
-    color: 'from-cyan-400 to-teal-500',
-    deadline: 'Jan 31, 2024',
-    category: 'time'
-  },
-  {
-    id: '6',
-    title: 'Classic Literature',
-    description: 'Read more classic books',
-    current: 8,
-    target: 12,
-    unit: 'books',
-    icon: <Trophy className="h-5 w-5" />,
-    color: 'from-rose-400 to-pink-500',
-    deadline: 'Dec 31, 2024',
-    category: 'books'
-  }
-];
-
-const chartData = mockGoals.map(goal => ({
-  goal: goal.title,
-  current: goal.current,
-  target: goal.target,
-  unit: goal.unit
-}));
-
 export function ReadingGoals() {
-  const completedGoals = mockGoals.filter(goal => goal.current >= goal.target).length;
-  const totalGoals = mockGoals.length;
-  const completionRate = Math.round((completedGoals / totalGoals) * 100);
+  const { data: readingLists } = useReadingLists({ includeBooks: true });
+  
+  // Calculate goals from reading lists data
+  const goals = useMemo(() => {
+    if (!readingLists) return [];
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    
+    // Calculate stats from reading lists
+    let totalBooks = 0;
+    let booksThisYear = 0;
+    let booksThisMonth = 0;
+    let totalPages = 0;
+    let pagesThisMonth = 0;
+    let totalRating = 0;
+    let ratingCount = 0;
+    
+    readingLists.forEach((list: any) => {
+      const books = list.books || [];
+      totalBooks += books.length;
+      
+      books.forEach((book: any) => {
+        const addedDate = book.addedAt ? new Date(book.addedAt) : null;
+        const isThisYear = addedDate && addedDate.getFullYear() === currentYear;
+        const isThisMonth = addedDate && addedDate.getMonth() === currentMonth && addedDate.getFullYear() === currentYear;
+        
+        if (isThisYear) booksThisYear++;
+        if (isThisMonth) booksThisMonth++;
+        
+        if (book.pages) {
+          totalPages += book.pages;
+          if (isThisMonth) pagesThisMonth += book.pages;
+        }
+        
+        if (book.rating) {
+          totalRating += book.rating;
+          ratingCount++;
+        }
+      });
+    });
+    
+    const averageRating = ratingCount > 0 ? totalRating / ratingCount : 0;
+    const estimatedHoursThisMonth = Math.round(pagesThisMonth * 2 / 60);
+    
+    // Default targets (these would ideally come from user settings/backend)
+    const yearlyGoal = 52; // Default: 52 books per year
+    const monthlyPagesGoal = 3000;
+    const monthlyHoursGoal = 60;
+    const targetRating = 4.5;
+    
+    const goalsArray: ReadingGoal[] = [
+      {
+        id: '1',
+        title: 'Books This Year',
+        description: 'Annual reading goal',
+        current: booksThisYear,
+        target: yearlyGoal,
+        unit: 'books',
+        icon: <BookOpen className="h-5 w-5" />,
+        color: 'from-amber-400 to-orange-500',
+        deadline: `Dec 31, ${currentYear}`,
+        category: 'books',
+        isCompleted: booksThisYear >= yearlyGoal,
+      },
+      {
+        id: '2',
+        title: 'Pages This Month',
+        description: 'Monthly page target',
+        current: pagesThisMonth,
+        target: monthlyPagesGoal,
+        unit: 'pages',
+        icon: <BookOpen className="h-5 w-5" />,
+        color: 'from-blue-400 to-indigo-500',
+        deadline: `${now.toLocaleString('default', { month: 'long' })} ${daysInMonth}, ${currentYear}`,
+        category: 'pages',
+        isCompleted: pagesThisMonth >= monthlyPagesGoal,
+      },
+      {
+        id: '3',
+        title: 'Reading Time',
+        description: 'Hours spent reading this month',
+        current: estimatedHoursThisMonth,
+        target: monthlyHoursGoal,
+        unit: 'hours',
+        icon: <Clock className="h-5 w-5" />,
+        color: 'from-cyan-400 to-teal-500',
+        deadline: `${now.toLocaleString('default', { month: 'long' })} ${daysInMonth}, ${currentYear}`,
+        category: 'time',
+        isCompleted: estimatedHoursThisMonth >= monthlyHoursGoal,
+      },
+      {
+        id: '4',
+        title: 'Average Rating',
+        description: 'Maintain high quality reads',
+        current: averageRating,
+        target: targetRating,
+        unit: 'stars',
+        icon: <Star className="h-5 w-5" />,
+        color: 'from-purple-400 to-violet-500',
+        category: 'rating',
+        isCompleted: averageRating >= targetRating,
+      },
+    ];
+    
+    return goalsArray;
+  }, [readingLists]);
+  
+  const chartData = goals.map(goal => ({
+    goal: goal.title,
+    current: goal.current,
+    target: goal.target,
+    unit: goal.unit
+  }));
+  
+  const completedGoals = goals.filter(goal => goal.isCompleted).length;
+  const totalGoals = goals.length;
+  const completionRate = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
   return (
     <div className="space-y-8">
@@ -138,7 +176,7 @@ export function ReadingGoals() {
               <TrendingUp className="h-6 w-6 text-white" />
             </div>
             <div className="text-3xl font-bold text-gray-900 dark:text-slate-100 mb-2">
-              <AnimatedCounter value={completionRate} suffix="%" />
+              <AnimatedCounter value={completionRate} />%
             </div>
             <div className="text-sm text-gray-600 dark:text-slate-300">Success Rate</div>
           </AnimatedCard>
@@ -152,7 +190,13 @@ export function ReadingGoals() {
 
       {/* Individual Goals */}
       <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockGoals.map((goal, index) => {
+        {goals.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <Target className="h-12 w-12 text-gray-400 dark:text-slate-600 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-slate-400">No reading goals set yet. Start adding books to your library!</p>
+          </div>
+        ) : (
+          goals.map((goal, index) => {
           const progress = Math.min((goal.current / goal.target) * 100, 100);
           const isCompleted = goal.current >= goal.target;
           const isNearCompletion = progress >= 80 && !isCompleted;
@@ -238,7 +282,7 @@ export function ReadingGoals() {
               </AnimatedCard>
             </StaggerItem>
           );
-        })}
+        }))}
       </StaggerContainer>
 
       {/* Add new goal button */}

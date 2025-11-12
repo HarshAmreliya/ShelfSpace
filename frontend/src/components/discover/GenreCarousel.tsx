@@ -3,7 +3,7 @@
 import React, { useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BookCard } from "@/components/common/BookCard";
-import { Book } from "@/types/models";
+import { Book } from "@/types/book";
 
 interface GenreSection {
   genre: string;
@@ -59,11 +59,11 @@ const GenreCarousel: React.FC<GenreCarouselProps> = ({ sections }) => {
               <ChevronRight className="h-5 w-5 text-gray-700" />
             </button>
             <div
-              ref={(el) => (scrollContainerRefs.current[index] = el)}
+              ref={(el) => { scrollContainerRefs.current[index] = el; }}
               className="flex overflow-x-auto no-scrollbar pb-2 px-4 py-4"
             >
               {section.books.map((book: Book) => (
-                <BookCard key={book.id} book={book} variant="grid" />
+                <BookCard key={book.id} book={book} />
               ))}
             </div>
           </div>

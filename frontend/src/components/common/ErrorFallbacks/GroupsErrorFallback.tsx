@@ -3,12 +3,12 @@ import { Users, RefreshCw } from "lucide-react";
 
 interface GroupsErrorFallbackProps {
   error?: Error;
-  resetError?: () => void;
+  retry?: () => void;
 }
 
 export const GroupsErrorFallback: React.FC<GroupsErrorFallbackProps> = ({ 
   error, 
-  resetError 
+  retry 
 }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 flex items-center justify-center">
@@ -28,7 +28,7 @@ export const GroupsErrorFallback: React.FC<GroupsErrorFallbackProps> = ({
           </p>
         )}
         <button
-          onClick={resetError}
+          onClick={retry}
           className="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
         >
           <RefreshCw className="h-4 w-4 mr-2" />

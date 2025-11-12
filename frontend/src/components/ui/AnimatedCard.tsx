@@ -15,14 +15,14 @@ interface AnimatedCardProps {
 export function AnimatedCard({
   children,
   className = "",
-  delay = 0,
-  direction = "up",
-  hover = true,
-  glow = false,
-  variant = "default"
+  delay: _delay = 0,
+  direction: _direction = "up",
+  hover: _hover = true,
+  glow: _glow = false,
+  variant: _variant = "default"
 }: AnimatedCardProps) {
   const baseClasses = "bg-white dark:bg-gray-800 rounded-lg shadow-md";
-  
+
   const variantClasses = {
     default: "bg-white dark:bg-gray-800",
     elevated: "bg-white dark:bg-gray-800 shadow-lg",
@@ -30,11 +30,11 @@ export function AnimatedCard({
     gradient: "bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"
   };
 
-  const hoverClasses = hover ? "hover:shadow-lg transition-shadow duration-200" : "";
-  const glowClasses = glow ? "ring-2 ring-amber-400/50" : "";
+  const hoverClasses = _hover ? "hover:shadow-lg transition-shadow duration-200" : "";
+  const glowClasses = _glow ? "ring-2 ring-amber-400/50" : "";
 
   return (
-    <div className={`${baseClasses} ${variantClasses[variant]} ${hoverClasses} ${glowClasses} ${className}`}>
+    <div className={`${baseClasses} ${variantClasses[_variant]} ${hoverClasses} ${glowClasses} ${className}`}>
       {children}
     </div>
   );

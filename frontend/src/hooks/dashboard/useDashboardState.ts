@@ -1,7 +1,7 @@
 // src/hooks/dashboard/useDashboardState.ts
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { DashboardState, DashboardActions } from "../../../types/state";
 import { useDashboardData } from "./useDashboardData";
 
@@ -33,7 +33,7 @@ export function useDashboardState() {
     refetch,
   } = useDashboardData();
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, _setError] = useState<string | null>(null);
 
   // Note: Auto-refresh is handled by useDashboardData hook internally
   // Removed auto-refresh logic here to prevent infinite loops
@@ -82,13 +82,13 @@ export function useDashboardState() {
 
   const statsData = useMemo(() => {
     return {
+      ...stats,
       totalBooks: stats?.totalBooks || 0,
       booksRead:
         recentActivity?.filter((activity) => activity.type === "finished_book")
           .length || 0,
       readingStreak: 7, // This would come from actual data
       averageRating: 4.2, // This would be calculated from user ratings
-      ...stats,
     };
   }, [stats, recentActivity]);
 

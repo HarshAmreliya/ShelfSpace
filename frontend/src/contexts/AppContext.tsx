@@ -111,6 +111,9 @@ export function AppProvider({ children, initialUser }: AppProviderProps) {
     setTheme: useCallback((theme: AppState["theme"]) => {
       dispatch({ type: "SET_THEME", payload: theme });
 
+      // Only run in browser environment
+      if (typeof window === "undefined") return;
+
       // Apply theme to document
       const root = document.documentElement;
       if (theme === "dark") {
@@ -129,35 +132,30 @@ export function AppProvider({ children, initialUser }: AppProviderProps) {
         }
       }
 
-      // Persist theme preference
-      localStorage.setItem("theme", theme);
+      // Theme preference not persisted
     }, []),
 
     updateGlobalPreferences: useCallback(
       (preferences: Partial<AppState["globalPreferences"]>) => {
         dispatch({ type: "UPDATE_GLOBAL_PREFERENCES", payload: preferences });
 
-        // Persist preferences
-        const currentPrefs = JSON.parse(
-          localStorage.getItem("globalPreferences") || "{}"
-        );
-        const updatedPrefs = { ...currentPrefs, ...preferences };
-        localStorage.setItem("globalPreferences", JSON.stringify(updatedPrefs));
+        // Only run in browser environment
+        if (typeof window === "undefined") return;
+
+        // Preferences not persisted
       },
       []
     ),
 
     signOut: useCallback(async () => {
       dispatch({ type: "SET_LOADING", payload: true });
-      
+
       try {
         // Clear user service token
         userService.clearToken();
-        
-        // Clear any local storage items
-        localStorage.removeItem("userPreferences");
-        localStorage.removeItem("chatSession");
-        
+
+        // No storage to clear
+
         // Sign out from NextAuth
         await signOut({ callbackUrl: "/login" });
       } catch (error) {
@@ -187,45 +185,17 @@ export function AppProvider({ children, initialUser }: AppProviderProps) {
 
   // Initialize theme on mount
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") as
-      | AppState["theme"]
-      | null;
-    if (savedTheme && ["light", "dark", "system"].includes(savedTheme)) {
-      // Apply theme directly without using actions to avoid dependency loop
-      dispatch({ type: "SET_THEME", payload: savedTheme });
+    // Only run in browser environment
+    if (typeof window === "undefined") return;
 
-      // Apply theme to document
-      const root = document.documentElement;
-      if (savedTheme === "dark") {
-        root.classList.add("dark");
-      } else if (savedTheme === "light") {
-        root.classList.remove("dark");
-      } else {
-        // System theme
-        const prefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)"
-        ).matches;
-        if (prefersDark) {
-          root.classList.add("dark");
-        } else {
-          root.classList.remove("dark");
-        }
-      }
-    }
-
-    const savedPreferences = localStorage.getItem("globalPreferences");
-    if (savedPreferences) {
-      try {
-        const preferences = JSON.parse(savedPreferences);
-        dispatch({ type: "UPDATE_GLOBAL_PREFERENCES", payload: preferences });
-      } catch (error) {
-        console.error("Failed to parse saved preferences:", error);
-      }
-    }
+    // No saved preferences to load
   }, []); // Remove actions dependency
 
   // Listen for system theme changes
   useEffect(() => {
+    // Only run in browser environment
+    if (typeof window === "undefined") return;
+
     if (state.theme === "system") {
       const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
       const handleChange = () => {
@@ -242,6 +212,7 @@ export function AppProvider({ children, initialUser }: AppProviderProps) {
 
       return () => mediaQuery.removeEventListener("change", handleChange);
     }
+    return undefined;
   }, [state.theme]);
 
   const contextValue: AppContextType = {

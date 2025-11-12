@@ -8,9 +8,8 @@ import {
   ErrorBoundaryProps,
   ErrorBoundaryState,
   ErrorFallbackProps,
-  AppError,
 } from "../../../types/error";
-import { errorLogger, logError } from "@/utils/errorLogger";
+import { errorLogger } from "@/utils/errorLogger";
 
 // Default error fallback component with enhanced debugging
 const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({
@@ -188,19 +187,19 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     });
 
     // Create enhanced error with boundary context
-    const enhancedError = new AppError(
-      error.message,
-      "COMPONENT_ERROR",
-      "client",
-      "high",
-      {
-        level: this.props.level || "component",
-        componentStack: errorInfo.componentStack,
-        errorBoundary: true,
-        isolate: this.props.isolate,
-        originalError: error.name,
-      }
-    );
+    // const enhancedError = new AppError(
+    //   error.message,
+    //   "COMPONENT_ERROR",
+    //   "client",
+    //   "high",
+    //   {
+    //     level: this.props.level || "component",
+    //     componentStack: errorInfo.componentStack,
+    //     errorBoundary: true,
+    //     isolate: this.props.isolate,
+    //     originalError: error.name,
+    //   }
+    // );
 
     // Log error with comprehensive context using our error logger
     // logError(enhancedError, {
@@ -306,9 +305,9 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       return (
         <FallbackComponent
           error={this.state.error}
-          errorInfo={this.state.errorInfo}
+          {...(this.state.errorInfo && { errorInfo: this.state.errorInfo })}
           retry={this.handleRetry}
-          errorId={this.state.errorId}
+          {...(this.state.errorId && { errorId: this.state.errorId })}
         />
       );
     }

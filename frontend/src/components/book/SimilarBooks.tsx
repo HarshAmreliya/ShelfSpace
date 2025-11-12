@@ -1,6 +1,6 @@
 "use client";
 
-import { SimilarBookItem } from "../../../types";
+import { SimilarBookItem } from "@/types/models";
 import { BookCard } from "@/components/common/BookCard";
 
 interface SimilarBooksProps {
@@ -27,17 +27,12 @@ export default function SimilarBooks({ similarBooks }: SimilarBooksProps) {
                 tags: [],
                 format: "physical" as const,
                 readingProgress: 0,
-                rating: undefined,
-                isbn: undefined,
-                description: undefined,
-                pages: undefined,
-                publishedDate: undefined,
-                publisher: undefined,
+                progress: 0,
+                addedAt: new Date().toISOString(),
                 language: "en",
                 isPublic: false,
                 isFavorite: false,
               }}
-              variant="grid"
             />
           </div>
         ))}

@@ -2,6 +2,9 @@ import { BaseEntity, ID, Timestamp, ViewMode, SortOrder } from "./common";
 import { Book, BookFilter } from "./book";
 import { LucideIcon } from "lucide-react";
 
+// Re-export Book for convenience
+export type { Book, BookFilter };
+
 // Reading list interface
 export interface ReadingList extends BaseEntity {
   name: string;

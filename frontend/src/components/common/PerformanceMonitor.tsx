@@ -42,7 +42,9 @@ export function PerformanceMonitor() {
           const lcpObserver = new PerformanceObserver((list) => {
             const entries = list.getEntries();
             const lastEntry = entries[entries.length - 1];
-            vitals.largestContentfulPaint = lastEntry.startTime;
+            if (lastEntry) {
+              vitals.largestContentfulPaint = lastEntry.startTime;
+            }
           });
           lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
         } catch (e) {
@@ -209,7 +211,7 @@ export function usePerformanceOptimization() {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const img = entry.target as HTMLImageElement;
-            img.src = img.dataset.src || '';
+            img.src = img.dataset['src'] || '';
             img.removeAttribute('data-src');
             imageObserver.unobserve(img);
           }

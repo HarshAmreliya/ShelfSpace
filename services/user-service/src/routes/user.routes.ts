@@ -1,17 +1,19 @@
 import express from "express";
-import prisma from "../prisma.ts";
+import prisma from "../prisma.js";
 import {
   updateUserSchema,
   updatePreferencesSchema,
   createUserSchema,
-} from "../schemas.ts";
+} from "../schemas.js";
 import type { Request, Response } from "express";
-import { isAuthenticated, signToken } from "../middlewares/auth.ts";
-import { isAdmin } from "../middlewares/isAdmin.ts";
-import { validate } from "../middlewares/validate.ts";
+import { isAuthenticated, signToken } from "../middlewares/auth.js";
+import { isAdmin } from "../middlewares/isAdmin.js";
+import { validate } from "../middlewares/validate.js";
 import type { User, UserStats, Preferences } from "../types/user.d.ts";
 import { z } from "zod";
-import { updateUserStatusSchema } from "../schemas.ts"; // Will create this schema
+import { updateUserStatusSchema } from "../schemas.js";
+import axios from "axios";
+import * as cache from "../utils/cache.js";
 
 const router = express.Router();
 
@@ -21,7 +23,9 @@ router.post(
   async (
     req: Request<{} | User | z.infer<typeof createUserSchema>>,
     res: Response<
-      { error: string } | { error: string; details: any } | { token: string }
+      | { error: string }
+      | { error: string; details: any }
+      | { token: string; user: User; isNewUser: boolean; needsPreferences: boolean }
     >
   ) => {
     // console.log(req.body);
@@ -61,6 +65,21 @@ router.post(
         include: { preferences: true }
       });
       console.log("New user created:", user.email);
+      
+      // Initialize default reading lists for new user (fire and forget)
+      const LIBRARY_SERVICE_URL = process.env.LIBRARY_SERVICE_URL || "http://localhost:3003";
+      axios.post(
+        `${LIBRARY_SERVICE_URL}/reading-lists/initialize-defaults`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${await signToken({ id: user.id })}`,
+          },
+        }
+      ).catch((error) => {
+        console.error("Failed to initialize default reading lists:", error.message);
+        // Don't fail user creation if this fails
+      });
       
       const token = await signToken({ id: user.id });
       res.json({ 
@@ -116,7 +135,12 @@ router.patch(
       const updatedUser = await prisma.user.update({
         where: { id: req.userId },
         data: req.body,
+        include: { preferences: true, stats: true },
       });
+      
+      // Invalidate cache
+      await cache.del(cache.cacheKeys.user(req.userId!));
+      
       res.json(updatedUser);
     } catch (error) {
       console.error("Error updating user:", error);
@@ -129,16 +153,28 @@ router.get(
   "/me",
   async (req: Request, res: Response<User | { error: string }>) => {
     try {
-      // console.log(req.userId);
+      // Try cache first
+      const cacheKey = cache.cacheKeys.user(req.userId!);
+      const cachedUser = await cache.get<User>(cacheKey);
+      
+      if (cachedUser) {
+        return res.json(cachedUser);
+      }
+
+      // Fetch from database
       const user = await prisma.user.findUnique({
         where: { id: req.userId },
         include: { preferences: true, stats: true },
       });
-      console.log(user);
+      
       if (!user) {
         res.status(404).json({ error: "User not found" });
         return;
       }
+
+      // Cache for 5 minutes
+      await cache.set(cacheKey, user, { ttl: 300 });
+      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -151,6 +187,14 @@ router.get(
   "/me/preferences",
   async (req: Request, res: Response<Preferences | { error: string }>) => {
     try {
+      // Try cache first
+      const cacheKey = cache.cacheKeys.userPreferences(req.userId!);
+      const cachedPrefs = await cache.get<Preferences>(cacheKey);
+      
+      if (cachedPrefs) {
+        return res.json(cachedPrefs);
+      }
+
       const preferences = await prisma.preferences.findUnique({
         where: { userId: req.userId },
       });
@@ -160,6 +204,10 @@ router.get(
         res.status(404).json({ error: "Preferences not found." });
         return;
       }
+
+      // Cache for 10 minutes (preferences change less frequently)
+      await cache.set(cacheKey, preferences, { ttl: 600 });
+      
       res.json(preferences);
     } catch (error) {
       console.error("Error fetching preferences:", error);
@@ -195,6 +243,11 @@ router.put(
           ...req.body,
         },
       });
+      
+      // Invalidate cache
+      await cache.del(cache.cacheKeys.userPreferences(req.userId!));
+      await cache.del(cache.cacheKeys.user(req.userId!)); // Also invalidate user cache
+      
       res.json(updatedPreferences);
     } catch (error) {
       console.error("Error updating preferences:", error);

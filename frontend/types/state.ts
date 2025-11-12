@@ -80,7 +80,7 @@ export interface DashboardActions {
 }
 
 export interface ChatActions {
-  sendMessage: (message: string) => Promise<void>;
+  sendMessage: (message?: string) => Promise<void>;
   setInputMessage: (message: string) => void;
   setChatMode: (mode: ChatState["chatMode"]) => void;
   clearMessages: () => void;

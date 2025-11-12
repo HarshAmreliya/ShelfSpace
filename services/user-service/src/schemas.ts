@@ -6,12 +6,11 @@ export const createUserSchema = z.object({
 });
 
 export const updateUserSchema = z.object({
-  name: z.string().min(1, "Name cannot be empty").max(100),
+  name: z.string().min(1, "Name cannot be empty").max(100).optional(),
   avatarUrl: z.string().url("Must be a valid URL").optional(),
   bio: z.string().max(500).optional(),
   website: z.string().url("Must be a valid URL").optional(),
   isPublic: z.boolean().optional(),
-  role: z.enum(["admin", "user"]),
 });
 
 export const updatePreferencesSchema = z.object({

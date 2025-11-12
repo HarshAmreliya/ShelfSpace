@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { ReadingList, ViewMode } from "@/types/library";
+import { ReadingList } from "@/types/library";
+import { ViewMode } from "@/components/library/components/ViewModeToggle";
 import { ViewModeToggle } from "@/components/library/components/ViewModeToggle";
 import { FilterControls } from "@/components/library/components/FilterControls";
 

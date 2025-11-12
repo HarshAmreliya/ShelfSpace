@@ -46,3 +46,25 @@ export interface NavigationState {
     compactMode: boolean;
   };
 }
+
+export interface AppState {
+  user: any | null;
+  theme: "light" | "dark" | "system";
+  isAuthenticated: boolean;
+  globalPreferences: {
+    notifications: boolean;
+    autoSave: boolean;
+    language: string;
+  };
+  isLoading: boolean;
+  error: string | null;
+}
+
+export interface AppActions {
+  setTheme: (theme: AppState["theme"]) => void;
+  updateGlobalPreferences: (
+    preferences: Partial<AppState["globalPreferences"]>
+  ) => void;
+  signOut: () => void;
+  refreshUser: () => Promise<void>;
+}

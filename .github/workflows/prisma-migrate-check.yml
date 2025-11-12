@@ -1,0 +1,73 @@
+name: Prisma Migrate Check
+
+on:
+  pull_request:
+    paths:
+      - '**/prisma/schema.prisma'
+      - '**/prisma/migrations/**'
+
+jobs:
+  check-migrations:
+    name: Check Prisma Migrations
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - path: ./services/user-service
+          - path: ./services/user-library-service
+          - path: ./services/review-service
+          - path: ./services/group-service
+          - path: ./services/chat-service
+          - path: ./services/admin-service
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.service.path }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.service.path }}
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: ${{ matrix.service.path }}
+        run: |
+          if [ -d "prisma" ]; then
+            npx prisma generate
+          fi
+
+      - name: Validate migrations
+        working-directory: ${{ matrix.service.path }}
+        run: |
+          if [ -d "prisma/migrations" ]; then
+            npx prisma migrate deploy
+            npx prisma migrate status
+          else
+            echo "No migrations directory found"
+          fi
+        continue-on-error: true
+

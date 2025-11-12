@@ -1,6 +1,15 @@
 import type { Request, Response } from "express";
 import Book from "../models/book.ts";
 
+/**
+ * Escapes special regex characters to prevent ReDoS and injection attacks
+ * @param text - User input string to escape
+ * @returns Escaped string safe for use in regex
+ */
+function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 //
 export const createBook = async (req: Request, res: Response) => {
   try {
@@ -14,25 +23,39 @@ export const createBook = async (req: Request, res: Response) => {
 export const getAllBooks = async (req: Request, res: Response) => {
   try {
     // --- 1. DESTRUCTURE QUERY PARAMETERS ---
-    const { author, sortBy, page = 1 } = req.query;
-
-    console.log(author);
+    const { author, genre, sortBy, page = 1, search } = req.query;
 
     const pageSize = 30; // As requested, 30 books per page
+    const pageNum = parseInt(typeof page === 'string' ? page : String(page), 10) || 1;
 
     // --- 2. BUILD THE AGGREGATION PIPELINE ---
     const pipeline: any[] = [];
 
     // --- STAGE 1: $match (Filter) ---
-    // Conditionally add the $match stage if an author is provided
-    if (author) {
-      pipeline.push({
-        $match: {
-          // We use $regex for partial, case-insensitive matching
-          // This will find an author even if the name is just part of the string
-          "authors.name": { $regex: author, $options: "i" },
-        },
-      });
+    const matchConditions: any = {};
+
+    if (author && typeof author === 'string') {
+      // Sanitize author input to prevent NoSQL injection
+      const sanitizedAuthor = escapeRegex(author);
+      matchConditions["authors.name"] = { $regex: sanitizedAuthor, $options: "i" };
+    }
+
+    if (genre && typeof genre === 'string') {
+      matchConditions.genres = { $in: [genre] };
+    }
+
+    if (search && typeof search === 'string') {
+      // Sanitize search input to prevent NoSQL injection and ReDoS attacks
+      const sanitizedSearch = escapeRegex(search);
+      matchConditions.$or = [
+        { title: { $regex: sanitizedSearch, $options: "i" } },
+        { "authors.name": { $regex: sanitizedSearch, $options: "i" } },
+        { description: { $regex: sanitizedSearch, $options: "i" } },
+      ];
+    }
+    
+    if (Object.keys(matchConditions).length > 0) {
+      pipeline.push({ $match: matchConditions });
     }
 
     // --- STAGE 2: $sort (Sort) ---
@@ -54,7 +77,7 @@ export const getAllBooks = async (req: Request, res: Response) => {
         metadata: [{ $count: "totalBooks" }],
         // Sub-pipeline 2: for the actual page of data
         data: [
-          { $skip: (parseInt(page) - 1) * pageSize },
+          { $skip: (pageNum - 1) * pageSize },
           { $limit: pageSize },
           {
             $project: {
@@ -83,7 +106,7 @@ export const getAllBooks = async (req: Request, res: Response) => {
     res.json({
       success: true,
       totalBooks: totalBooks,
-      currentPage: parseInt(page),
+      currentPage: pageNum,
       totalPages: Math.ceil(totalBooks / pageSize),
       books: books,
     });

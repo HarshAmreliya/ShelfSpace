@@ -21,38 +21,15 @@ const DEFAULT_PREFERENCES: LibraryPreferences = {
   },
 };
 
-const STORAGE_KEY = "shelfspace-library-preferences";
-
 export function useLibraryPreferences() {
   const [preferences, setPreferences] =
     useState<LibraryPreferences>(DEFAULT_PREFERENCES);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load preferences from localStorage on mount
+  // Load preferences on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setPreferences((prev) => ({ ...prev, ...parsed }));
-      }
-    } catch (error) {
-      console.warn("Failed to load library preferences:", error);
-    } finally {
-      setIsLoaded(true);
-    }
+    setIsLoaded(true);
   }, []);
-
-  // Save preferences to localStorage whenever they change
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
-    } catch (error) {
-      console.warn("Failed to save library preferences:", error);
-    }
-  }, [preferences, isLoaded]);
 
   // Update functions
   const updateViewMode = useCallback((viewMode: ViewMode) => {
@@ -75,12 +52,7 @@ export function useLibraryPreferences() {
   }, []);
 
   const clearStoredPreferences = useCallback(() => {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-      setPreferences(DEFAULT_PREFERENCES);
-    } catch (error) {
-      console.warn("Failed to clear library preferences:", error);
-    }
+    setPreferences(DEFAULT_PREFERENCES);
   }, []);
 
   return {

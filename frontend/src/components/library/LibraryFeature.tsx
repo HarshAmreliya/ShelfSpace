@@ -60,11 +60,9 @@ export function LibraryFeature({ searchParams }: LibraryFeatureProps) {
   const {
     selectedList,
     viewMode,
-    searchQuery,
-    filterGenre,
-    sortBy,
+    filters,
     readingLists,
-    currentList,
+    selectedListData: currentList,
     filteredBooks,
     genres,
     isLoading,
@@ -72,7 +70,14 @@ export function LibraryFeature({ searchParams }: LibraryFeatureProps) {
     actions,
   } = useLibraryState(searchParams);
 
+  const { search: searchQuery, genre: filterGenre, sortBy } = filters;
+
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+
+  // Create wrapper functions for filter updates
+  const setSearchQuery = (search: string) => actions.updateFilters({ search });
+  const setFilterGenre = (genre: string | null) => actions.updateFilters({ genre });
+  const setSortBy = (sortBy: string) => actions.updateFilters({ sortBy });
 
   // Define keyboard shortcuts for library
   const keyboardShortcuts = useMemo(
@@ -145,11 +150,11 @@ export function LibraryFeature({ searchParams }: LibraryFeatureProps) {
       <div className="relative flex h-screen">
         <aside role="complementary" aria-label="Library navigation">
           <LibrarySidebar
-            readingLists={readingLists}
+            readingLists={readingLists as any}
             selectedList={selectedList}
-            setSelectedList={actions.selectList}
+            setSelectedList={actions.setSelectedList}
             searchQuery={searchQuery}
-            setSearchQuery={actions.setSearchQuery}
+            setSearchQuery={setSearchQuery}
           />
         </aside>
 
@@ -162,14 +167,14 @@ export function LibraryFeature({ searchParams }: LibraryFeatureProps) {
         >
           <header role="banner">
             <LibraryHeader
-              currentList={currentList}
+              currentList={currentList as any}
               viewMode={viewMode}
               setViewMode={actions.setViewMode}
-              filterGenre={filterGenre}
-              setFilterGenre={actions.setFilterGenre}
-              sortBy={sortBy}
-              setSortBy={actions.setSortBy}
-              genres={genres}
+              filterGenre={filterGenre || ""}
+              setFilterGenre={setFilterGenre}
+              sortBy={sortBy as "title" | "author" | "dateAdded" | "rating"}
+              setSortBy={setSortBy}
+              genres={genres as string[]}
               filteredBooksCount={filteredBooks.length}
             />
           </header>
@@ -183,9 +188,9 @@ export function LibraryFeature({ searchParams }: LibraryFeatureProps) {
           >
             {filteredBooks.length > 0 ? (
               viewMode === "grid" ? (
-                <BookGrid books={filteredBooks} />
+                <BookGrid books={filteredBooks as any} />
               ) : (
-                <BookList books={filteredBooks} />
+                <BookList books={filteredBooks as any} />
               )
             ) : (
               <div className="text-center py-12" role="status" aria-live="polite">
@@ -223,7 +228,7 @@ export function LibraryFeatureWithBoundary({
   return (
     <ErrorBoundary fallback={LibraryErrorFallback}>
       <Suspense fallback={<LibraryLoadingSkeleton />}>
-        <LibraryFeature searchParams={searchParams} />
+        <LibraryFeature {...(searchParams && { searchParams })} />
       </Suspense>
     </ErrorBoundary>
   );

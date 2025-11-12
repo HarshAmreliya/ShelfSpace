@@ -13,9 +13,9 @@ interface VirtualBookGridProps {
 
 export const VirtualBookGrid: React.FC<VirtualBookGridProps> = ({
   books,
-  itemHeight,
-  itemsPerRow,
-  overscan,
+  itemHeight: _itemHeight,
+  itemsPerRow: _itemsPerRow,
+  overscan: _overscan,
   className = "",
 }) => {
   // For now, just render a regular grid

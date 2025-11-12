@@ -1,4 +1,4 @@
-import { Book } from "@/types/models";
+import { Book } from "@/types/book";
 
 export interface GenreSection {
   genre: string;
@@ -11,8 +11,17 @@ export interface CarouselData {
   sections: GenreSection[];
 }
 
+// Helper to create complete Book objects with required fields
+const createBook = (partial: Omit<Book, 'progress' | 'createdAt' | 'updatedAt' | 'addedAt'>): Book => ({
+  ...partial,
+  progress: 0,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  addedAt: new Date().toISOString(),
+});
+
 export const fictionBooks: Book[] = [
-  {
+  createBook({
     id: "1",
     title: "The Midnight Library",
     author: "Matt Haig",
@@ -20,10 +29,10 @@ export const fictionBooks: Book[] = [
     rating: 4.3,
     status: "want-to-read",
     pages: 304,
-    genre: "Fiction",
+    genres: ["Fiction"],
     tags: ["fiction", "contemporary"],
-  },
-  {
+  }),
+  createBook({
     id: "2",
     title: "The Name of the Wind",
     author: "Patrick Rothfuss",
@@ -31,10 +40,10 @@ export const fictionBooks: Book[] = [
     rating: 5.0,
     status: "want-to-read",
     pages: 662,
-    genre: "Fiction",
+    genres: ["Fiction"],
     tags: ["fantasy", "fiction"],
-  },
-  {
+  }),
+  createBook({
     id: "3",
     title: "The Seven Husbands of Evelyn Hugo",
     author: "Taylor Jenkins Reid",
@@ -42,10 +51,10 @@ export const fictionBooks: Book[] = [
     rating: 4.5,
     status: "want-to-read",
     pages: 400,
-    genre: "Fiction",
+    genres: ["Fiction"],
     tags: ["fiction", "historical"],
-  },
-  {
+  }),
+  createBook({
     id: "4",
     title: "Klara and the Sun",
     author: "Kazuo Ishiguro",
@@ -53,10 +62,10 @@ export const fictionBooks: Book[] = [
     rating: 4.2,
     status: "want-to-read",
     pages: 320,
-    genre: "Fiction",
+    genres: ["Fiction"],
     tags: ["fiction", "sci-fi"],
-  },
-  {
+  }),
+  createBook({
     id: "5",
     title: "The Thursday Murder Club",
     author: "Richard Osman",
@@ -64,13 +73,13 @@ export const fictionBooks: Book[] = [
     rating: 4.1,
     status: "want-to-read",
     pages: 400,
-    genre: "Fiction",
+    genres: ["Fiction"],
     tags: ["fiction", "mystery"],
-  },
+  }),
 ];
 
 export const sciFiBooks: Book[] = [
-  {
+  createBook({
     id: "6",
     title: "Dune",
     author: "Frank Herbert",
@@ -78,10 +87,10 @@ export const sciFiBooks: Book[] = [
     rating: 4.9,
     status: "want-to-read",
     pages: 688,
-    genre: "Science Fiction",
+    genres: ["Science Fiction"],
     tags: ["sci-fi", "epic"],
-  },
-  {
+  }),
+  createBook({
     id: "7",
     title: "Project Hail Mary",
     author: "Andy Weir",
@@ -89,10 +98,10 @@ export const sciFiBooks: Book[] = [
     rating: 4.6,
     status: "want-to-read",
     pages: 496,
-    genre: "Science Fiction",
+    genres: ["Science Fiction"],
     tags: ["sci-fi", "space"],
-  },
-  {
+  }),
+  createBook({
     id: "8",
     title: "The Martian",
     author: "Andy Weir",
@@ -100,10 +109,10 @@ export const sciFiBooks: Book[] = [
     rating: 4.7,
     status: "want-to-read",
     pages: 369,
-    genre: "Science Fiction",
+    genres: ["Science Fiction"],
     tags: ["sci-fi", "space"],
-  },
-  {
+  }),
+  createBook({
     id: "9",
     title: "Foundation",
     author: "Isaac Asimov",
@@ -111,10 +120,10 @@ export const sciFiBooks: Book[] = [
     rating: 4.4,
     status: "want-to-read",
     pages: 244,
-    genre: "Science Fiction",
+    genres: ["Science Fiction"],
     tags: ["sci-fi", "classic"],
-  },
-  {
+  }),
+  createBook({
     id: "10",
     title: "Neuromancer",
     author: "William Gibson",
@@ -122,13 +131,13 @@ export const sciFiBooks: Book[] = [
     rating: 4.3,
     status: "want-to-read",
     pages: 271,
-    genre: "Science Fiction",
+    genres: ["Science Fiction"],
     tags: ["sci-fi", "cyberpunk"],
-  },
+  }),
 ];
 
 export const memoirBooks: Book[] = [
-  {
+  createBook({
     id: "11",
     title: "Educated",
     author: "Tara Westover",
@@ -136,10 +145,10 @@ export const memoirBooks: Book[] = [
     rating: 4.8,
     status: "want-to-read",
     pages: 352,
-    genre: "Memoir",
+    genres: ["Memoir"],
     tags: ["memoir", "education"],
-  },
-  {
+  }),
+  createBook({
     id: "12",
     title: "The Lean Startup",
     author: "Eric Ries",
@@ -147,13 +156,13 @@ export const memoirBooks: Book[] = [
     rating: 4.2,
     status: "want-to-read",
     pages: 336,
-    genre: "Memoir",
+    genres: ["Memoir"],
     tags: ["business", "startup"],
-  },
+  }),
 ];
 
 export const selfHelpBooks: Book[] = [
-  {
+  createBook({
     id: "13",
     title: "Atomic Habits",
     author: "James Clear",
@@ -161,10 +170,10 @@ export const selfHelpBooks: Book[] = [
     rating: 4.5,
     status: "want-to-read",
     pages: 320,
-    genre: "Self-Help",
+    genres: ["Self-Help"],
     tags: ["self-help", "habits"],
-  },
-  {
+  }),
+  createBook({
     id: "14",
     title: "Sapiens",
     author: "Yuval Noah Harari",
@@ -172,10 +181,10 @@ export const selfHelpBooks: Book[] = [
     rating: 4.6,
     status: "want-to-read",
     pages: 443,
-    genre: "Self-Help",
+    genres: ["Self-Help"],
     tags: ["history", "anthropology"],
-  },
-  {
+  }),
+  createBook({
     id: "15",
     title: "Deep Work",
     author: "Cal Newport",
@@ -183,9 +192,9 @@ export const selfHelpBooks: Book[] = [
     rating: 4.4,
     status: "want-to-read",
     pages: 304,
-    genre: "Self-Help",
+    genres: ["Self-Help"],
     tags: ["productivity", "focus"],
-  },
+  }),
 ];
 
 export const carouselData: CarouselData[] = [

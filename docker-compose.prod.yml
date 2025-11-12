@@ -1,0 +1,73 @@
+version: '3.8'
+
+# Production overrides
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+services:
+  frontend:
+    environment:
+      NODE_ENV: production
+    command: npm start
+
+  user-service:
+    environment:
+      NODE_ENV: production
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  review-service:
+    environment:
+      NODE_ENV: production
+    deploy:
+      replicas: 2
+
+  user-library-service:
+    environment:
+      NODE_ENV: production
+    deploy:
+      replicas: 2
+
+  book-service:
+    environment:
+      NODE_ENV: production
+    deploy:
+      replicas: 2
+
+  group-service:
+    environment:
+      NODE_ENV: production
+    deploy:
+      replicas: 2
+
+  chat-service:
+    environment:
+      NODE_ENV: production
+    deploy:
+      replicas: 2
+
+  admin-service:
+    environment:
+      NODE_ENV: production
+    deploy:
+      replicas: 1
+
+  chatbot-service:
+    environment:
+      NODE_ENV: production
+    deploy:
+      replicas: 2
+
+  nginx-gateway:
+    # Production: Add TLS certificates
+    volumes:
+      - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./api-gateway/ssl:/etc/nginx/ssl:ro
+    # Uncomment for production with TLS
+    # ports:
+    #   - "80:80"
+    #   - "443:443"
+

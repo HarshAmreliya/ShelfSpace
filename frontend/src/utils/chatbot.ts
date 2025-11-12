@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Message } from "@/types";
+import { Message, MessageStatus } from "@/types/chat";
 
 // Chatbot service URL
 const CHATBOT_URL = process.env.NODE_ENV === 'production' 
@@ -32,10 +32,14 @@ export const generateAIResponse = async (
     const { answer, session_id } = response.data;
 
     const aiMessage: Message = {
-      id: Math.floor(Math.random() * 1000000000),
+      id: `${Math.floor(Math.random() * 1000000000)}`,
       type: "ai",
       content: answer,
-      timestamp: new Date(),
+      status: "sent" as MessageStatus,
+      conversationId: session_id || "default",
+      isEdited: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       suggestions: [], // No suggestions for now
     };
 
@@ -48,10 +52,14 @@ export const generateAIResponse = async (
     
     // Simple fallback response
     const fallbackMessage: Message = {
-      id: Math.floor(Math.random() * 1000000000),
+      id: `${Math.floor(Math.random() * 1000000000)}`,
       type: "ai",
       content: "I'm sorry, I'm having trouble connecting to the AI service right now. Please try again in a moment.",
-      timestamp: new Date(),
+      status: "error" as MessageStatus,
+      conversationId: sessionId || "default",
+      isEdited: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       suggestions: [],
     };
 

@@ -16,6 +16,13 @@ router.get("/groups/:groupId/messages", isAuthenticated, isGroupMember, async (r
       orderBy: { timestamp: "asc" },
       skip: offset,
       take: limit,
+      select: {
+        id: true,
+        senderId: true,
+        groupId: true,
+        content: true,
+        timestamp: true,
+      },
     });
     res.json(messages);
   } catch (error) {

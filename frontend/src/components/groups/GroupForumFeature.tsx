@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -9,82 +9,35 @@ import {
   Plus,
   Search,
   Pin,
-  Lock,
   Eye,
-  Clock,
   ThumbsUp,
   Reply,
-  BookOpen,
   Calendar,
 } from "lucide-react";
+import { GroupChatFeature } from "./GroupChatFeature";
+import { useGroup } from "@/hooks/data/useGroups";
+import { useSession } from "next-auth/react";
 
 interface GroupForumFeatureProps {
   groupId: string;
 }
 
+type TabType = "forum" | "chat";
+
 export function GroupForumFeature({ groupId }: GroupForumFeatureProps) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: session } = useSession();
+  const { group, loading, error, isMember } = useGroup(groupId);
+  const [activeTab, setActiveTab] = useState<TabType>("forum");
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
+  // Check if current user is a member
+  const userId = session?.user?.id || "";
+  const userIsMember = isMember(userId);
 
-  // Mock group data
-  const group = {
-    id: groupId,
-    name: "Fantasy Book Club",
-    description: "A magical journey through fantasy worlds! We read and discuss the best fantasy novels.",
-    memberCount: 1247,
-    bookCount: 89,
-    tags: ["Fantasy", "Magic", "Adventure"],
-    isJoined: true,
-  };
+  // Forum posts - keeping empty for now as there's no forum backend endpoint yet
+  const forumPosts: any[] = [];
 
-  // Mock forum posts
-  const forumPosts = [
-    {
-      id: "1",
-      title: "Welcome to our Fantasy Book Club!",
-      content: "Welcome everyone! I'm excited to start this journey through fantasy literature with all of you. Our first book will be 'The Name of the Wind' by Patrick Rothfuss.",
-      author: "Sarah Johnson",
-      createdAt: "2024-01-15T10:00:00Z",
-      replies: 23,
-      views: 156,
-      likes: 45,
-      isPinned: true,
-      tags: ["Announcement", "Welcome"]
-    },
-    {
-      id: "2",
-      title: "Discussion: The Name of the Wind - Chapter 1-5",
-      content: "Let's discuss the first five chapters of 'The Name of the Wind'. What do you think about Kvothe's character development?",
-      author: "Emily Rodriguez",
-      createdAt: "2024-01-18T14:20:00Z",
-      replies: 18,
-      views: 89,
-      likes: 32,
-      isPinned: false,
-      tags: ["Discussion", "The Name of the Wind"]
-    },
-    {
-      id: "3",
-      title: "Book Recommendations for Fantasy Lovers",
-      content: "I've been reading fantasy for years and wanted to share some hidden gems. 'The Lies of Locke Lamora' by Scott Lynch is fantastic!",
-      author: "Alex Thompson",
-      createdAt: "2024-01-19T16:45:00Z",
-      replies: 31,
-      views: 124,
-      likes: 67,
-      isPinned: false,
-      tags: ["Recommendations", "Fantasy"]
-    }
-  ];
-
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 flex items-center justify-center">
         <div className="text-center">
@@ -92,8 +45,33 @@ export function GroupForumFeature({ groupId }: GroupForumFeatureProps) {
             <MessageCircle className="h-10 w-10 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
-            Loading Forum...
+            Loading Group...
           </h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !group) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full shadow-lg mb-6">
+            <MessageCircle className="h-10 w-10 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">
+            {error ? "Error Loading Group" : "Group Not Found"}
+          </h2>
+          <p className="text-gray-600 dark:text-slate-300 mb-6">
+            {error || "The group you're looking for doesn't exist."}
+          </p>
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Go Back
+          </button>
         </div>
       </div>
     );
@@ -126,55 +104,112 @@ export function GroupForumFeature({ groupId }: GroupForumFeatureProps) {
                 {group.name}
               </h1>
               <p className="text-gray-600 dark:text-slate-400 text-lg mb-4">
-                {group.description}
+                {group.description || "No description available"}
               </p>
               <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-slate-400">
                 <div className="flex items-center">
                   <Users className="h-4 w-4 mr-1" />
-                  {group.memberCount.toLocaleString()} members
-                </div>
-                <div className="flex items-center">
-                  <BookOpen className="h-4 w-4 mr-1" />
-                  {group.bookCount} books discussed
+                  {group.memberships?.length || 0} members
                 </div>
                 <div className="flex items-center">
                   <MessageCircle className="h-4 w-4 mr-1" />
                   {forumPosts.length} discussions
                 </div>
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-1" />
+                  Created {new Date(group.createdAt).toLocaleDateString()}
+                </div>
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-300 rounded-lg transition-colors text-sm font-medium">
-                <Users className="h-4 w-4 mr-1 inline" />
-                Joined
-              </button>
+              {userIsMember ? (
+                <button className="px-4 py-2 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-300 rounded-lg transition-colors text-sm font-medium">
+                  <Users className="h-4 w-4 mr-1 inline" />
+                  Joined
+                </button>
+              ) : (
+                <button className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors text-sm font-medium">
+                  <Users className="h-4 w-4 mr-1 inline" />
+                  Join Group
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Forum Controls */}
-        <div className="bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-lg border border-amber-200 dark:border-slate-700 p-6 mb-8">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 h-5 w-5" />
-                <input
-                  type="text"
-                  placeholder="Search discussions..."
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-            <button className="flex items-center gap-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors">
-              <Plus className="h-4 w-4" />
-              New Discussion
+        {/* Tabs */}
+        <div className="bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-lg border border-amber-200 dark:border-slate-700 p-2 mb-8">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab("forum")}
+              className={`flex-1 px-4 py-3 rounded-lg transition-colors font-medium ${
+                activeTab === "forum"
+                  ? "bg-amber-500 text-white"
+                  : "text-gray-700 dark:text-slate-300 hover:bg-amber-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              <MessageCircle className="h-4 w-4 inline mr-2" />
+              Forum
+            </button>
+            <button
+              onClick={() => setActiveTab("chat")}
+              className={`flex-1 px-4 py-3 rounded-lg transition-colors font-medium ${
+                activeTab === "chat"
+                  ? "bg-amber-500 text-white"
+                  : "text-gray-700 dark:text-slate-300 hover:bg-amber-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              <MessageCircle className="h-4 w-4 inline mr-2" />
+              Live Chat
             </button>
           </div>
         </div>
 
+        {/* Chat Tab */}
+        {activeTab === "chat" && userIsMember && (
+          <div className="mb-8" style={{ height: "calc(100vh - 400px)", minHeight: "600px" }}>
+            <GroupChatFeature groupId={groupId} groupName={group.name} />
+          </div>
+        )}
+        {activeTab === "chat" && !userIsMember && (
+          <div className="mb-8 text-center py-12 bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-lg border border-amber-200 dark:border-slate-700">
+            <MessageCircle className="h-12 w-12 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-2">
+              Join to Access Chat
+            </h3>
+            <p className="text-gray-600 dark:text-slate-400">
+              You need to be a member of this group to access the chat.
+            </p>
+          </div>
+        )}
+
+        {/* Forum Tab */}
+        {activeTab === "forum" && (
+          <>
+            {/* Forum Controls */}
+            <div className="bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-lg border border-amber-200 dark:border-slate-700 p-6 mb-8">
+              <div className="flex flex-col lg:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500 h-5 w-5" />
+                    <input
+                      type="text"
+                      placeholder="Search discussions..."
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <button className="flex items-center gap-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors">
+                  <Plus className="h-4 w-4" />
+                  New Discussion
+                </button>
+              </div>
+            </div>
+
         {/* Forum Posts */}
         <div className="space-y-6">
-          {/* Pinned Posts */}
+            {/* Pinned Posts */}
+          {forumPosts.filter(post => post.isPinned).length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Pin className="h-5 w-5 text-amber-600 dark:text-amber-400" />
@@ -188,7 +223,7 @@ export function GroupForumFeature({ groupId }: GroupForumFeatureProps) {
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
                       <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                        {post.author.split(' ').map(n => n[0]).join('')}
+                        {post.author.split(' ').map((n: string) => n[0]).join('')}
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -214,7 +249,7 @@ export function GroupForumFeature({ groupId }: GroupForumFeatureProps) {
                         {post.content}
                       </p>
                       <div className="flex flex-wrap gap-2 mb-4">
-                        {post.tags.map((tag) => (
+                        {post.tags.map((tag: string) => (
                           <span
                             key={tag}
                             className="px-2 py-1 bg-amber-100 dark:bg-slate-700 text-amber-700 dark:text-slate-300 text-xs rounded-full"
@@ -255,8 +290,10 @@ export function GroupForumFeature({ groupId }: GroupForumFeatureProps) {
               ))}
             </div>
           </div>
+          )}
 
           {/* Regular Posts */}
+          {forumPosts.filter(post => !post.isPinned).length > 0 ? (
           <div>
             <div className="flex items-center gap-2 mb-4">
               <MessageCircle className="h-5 w-5 text-gray-600 dark:text-slate-400" />
@@ -270,7 +307,7 @@ export function GroupForumFeature({ groupId }: GroupForumFeatureProps) {
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
                       <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                        {post.author.split(' ').map(n => n[0]).join('')}
+                        {post.author.split(' ').map((n: string) => n[0]).join('')}
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -293,7 +330,7 @@ export function GroupForumFeature({ groupId }: GroupForumFeatureProps) {
                         {post.content}
                       </p>
                       <div className="flex flex-wrap gap-2 mb-4">
-                        {post.tags.map((tag) => (
+                        {post.tags.map((tag: string) => (
                           <span
                             key={tag}
                             className="px-2 py-1 bg-amber-100 dark:bg-slate-700 text-amber-700 dark:text-slate-300 text-xs rounded-full"
@@ -334,7 +371,20 @@ export function GroupForumFeature({ groupId }: GroupForumFeatureProps) {
               ))}
             </div>
           </div>
+          ) : (
+            <div className="text-center py-12 bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-lg border border-amber-200 dark:border-slate-700">
+              <MessageCircle className="h-12 w-12 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-2">
+                No Discussions Yet
+              </h3>
+              <p className="text-gray-600 dark:text-slate-400">
+                Be the first to start a discussion!
+              </p>
+            </div>
+          )}
         </div>
+          </>
+        )}
       </div>
     </div>
   );

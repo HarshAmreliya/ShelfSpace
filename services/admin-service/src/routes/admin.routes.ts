@@ -1,12 +1,12 @@
 import express, { Request, Response } from "express";
-import prisma from "../prisma.ts";
+import prisma from "../prisma.js";
 import {
   createModerationLogSchema,
   updateBookValidationSchema,
-} from "../schemas.ts";
-import { isAuthenticated } from "../middlewares/auth.ts";
-import { isAdmin } from "../middlewares/isAdmin.ts";
-import { validate } from "../middlewares/validate.ts";
+} from "../schemas.js";
+import { isAuthenticated } from "../middlewares/auth.js";
+import { isAdmin } from "../middlewares/isAdmin.js";
+import { validate } from "../middlewares/validate.js";
 import { z } from "zod";
 import axios from "axios";
 

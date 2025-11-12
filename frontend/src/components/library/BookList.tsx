@@ -22,7 +22,7 @@ const BookList: React.FC<BookListProps> = memo(
           <BookListItem
             key={book.id}
             book={book}
-            onSelect={onBookSelect}
+            {...(onBookSelect && { onSelect: onBookSelect })}
           />
         ))}
       </div>

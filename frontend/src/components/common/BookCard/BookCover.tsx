@@ -22,17 +22,16 @@ export const BookCover: React.FC<BookCoverProps> = memo(({
   height,
 }) => {
   return (
-    <div className={cn("relative", width, height)}>
+    <div className={cn("relative", width || "w-16", height || "h-24")}>
       <OptimizedImage
         src={src}
         alt={alt}
-        fill
-        className={cn("object-cover rounded shadow-sm", className)}
+        width={64}
+        height={96}
+        className={cn("object-cover rounded shadow-sm w-full h-full", className)}
         sizes={sizes}
         placeholder="blur"
         blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
-        fallbackSrc="/book-covers/default.jpg"
-        showFallback={true}
       />
     </div>
   );
