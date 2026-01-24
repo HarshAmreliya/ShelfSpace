@@ -1,9 +1,9 @@
-import { ChatFeature } from "../../../components/chat/ChatFeature";
+import { ChatFeatureWithSessions } from "../../../components/chat/ChatFeatureWithSessions";
 
 export default function ChatPage() {
   return (
     <div className="h-full">
-      <ChatFeature />
+      <ChatFeatureWithSessions />
     </div>
   );
 }

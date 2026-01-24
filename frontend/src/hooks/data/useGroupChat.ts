@@ -10,7 +10,7 @@ import {
   setupGroupChatHandlers,
   type ChatMessage,
 } from "@/lib/socket";
-import { ChatService } from "@/lib/chat-service";
+import { ChatService } from "@/lib/group-chat-service";
 
 interface UseGroupChatOptions {
   groupId: string;

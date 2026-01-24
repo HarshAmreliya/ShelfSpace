@@ -7,6 +7,7 @@ import { randomUUID } from "crypto";
 import userRoutes from "./routes/user.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import tokenRoutes from "./routes/token.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
 const app = express();
 const PORT = process.env.PORT || 3001;
 // Security middleware - must be first
@@ -78,6 +79,7 @@ app.get("/health", async (_req, res) => {
 // Mount routes - order matters!
 app.use("/api/token", tokenRoutes); // Public token endpoint: GET /api/token/:userId (must be first)
 app.use("/api/auth", authRoutes); // Auth verification endpoint
+app.use("/api/chat", chatRoutes); // Chat session routes
 app.use("/api", userRoutes); // User routes (POST /me, GET /me, etc.)
 app.listen(PORT, () => {
     console.log(`User service running at http://localhost:${PORT}`);
