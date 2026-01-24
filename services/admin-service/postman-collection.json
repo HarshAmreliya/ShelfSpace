@@ -1,0 +1,856 @@
+{
+  "info": {
+    "name": "Admin Service API",
+    "description": "Comprehensive Postman collection for Admin Service with Newman support. Includes authentication, moderation, book validation, and user management endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{adminToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost/api/admin",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bookId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "targetId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('status', 'ok');",
+              "    pm.expect(jsonData).to.have.property('service', 'admin-service');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/../../health",
+          "host": ["{{baseUrl}}"],
+          "path": ["..", "..", "health"]
+        },
+        "description": "Check if the admin service is running and database is connected"
+      },
+      "response": []
+    },
+    {
+      "name": "Moderation",
+      "item": [
+        {
+          "name": "Create Moderation Log - Review Deleted",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains moderation log', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('action', 'REVIEW_DELETED');",
+                  "    pm.expect(jsonData).to.have.property('targetId');",
+                  "    pm.expect(jsonData).to.have.property('moderatorId');",
+                  "    pm.expect(jsonData).to.have.property('timestamp');",
+                  "    ",
+                  "    // Save targetId for later use",
+                  "    pm.collectionVariables.set('targetId', jsonData.targetId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"REVIEW_DELETED\",\n  \"targetId\": \"clx123456789\",\n  \"reason\": \"Spam content detected\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/moderation/log",
+              "host": ["{{baseUrl}}"],
+              "path": ["moderation", "log"]
+            },
+            "description": "Log a moderation action for deleting a review"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Moderation Log - User Banned",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains correct action', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.action).to.equal('USER_BANNED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"USER_BANNED\",\n  \"targetId\": \"clx987654321\",\n  \"reason\": \"Repeated violations of community guidelines\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/moderation/log",
+              "host": ["{{baseUrl}}"],
+              "path": ["moderation", "log"]
+            },
+            "description": "Log a moderation action for banning a user"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Moderation Log - Book Rejected",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains correct action', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.action).to.equal('BOOK_REJECTED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"BOOK_REJECTED\",\n  \"targetId\": \"clx555555555\",\n  \"reason\": \"Inappropriate content\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/moderation/log",
+              "host": ["{{baseUrl}}"],
+              "path": ["moderation", "log"]
+            },
+            "description": "Log a moderation action for rejecting a book"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Moderation Logs - Default Pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is an array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Logs are ordered by timestamp descending', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.length > 1) {",
+                  "        const firstTimestamp = new Date(jsonData[0].timestamp);",
+                  "        const secondTimestamp = new Date(jsonData[1].timestamp);",
+                  "        pm.expect(firstTimestamp.getTime()).to.be.at.least(secondTimestamp.getTime());",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/moderation/logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["moderation", "logs"]
+            },
+            "description": "Get moderation logs with default pagination (limit=10, offset=0)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Moderation Logs - Custom Pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response respects limit', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.length).to.be.at.most(5);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/moderation/logs?limit=5&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["moderation", "logs"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Get moderation logs with custom pagination"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Book Validation",
+      "item": [
+        {
+          "name": "Update Book Validation - Approve",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains validation data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('bookId');",
+                  "    pm.expect(jsonData).to.have.property('status', 'APPROVED');",
+                  "    pm.expect(jsonData).to.have.property('validatorId');",
+                  "    pm.expect(jsonData).to.have.property('notes');",
+                  "    ",
+                  "    // Save bookId for later use",
+                  "    pm.collectionVariables.set('bookId', jsonData.bookId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\",\n  \"notes\": \"All book information verified and accurate\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/book-validation/{{bookId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["book-validation", "{{bookId}}"]
+            },
+            "description": "Approve a book validation"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Book Validation - Reject",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains rejected status', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.equal('REJECTED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"REJECTED\",\n  \"notes\": \"Book contains inappropriate content\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/book-validation/clx999999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["book-validation", "clx999999999"]
+            },
+            "description": "Reject a book validation"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Book Validation - Pending",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains pending status', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.equal('PENDING');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PENDING\",\n  \"notes\": \"Awaiting additional information\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/book-validation/clx888888888",
+              "host": ["{{baseUrl}}"],
+              "path": ["book-validation", "clx888888888"]
+            },
+            "description": "Set book validation to pending status"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Book Validation Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Response contains validation data', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.have.property('id');",
+                  "        pm.expect(jsonData).to.have.property('bookId');",
+                  "        pm.expect(jsonData).to.have.property('status');",
+                  "        pm.expect(['PENDING', 'APPROVED', 'REJECTED']).to.include(jsonData.status);",
+                  "    });",
+                  "} else {",
+                  "    pm.test('404 response has error message', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.have.property('error');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/book-validation/{{bookId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["book-validation", "{{bookId}}"]
+            },
+            "description": "Get the validation status of a specific book"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Update User Status - Suspend",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains success message', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData.message).to.include('SUSPENDED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SUSPENDED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}", "status"]
+            },
+            "description": "Suspend a user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Status - Ban",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains success message', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('BANNED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"BANNED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/clx111111111/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "clx111111111", "status"]
+            },
+            "description": "Ban a user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Status - Activate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains success message', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('ACTIVE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/clx222222222/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "clx222222222", "status"]
+            },
+            "description": "Activate a user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Status - Deactivate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains success message', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('DEACTIVATED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"DEACTIVATED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/clx333333333/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "clx333333333", "status"]
+            },
+            "description": "Deactivate a user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset User Preferences",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains success message', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData.message).to.include('reset');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/preferences/reset",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}", "preferences", "reset"]
+            },
+            "description": "Reset user preferences to default values"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Scenarios",
+      "item": [
+        {
+          "name": "Unauthorized - No Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/moderation/logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["moderation", "logs"]
+            },
+            "description": "Test unauthorized access without token"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Moderation Action",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"INVALID_ACTION\",\n  \"targetId\": \"clx123456789\",\n  \"reason\": \"Test invalid action\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/moderation/log",
+              "host": ["{{baseUrl}}"],
+              "path": ["moderation", "log"]
+            },
+            "description": "Test with invalid moderation action"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Validation Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INVALID_STATUS\",\n  \"notes\": \"Test invalid status\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/book-validation/clx123456789",
+              "host": ["{{baseUrl}}"],
+              "path": ["book-validation", "clx123456789"]
+            },
+            "description": "Test with invalid validation status"
+          },
+          "response": []
+        },
+        {
+          "name": "Book Validation Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Response contains error message', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/book-validation/nonexistent-book-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["book-validation", "nonexistent-book-id"]
+            },
+            "description": "Test getting validation for non-existent book"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid User Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INVALID_STATUS\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/clx123456789/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "clx123456789", "status"]
+            },
+            "description": "Test with invalid user status"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

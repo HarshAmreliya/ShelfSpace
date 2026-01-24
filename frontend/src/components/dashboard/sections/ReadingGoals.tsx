@@ -263,7 +263,7 @@ export function ReadingGoals() {
                   <div className="text-xs text-gray-500 dark:text-slate-400">
                     {isCompleted ? (
                       <span className="text-green-600 dark:text-green-400 font-medium">
-                        ✅ Goal Achieved!
+                        Goal Achieved!
                       </span>
                     ) : isNearCompletion ? (
                       <span className="text-amber-600 dark:text-amber-400 font-medium">

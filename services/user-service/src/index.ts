@@ -6,6 +6,7 @@ import helmet from "helmet";
 import { randomUUID } from "crypto";
 import userRoutes from "./routes/user.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import tokenRoutes from "./routes/token.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -87,10 +88,10 @@ app.get("/health", async (_req, res) => {
   }
 });
 
-// console.log(userRoutes.stack[0]);
-
-app.use("/api", userRoutes);
-app.use("/api/auth", authRoutes);
+// Mount routes - order matters!
+app.use("/api/token", tokenRoutes); // Public token endpoint: GET /api/token/:userId (must be first)
+app.use("/api/auth", authRoutes); // Auth verification endpoint
+app.use("/api", userRoutes);  // User routes (POST /me, GET /me, etc.)
 
 app.listen(PORT, () => {
   console.log(`User service running at http://localhost:${PORT}`);

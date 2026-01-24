@@ -1,3 +1,5 @@
+import { Book } from "./book";
+
 export interface BookReview {
   id: string;
   bookId: string;

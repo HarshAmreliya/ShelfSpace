@@ -73,11 +73,6 @@ export function ProgressRing({
   );
 }
 
-// Simple counter without animations
-export function AnimatedCounter({ value, className = "" }: { value: number; className?: string }) {
-  return <span className={className}>{value}</span>;
-}
-
 // Simple progress bar without animations
 export function GradientProgressBar({
   progress,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Save, Heart, BookOpen, Star } from "lucide-react";
+import { X, Save, Heart, BookOpen, Star, Check } from "lucide-react";
 
 interface PreferencesModalProps {
   isOpen: boolean;
@@ -137,7 +137,7 @@ export function PreferencesModal({ isOpen, onClose, onSave }: PreferencesModalPr
                 >
                   <div className="text-center">
                     <div className="text-lg mb-1">
-                      {genre.selected ? "📚" : "📖"}
+                      {genre.selected ? <Check className="h-5 w-5 mx-auto" /> : <BookOpen className="h-5 w-5 mx-auto" />}
                     </div>
                     <div className="font-medium text-gray-900 dark:text-white text-sm">
                       {genre.name}
@@ -162,7 +162,7 @@ export function PreferencesModal({ isOpen, onClose, onSave }: PreferencesModalPr
                 {selectedGenres.map((genre) => (
                   <div key={genre.id} className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 border border-amber-200 dark:border-slate-700">
                     <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                      <span className="text-2xl">📚</span>
+                      <BookOpen className="h-5 w-5" />
                       {genre.name}
                     </h4>
                     

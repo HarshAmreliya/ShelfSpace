@@ -187,7 +187,7 @@ export function ReadingAnalytics() {
               </div>
             </div>
             <div className="text-xs text-gray-500 dark:text-slate-400">
-              📖 Literary journey
+              Literary journey
             </div>
           </AnimatedCard>
         </StaggerItem>

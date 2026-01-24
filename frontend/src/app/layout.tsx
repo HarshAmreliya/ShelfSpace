@@ -3,6 +3,7 @@ import "./globals.css";
 import AuthProvider from "@/components/auth/AuthProvider";
 import { CombinedProvider } from "@/contexts/CombinedProvider";
 import GoogleAnalytics from "@/components/common/GoogleAnalytics";
+import { ClientProviders } from "@/components/providers/ClientProviders";
 
 export const metadata: Metadata = {
   title: "ShelfSpace - Your Reading Sanctuary",
@@ -95,7 +96,9 @@ export default function RootLayout({
       </head>
       <body className="font-sans">
         <AuthProvider>
-          <CombinedProvider>{children}</CombinedProvider>
+          <CombinedProvider>
+            <ClientProviders>{children}</ClientProviders>
+          </CombinedProvider>
         </AuthProvider>
         <GoogleAnalytics />
       </body>

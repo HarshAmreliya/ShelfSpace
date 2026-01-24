@@ -3,6 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { Book } from "@/types/book";
+import { BookOpen } from "lucide-react";
 
 interface BookListItemProps {
   book: Book;
@@ -64,7 +65,7 @@ export const BookListItem: React.FC<BookListItemProps> = ({ book, onSelect }) =>
             />
           ) : (
             <div className="text-amber-600 dark:text-slate-400 text-xl">
-              📚
+              <BookOpen className="h-6 w-6" />
             </div>
           )}
         </div>

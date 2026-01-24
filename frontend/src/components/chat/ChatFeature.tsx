@@ -41,22 +41,6 @@ export function ChatFeature({ className }: ChatFeatureProps) {
           className || ""
         }`}
       >
-        {/* Decorative book-themed background elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 text-6xl opacity-5 dark:opacity-10">
-            💬
-          </div>
-          <div className="absolute top-40 right-20 text-4xl opacity-5 dark:opacity-10">
-            📚
-          </div>
-          <div className="absolute bottom-20 left-1/4 text-5xl opacity-5 dark:opacity-10">
-            ✍️
-          </div>
-          <div className="absolute bottom-40 right-1/3 text-3xl opacity-5 dark:opacity-10">
-            ✨
-          </div>
-        </div>
-
         <div className="relative h-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           {/* Chat Container */}
           <div className="h-full bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-xl border border-amber-200 dark:border-slate-700 overflow-hidden flex flex-col">
@@ -350,9 +334,6 @@ export function ChatFeature({ className }: ChatFeatureProps) {
                     >
                       <Send className="h-5 w-5" />
                     </button>
-                  </div>
-                  <div className="mt-3 text-xs text-gray-500 dark:text-slate-400">
-                    Press Enter to send, Shift+Enter for new line
                   </div>
                 </div>
               </div>

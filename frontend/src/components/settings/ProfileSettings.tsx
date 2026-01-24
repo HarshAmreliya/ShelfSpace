@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { getUserDisplayName, getUserInitials } from "@/utils/greetings";
 import {
   User,
   MapPin,
@@ -11,14 +13,31 @@ import {
 } from "lucide-react";
 
 export function ProfileSettings() {
+  const { data: session } = useSession();
+  
   const [profile, setProfile] = useState({
-    name: "John Doe",
-    email: "john.doe@example.com",
-    bio: "Passionate reader and book lover. I enjoy fantasy, sci-fi, and mystery novels. Always looking for my next great read!",
-    location: "San Francisco, CA",
-    favoriteGenres: ["Fantasy", "Science Fiction", "Mystery", "Romance"],
-    avatar: "JD",
+    name: "",
+    email: "",
+    bio: "",
+    location: "",
+    favoriteGenres: [] as string[],
+    avatar: "",
   });
+
+  // Auto-populate from session when available
+  useEffect(() => {
+    if (session?.user) {
+      const displayName = getUserDisplayName(session.user.name, session.user.email);
+      const initials = getUserInitials(session.user.name, session.user.email);
+      
+      setProfile(prev => ({
+        ...prev,
+        name: session.user.name || displayName,
+        email: session.user.email || "",
+        avatar: initials,
+      }));
+    }
+  }, [session]);
 
   const [newGenre, setNewGenre] = useState("");
 

@@ -21,8 +21,8 @@ export interface BaseError {
   category: ErrorCategory;
   severity: ErrorSeverity;
   timestamp: string;
-  details?: Record<string, unknown>;
-  stack?: string;
+  details?: Record<string, unknown> | undefined;
+  stack?: string | undefined;
 }
 
 // Application error class
@@ -31,7 +31,7 @@ export class AppError extends Error implements BaseError {
   category: ErrorCategory;
   severity: ErrorSeverity;
   timestamp: string;
-  details?: Record<string, unknown>;
+  details?: Record<string, unknown> | undefined;
 
   constructor(
     message: string,
@@ -46,7 +46,9 @@ export class AppError extends Error implements BaseError {
     this.category = category;
     this.severity = severity;
     this.timestamp = new Date().toISOString();
-    this.details = details;
+    if (details) {
+      this.details = details;
+    }
   }
 }
 

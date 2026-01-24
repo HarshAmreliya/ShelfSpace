@@ -9,7 +9,7 @@ import { ColorVariant, SizeVariant } from "./common";
 
 // Base component props
 export interface BaseComponentProps {
-  className?: string;
+  className?: string | undefined;
   children?: ReactNode;
   "data-testid"?: string;
 }

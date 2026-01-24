@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Message, MessageStatus } from "@/types/chat";
+import { Message, MessageStatus } from "../../types/chat";
 
 // Chatbot service URL
 const CHATBOT_URL = process.env.NODE_ENV === 'production' 

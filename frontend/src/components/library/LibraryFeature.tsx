@@ -1,19 +1,14 @@
 "use client";
 
-import React, { Suspense, useState, useMemo } from "react";
+import React, { Suspense } from "react";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { LibraryLoadingSkeleton } from "@/components/common/LoadingStates";
 import { LibraryErrorFallback } from "@/components/common/ErrorFallbacks/LibraryErrorFallback";
 import { useLibraryState } from "@/hooks/library/useLibraryState";
-import {
-  useKeyboardNavigation,
-  commonShortcuts,
-} from "../../hooks/useKeyboardNavigation";
 import LibrarySidebar from "./LibrarySidebar";
 import LibraryHeader from "./LibraryHeader";
 import BookGrid from "./BookGrid";
 import BookList from "./BookList";
-import KeyboardShortcutsHelp from "@/components/common/KeyboardShortcutsHelp";
 import { BookOpen } from "lucide-react";
 
 /**
@@ -48,12 +43,6 @@ interface LibraryFeatureProps {
  * <LibraryFeature searchParams={{ list: "2", view: "list", search: "fiction" }} />
  * ```
  *
- * Keyboard Shortcuts:
- * - Ctrl/Cmd + K: Focus search
- * - G: Toggle between grid and list view
- * - ?: Show keyboard shortcuts help
- * - Escape: Clear search or close modals
- *
  * @param searchParams - URL search parameters for initializing state
  */
 export function LibraryFeature({ searchParams }: LibraryFeatureProps) {
@@ -72,62 +61,10 @@ export function LibraryFeature({ searchParams }: LibraryFeatureProps) {
 
   const { search: searchQuery, genre: filterGenre, sortBy } = filters;
 
-  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
-
   // Create wrapper functions for filter updates
   const setSearchQuery = (search: string) => actions.updateFilters({ search });
   const setFilterGenre = (genre: string | null) => actions.updateFilters({ genre });
   const setSortBy = (sortBy: string) => actions.updateFilters({ sortBy });
-
-  // Define keyboard shortcuts for library
-  const keyboardShortcuts = useMemo(
-    () => [
-      commonShortcuts.search(() => {
-        const searchInput = document.querySelector(
-          'input[placeholder*="Search"]'
-        ) as HTMLInputElement;
-        searchInput?.focus();
-      }),
-      commonShortcuts.help(() => setShowKeyboardHelp(true)),
-      {
-        key: "g",
-        action: () => actions.setViewMode("grid"),
-        description: "Switch to grid view",
-      },
-      {
-        key: "l",
-        action: () => actions.setViewMode("list"),
-        description: "Switch to list view",
-      },
-      {
-        key: "f",
-        action: () => {
-          const genreFilter = document.getElementById(
-            "genre-filter"
-          ) as HTMLSelectElement;
-          genreFilter?.focus();
-        },
-        description: "Focus genre filter",
-      },
-      {
-        key: "s",
-        action: () => {
-          const sortSelect = document.getElementById(
-            "sort-by"
-          ) as HTMLSelectElement;
-          sortSelect?.focus();
-        },
-        description: "Focus sort options",
-      },
-    ],
-    [actions]
-  );
-
-  // Set up keyboard navigation
-  useKeyboardNavigation({
-    shortcuts: keyboardShortcuts,
-    enableArrowNavigation: true,
-  });
 
   if (error) {
     throw error; // Let ErrorBoundary handle this
@@ -139,14 +76,6 @@ export function LibraryFeature({ searchParams }: LibraryFeatureProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 relative z-10">
-      {/* Decorative book-themed background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 text-6xl opacity-5 dark:opacity-10">📚</div>
-        <div className="absolute top-40 right-20 text-4xl opacity-5 dark:opacity-10">📖</div>
-        <div className="absolute bottom-20 left-1/4 text-5xl opacity-5 dark:opacity-10">📝</div>
-        <div className="absolute bottom-40 right-1/3 text-3xl opacity-5 dark:opacity-10">✍️</div>
-      </div>
-
       <div className="relative flex h-screen">
         <aside role="complementary" aria-label="Library navigation">
           <LibrarySidebar
@@ -211,12 +140,6 @@ export function LibraryFeature({ searchParams }: LibraryFeatureProps) {
           </section>
         </main>
       </div>
-
-      <KeyboardShortcutsHelp
-        shortcuts={keyboardShortcuts}
-        isOpen={showKeyboardHelp}
-        onClose={() => setShowKeyboardHelp(false)}
-      />
     </div>
   );
 }

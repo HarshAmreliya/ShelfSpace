@@ -228,7 +228,7 @@ export function GroupChatFeature({ groupId, groupName = "Group" }: GroupChatFeat
               onKeyDown={handleKeyDown}
               placeholder={
                 isConnected
-                  ? "Type a message... (Press Enter to send, Shift+Enter for new line)"
+                  ? "Type a message..."
                   : "Connecting to chat..."
               }
               disabled={!isConnected}

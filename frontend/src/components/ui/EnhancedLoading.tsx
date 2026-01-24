@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { BookOpen } from "lucide-react";
 
 interface EnhancedLoadingProps {
   size?: "sm" | "md" | "lg" | "xl";
@@ -51,7 +52,7 @@ export function EnhancedLoading({
 
   const renderBook = () => (
     <div className={`${sizeClasses[size]} flex items-center justify-center`}>
-      <div className="text-indigo-dye-600 animate-pulse">📚</div>
+      <div className="text-indigo-dye-600 animate-pulse"><BookOpen className="h-8 w-8" /></div>
     </div>
   );
 

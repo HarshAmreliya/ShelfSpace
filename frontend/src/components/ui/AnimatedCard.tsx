@@ -40,11 +40,7 @@ export function AnimatedCard({
   );
 }
 
-// Simple container components without animations
-export function StaggerContainer({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={className}>{children}</div>;
-}
-
+// Simple container components without animations (non-conflicting names)
 export function StaggerItem({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={className}>{children}</div>;
 }

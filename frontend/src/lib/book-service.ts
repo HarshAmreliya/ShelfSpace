@@ -1,6 +1,5 @@
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 import { getSession } from "next-auth/react";
-import { getErrorMessage } from "./api";
 
 // Book service API client
 const BOOK_SERVICE_BASE_URL = "/api/books";
@@ -83,20 +82,20 @@ function transformBook(backendBook: BackendBook): Book {
     id: backendBook.book_id || backendBook._id,
     title: backendBook.title || "Untitled",
     author: authorName,
-    isbn: backendBook.isbn,
-    publishedYear: backendBook.published_year,
-    publishedDate: backendBook.published_date,
-    publisher: backendBook.publisher,
-    language: backendBook.language,
+    isbn: backendBook.isbn || "",
+    publishedYear: backendBook.published_year || 0,
+    publishedDate: backendBook.published_date || "",
+    publisher: backendBook.publisher || "",
+    language: backendBook.language || "en",
     genres: backendBook.genres || [],
     status: "want-to-read", // Default status, will be set by reading lists
-    rating: backendBook.rating || backendBook.average_rating,
-    pages: backendBook.pages,
-    description: backendBook.description,
-    coverImage: backendBook.image_url,
-    cover: backendBook.image_url,
-    averageRating: backendBook.average_rating,
-    ratingsCount: backendBook.ratings_count,
+    rating: backendBook.rating || backendBook.average_rating || 0,
+    pages: backendBook.pages || 0,
+    description: backendBook.description || "",
+    coverImage: backendBook.image_url || "",
+    cover: backendBook.image_url || "",
+    averageRating: backendBook.average_rating || 0,
+    ratingsCount: backendBook.ratings_count || 0,
     progress: 0,
     createdAt: backendBook.createdAt || new Date().toISOString(),
     updatedAt: backendBook.updatedAt || new Date().toISOString(),

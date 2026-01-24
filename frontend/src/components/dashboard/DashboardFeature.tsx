@@ -1,17 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
+import { useSession } from "next-auth/react";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { DashboardErrorFallback } from "@/components/common/ErrorFallbacks/DashboardErrorFallback";
 import { PreferencesModal } from "@/components/modals/PreferencesModal";
 import { useUserSetup } from "@/hooks/useUserSetup";
+import { getPersonalizedGreeting, getReadingQuote } from "@/utils/greetings";
 import {
   StaggerContainer,
   StaggerItem,
   AnimatedCounter,
   FloatingElement,
   FloatingActionButton,
-  useToastNotifications
+  useToastNotifications,
 } from "@/components/ui";
 import {
   BookOpen, 
@@ -20,7 +22,8 @@ import {
   BarChart3,
   Target,
   Sparkles,
-  Clock
+  Clock,
+  Check
 } from "lucide-react";
 import {
   ReadingAnalytics,
@@ -115,6 +118,12 @@ export function DashboardFeature({ className }: DashboardFeatureProps) {
   const [showPreferences, setShowPreferences] = useState(false);
   const { success, info } = useToastNotifications();
   const { data: readingLists } = useReadingLists({ includeBooks: true });
+  const { data: session } = useSession();
+
+  // Get user name from session
+  const userName = session?.user?.name;
+  const personalizedGreeting = getPersonalizedGreeting(userName);
+  const readingQuote = getReadingQuote();
 
   // Calculate stats from real data
   const readingStats = useMemo(() => {
@@ -131,29 +140,21 @@ export function DashboardFeature({ className }: DashboardFeatureProps) {
   return (
     <ErrorBoundary fallback={DashboardErrorFallback}>
       <div className={`min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 relative z-10 ${className || ""}`}>
-        {/* Decorative book-themed background elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 text-6xl opacity-5 dark:opacity-10">📚</div>
-          <div className="absolute top-40 right-20 text-4xl opacity-5 dark:opacity-10">📖</div>
-          <div className="absolute bottom-20 left-1/4 text-5xl opacity-5 dark:opacity-10">📝</div>
-          <div className="absolute bottom-40 right-1/3 text-3xl opacity-5 dark:opacity-10">✍️</div>
-        </div>
-
         <div className="relative max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Modern Header */}
-          <div className="mb-8 text-center">
-            <div className="inline-flex items-center space-x-3 mb-4">
-              <div className="p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full shadow-lg">
+          <div className="mb-8">
+            <div className="flex items-center space-x-4 mb-4">
+              <div className="p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl shadow-lg">
                 <BookOpen className="h-8 w-8 text-white" />
               </div>
-              <div>
-                <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-slate-100 font-serif">
-                  {isNewUser ? `Welcome to ShelfSpace, Reader!` : 'Your Reading Dashboard'}
+              <div className="flex-1">
+                <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-slate-100 font-serif">
+                  {personalizedGreeting}!
                 </h1>
-                <p className="text-base lg:text-lg text-gray-600 dark:text-slate-300 italic">
+                <p className="text-lg lg:text-xl text-gray-600 dark:text-slate-300 mt-1">
                   {isNewUser 
-                    ? "Let's set up your reading preferences to get personalized recommendations!"
-                    : '"A room without books is like a body without a soul." - Cicero'
+                    ? "Welcome to ShelfSpace! Let's start your reading journey."
+                    : readingQuote
                   }
                 </p>
               </div>
@@ -166,7 +167,7 @@ export function DashboardFeature({ className }: DashboardFeatureProps) {
               <div className="p-6 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg text-white">
                 <div className="flex items-center justify-between mb-4">
                   <Library className="h-8 w-8" />
-                  <FloatingElement className="text-2xl opacity-60">📚</FloatingElement>
+                  <FloatingElement className="text-2xl opacity-60"><Library className="h-6 w-6" /></FloatingElement>
                 </div>
                 <div className="text-3xl font-bold mb-1">
                   <AnimatedCounter value={readingStats.totalBooks} />
@@ -179,7 +180,7 @@ export function DashboardFeature({ className }: DashboardFeatureProps) {
               <div className="p-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl shadow-lg text-white">
                 <div className="flex items-center justify-between mb-4">
                   <BookOpen className="h-8 w-8" />
-                  <FloatingElement className="text-2xl opacity-60">✅</FloatingElement>
+                  <FloatingElement className="text-2xl opacity-60"><Check className="h-6 w-6" /></FloatingElement>
                 </div>
                 <div className="text-3xl font-bold mb-1">
                   <AnimatedCounter value={readingStats.booksRead} />
@@ -192,7 +193,7 @@ export function DashboardFeature({ className }: DashboardFeatureProps) {
               <div className="p-6 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg text-white">
                 <div className="flex items-center justify-between mb-4">
                   <Clock className="h-8 w-8" />
-                  <FloatingElement className="text-2xl opacity-60">📖</FloatingElement>
+                  <FloatingElement className="text-2xl opacity-60"><BookOpen className="h-6 w-6" /></FloatingElement>
                 </div>
                 <div className="text-3xl font-bold mb-1">
                   <AnimatedCounter value={readingStats.currentlyReading} />
@@ -287,11 +288,10 @@ export function DashboardFeature({ className }: DashboardFeatureProps) {
 
         {/* Floating Action Button */}
         <FloatingActionButton
-          icon={Plus}
+          icon={<Plus className="h-6 w-6" />}
           onClick={() => {
             info("Add New Book", "Feature coming soon! You'll be able to add books to your library.");
           }}
-          position="bottom-right"
         />
 
         {/* Preferences Modal */}

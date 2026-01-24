@@ -1,7 +1,7 @@
 // Service layer types and interfaces
 
-import { Book, BookFilter, BookInput } from "@/types/book";
-import { ReadingList, ReadingListInput, LibraryFilter } from "@/types/library";
+import { BookInput } from "@/types/book";
+import { ReadingListInput, LibraryFilter } from "../../types/library";
 import { ID } from "@/types/common";
 
 // Base service response interface

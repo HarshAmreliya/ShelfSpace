@@ -29,7 +29,7 @@ export const ScrollAnimation: React.FC<ScrollAnimationProps> = ({
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry?.isIntersecting) {
           setTimeout(() => setIsVisible(true), delay);
           observer.disconnect();
         }
@@ -87,7 +87,7 @@ export const StaggerContainer: React.FC<StaggerContainerProps> = ({
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry?.isIntersecting) {
           setIsVisible(true);
           observer.disconnect();
         }
@@ -138,7 +138,6 @@ export const Parallax: React.FC<ParallaxProps> = ({
   useEffect(() => {
     const handleScroll = () => {
       if (ref.current) {
-        const rect = ref.current.getBoundingClientRect();
         const scrolled = window.pageYOffset;
         const rate = scrolled * speed;
         setOffset(rate);

@@ -34,7 +34,7 @@ function transformBookToRecommendation(book: Book, index: number): Recommendatio
     id: book.id,
     title: book.title,
     author: book.author,
-    cover: book.coverImage || book.cover || '📚',
+    cover: book.coverImage || book.cover || '',
     rating: book.averageRating || book.rating || 0,
     genre: book.genres?.[0] || 'General',
     pages: book.pages || 0,
@@ -107,7 +107,7 @@ export function RecommendationsGrid() {
           <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
             <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </div>
-          <FloatingElement className="text-2xl opacity-60">✨</FloatingElement>
+          <FloatingElement className="text-2xl opacity-60"><Sparkles className="h-6 w-6" /></FloatingElement>
         </div>
       </div>
 

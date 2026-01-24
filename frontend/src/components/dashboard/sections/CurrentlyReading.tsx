@@ -31,7 +31,7 @@ function transformBook(book: Book): CurrentlyReadingBook {
     id: book.id,
     title: book.title,
     author: book.author,
-    cover: book.coverImage || book.cover || '📖',
+    cover: book.coverImage || book.cover || '',
     progress,
     currentPage,
     totalPages: pages,
@@ -82,7 +82,7 @@ export function CurrentlyReading() {
           <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
             <BookOpen className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </div>
-          <FloatingElement className="text-2xl opacity-60">📚</FloatingElement>
+          <FloatingElement className="text-2xl opacity-60"><BookOpen className="h-6 w-6" /></FloatingElement>
         </div>
       </div>
 

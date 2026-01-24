@@ -1,4 +1,4 @@
-import { ID, ApiResponse, PaginatedResponse, PaginationParams } from "./common";
+import { ID, ApiResponse, PaginationParams } from "./common";
 
 // HTTP methods
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";

@@ -1,9 +1,13 @@
 import axios from "axios";
 
-// Use Docker service name for microservice communication
-const USER_SERVICE_URL = process.env.NODE_ENV === 'production' 
-  ? "http://user-service:3001/api"
-  : "http://localhost:3001/api";
+// Use environment variable or fallback to localhost
+// In server-side contexts (like NextAuth callbacks), this will use localhost
+// In production, use the Docker service name
+const USER_SERVICE_URL = typeof window === 'undefined' 
+  ? (process.env['USER_SERVICE_URL'] || process.env['NEXT_PUBLIC_USER_SERVICE_URL'] || "http://localhost:3001/api")
+  : (process.env['NEXT_PUBLIC_USER_SERVICE_URL'] || "http://localhost:3001/api");
+
+console.log("User Service URL:", USER_SERVICE_URL);
 
 // Types for user service responses
 export interface User {
@@ -124,14 +128,32 @@ class UserServiceClient {
   // Create or find user (handles both new and existing users)
   async createUser(userData: CreateUserRequest): Promise<CreateUserResponse> {
     try {
+      console.log("UserService: Creating/finding user...");
+      console.log("UserService: URL:", `${this.baseURL}/me`);
+      console.log("UserService: Data:", userData);
+      
       const response = await axios.post(
         `${this.baseURL}/me`,
         userData,
-        { headers: this.getHeaders() }
+        { 
+          headers: this.getHeaders(),
+          timeout: 10000 // 10 second timeout
+        }
       );
+      
+      console.log("UserService: Success! Response:", {
+        userId: response.data.user?.id,
+        isNewUser: response.data.isNewUser,
+        hasToken: !!response.data.token
+      });
+      
       return response.data;
-    } catch (error) {
-      console.error('Error creating/finding user:', error);
+    } catch (error: any) {
+      console.error('UserService: Error creating/finding user');
+      console.error('UserService: Error message:', error.message);
+      console.error('UserService: Error code:', error.code);
+      console.error('UserService: Response status:', error.response?.status);
+      console.error('UserService: Response data:', error.response?.data);
       throw error;
     }
   }

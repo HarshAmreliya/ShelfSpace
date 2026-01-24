@@ -1,4 +1,4 @@
-import { Group, GroupActivity, GroupDiscussion } from "@/types/groups";
+import { Group, GroupDiscussion } from "@/types/groups";
 
 export const mockGroups: Group[] = [
   {
@@ -13,25 +13,6 @@ export const mockGroups: Group[] = [
     updatedAt: "2024-01-20T00:00:00Z",
     createdBy: "literature_lover_42",
     tags: ["classic-literature", "shakespeare", "dickens", "discussion"],
-    recentActivity: [
-      {
-        id: "1",
-        type: "book_discussion",
-        userId: "bookworm_99",
-        userName: "Sarah Johnson",
-        bookId: "1",
-        bookTitle: "The Great Gatsby",
-        content: "Just finished reading The Great Gatsby for the third time. The symbolism of the green light never gets old!",
-        createdAt: "2024-01-20T10:30:00Z"
-      },
-      {
-        id: "2",
-        type: "member_joined",
-        userId: "new_reader_23",
-        userName: "Mike Chen",
-        createdAt: "2024-01-20T09:15:00Z"
-      }
-    ],
     featuredBooks: ["1", "2", "3"]
   },
   {
@@ -46,18 +27,6 @@ export const mockGroups: Group[] = [
     updatedAt: "2024-01-19T00:00:00Z",
     createdBy: "space_explorer_7",
     tags: ["science-fiction", "fantasy", "space-opera", "magic"],
-    recentActivity: [
-      {
-        id: "3",
-        type: "book_review",
-        userId: "sci_fi_fan_88",
-        userName: "Alex Rivera",
-        bookId: "4",
-        bookTitle: "Dune",
-        content: "Dune is a masterpiece of world-building. Herbert's vision of Arrakis is incredible!",
-        createdAt: "2024-01-19T14:20:00Z"
-      }
-    ],
     featuredBooks: ["4", "5", "6"]
   },
   {
@@ -72,17 +41,6 @@ export const mockGroups: Group[] = [
     updatedAt: "2024-01-18T00:00:00Z",
     createdBy: "detective_reader",
     tags: ["mystery", "thriller", "suspense", "crime"],
-    recentActivity: [
-      {
-        id: "4",
-        type: "book_added",
-        userId: "mystery_lover_55",
-        userName: "Emma Wilson",
-        bookId: "7",
-        bookTitle: "Gone Girl",
-        createdAt: "2024-01-18T16:45:00Z"
-      }
-    ],
     featuredBooks: ["7", "8", "9"]
   },
   {
@@ -97,18 +55,6 @@ export const mockGroups: Group[] = [
     updatedAt: "2024-01-17T00:00:00Z",
     createdBy: "knowledge_seeker",
     tags: ["non-fiction", "biography", "history", "self-improvement"],
-    recentActivity: [
-      {
-        id: "5",
-        type: "book_discussion",
-        userId: "history_buff_33",
-        userName: "David Kim",
-        bookId: "10",
-        bookTitle: "Sapiens",
-        content: "Yuval Noah Harari's perspective on human history is mind-blowing. Highly recommend!",
-        createdAt: "2024-01-17T11:30:00Z"
-      }
-    ],
     featuredBooks: ["10", "11", "12"]
   },
   {
@@ -123,18 +69,6 @@ export const mockGroups: Group[] = [
     updatedAt: "2024-01-16T00:00:00Z",
     createdBy: "poetry_lover_19",
     tags: ["poetry", "short-stories", "literature", "creative-writing"],
-    recentActivity: [
-      {
-        id: "6",
-        type: "book_discussion",
-        userId: "verse_master_77",
-        userName: "Lisa Anderson",
-        bookId: "13",
-        bookTitle: "The Collected Poems of Emily Dickinson",
-        content: "Dickinson's use of dashes and unconventional punctuation creates such unique rhythm.",
-        createdAt: "2024-01-16T13:15:00Z"
-      }
-    ],
     featuredBooks: ["13", "14", "15"]
   }
 ];

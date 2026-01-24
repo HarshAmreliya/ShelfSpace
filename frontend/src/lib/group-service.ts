@@ -40,8 +40,8 @@ export const GroupService = {
   async list(opts?: { limit?: number; offset?: number }): Promise<GroupDTO[]> {
     try {
       const params: Record<string, any> = {};
-      if (opts?.limit) params.limit = opts.limit;
-      if (opts?.offset) params.offset = opts.offset;
+      if (opts?.limit) params['limit'] = opts.limit;
+      if (opts?.offset) params['offset'] = opts.offset;
       const { data } = await api.get(`/groups`, { params });
       return data;
     } catch (error) {

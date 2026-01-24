@@ -7,20 +7,24 @@ export const isAdmin = async (req, res, next) => {
         const user = await prisma.user.findUnique({
             where: { id: req.userId },
         });
-        // Check if user exists and has email matching admin pattern or status is ACTIVE
-        // For now, we'll use a simple check - you may want to add a role field to the User model
-        // or use environment variable for admin emails
-        const adminEmails = process.env.ADMIN_EMAILS?.split(",") || [];
-        if (user && (adminEmails.includes(user.email) || user.status === "ACTIVE")) {
-            // Note: This is a simplified admin check. Consider adding a role field to the User model
-            // For now, allow ACTIVE users or those in ADMIN_EMAILS env var
+        if (!user) {
+            return res.status(403).json({ message: "Forbidden" });
+        }
+        // Only allow users whose email is in the ADMIN_EMAILS environment variable
+        const adminEmails = process.env.ADMIN_EMAILS?.split(",").map(email => email.trim()) || [];
+        if (adminEmails.length === 0) {
+            console.error("SECURITY WARNING: ADMIN_EMAILS environment variable is not set!");
+            return res.status(500).json({ message: "Server configuration error" });
+        }
+        if (adminEmails.includes(user.email)) {
             next();
         }
         else {
-            res.status(403).json({ message: "Forbidden" });
+            res.status(403).json({ message: "Forbidden - Admin access required" });
         }
     }
     catch (error) {
+        console.error("Error in isAdmin middleware:", error);
         res.status(500).json({ message: "Internal Server Error" });
     }
 };

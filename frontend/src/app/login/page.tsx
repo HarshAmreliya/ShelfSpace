@@ -10,19 +10,36 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard";
+  const error = searchParams?.get("error");
+
+  const { data: session } = useSession();
 
   useEffect(() => {
-    if (status === "authenticated") {
-      router.push(callbackUrl);
+    if (status === "authenticated" && session) {
+      console.log("Login page - Session authenticated");
+      console.log("Session data:", {
+        isNewUser: session.isNewUser,
+        needsPreferences: session.needsPreferences,
+        userId: session.user?.id
+      });
+      
+      // Redirect based on user status
+      if (session.isNewUser === true || session.needsPreferences === true) {
+        console.log("Redirecting to onboarding - user needs setup");
+        router.push("/onboarding");
+      } else {
+        console.log("Redirecting to dashboard - user setup complete");
+        router.push(callbackUrl);
+      }
     }
-  }, [status, router, callbackUrl]);
+  }, [status, session, router, callbackUrl]);
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-dye-50 via-peach-yellow-50 to-verdigris-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-dye-200 border-t-indigo-dye-600 mb-4"></div>
-          <p className="text-gray-700 dark:text-gray-300 font-medium">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-amber-200 border-t-amber-600 mb-4"></div>
+          <p className="text-gray-700 dark:text-slate-300 font-medium">
             Loading...
           </p>
         </div>
@@ -33,10 +50,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Branding & Features */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-dye-600 via-indigo-dye-700 to-indigo-dye-800 p-12 flex-col justify-between relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 p-12 flex-col justify-between relative overflow-hidden">
         {/* Decorative Elements */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-safety-orange-500 rounded-full opacity-10 blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-verdigris-500 rounded-full opacity-10 blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-300 rounded-full opacity-20 blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-300 rounded-full opacity-20 blur-3xl translate-y-1/2 -translate-x-1/2"></div>
 
         {/* Logo & Brand */}
         <div className="relative z-10">
@@ -44,9 +61,9 @@ export default function LoginPage() {
             <div className="bg-white/10 backdrop-blur-sm p-3 rounded-xl">
               <BookOpen className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-white">ShelfSpace</h1>
+            <h1 className="text-3xl font-bold text-white font-serif">ShelfSpace</h1>
           </div>
-          <p className="text-indigo-dye-100 text-lg leading-relaxed max-w-md">
+          <p className="text-white/90 text-lg leading-relaxed max-w-md">
             Your AI-powered book management platform. Organize, track, and
             discover your next great read.
           </p>
@@ -56,39 +73,39 @@ export default function LoginPage() {
         <div className="relative z-10 space-y-6">
           <div className="flex items-start gap-4">
             <div className="bg-white/10 backdrop-blur-sm p-2 rounded-lg">
-              <Sparkles className="w-5 h-5 text-safety-orange-300" />
+              <Sparkles className="w-5 h-5 text-amber-200" />
             </div>
             <div>
               <h3 className="text-white font-semibold mb-1">
                 AI-Powered Insights
               </h3>
-              <p className="text-indigo-dye-200 text-sm">
+              <p className="text-white/80 text-sm">
                 Get personalized book recommendations and reading analytics
               </p>
             </div>
           </div>
           <div className="flex items-start gap-4">
             <div className="bg-white/10 backdrop-blur-sm p-2 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-verdigris-300" />
+              <TrendingUp className="w-5 h-5 text-orange-200" />
             </div>
             <div>
               <h3 className="text-white font-semibold mb-1">
                 Track Your Progress
               </h3>
-              <p className="text-indigo-dye-200 text-sm">
+              <p className="text-white/80 text-sm">
                 Monitor reading habits and achieve your goals
               </p>
             </div>
           </div>
           <div className="flex items-start gap-4">
             <div className="bg-white/10 backdrop-blur-sm p-2 rounded-lg">
-              <Users className="w-5 h-5 text-peach-yellow-300" />
+              <Users className="w-5 h-5 text-red-200" />
             </div>
             <div>
               <h3 className="text-white font-semibold mb-1">
                 Join Reading Groups
               </h3>
-              <p className="text-indigo-dye-200 text-sm">
+              <p className="text-white/80 text-sm">
                 Connect with fellow readers and share insights
               </p>
             </div>
@@ -97,40 +114,51 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="relative z-10">
-          <p className="text-indigo-dye-300 text-sm">
+          <p className="text-white/70 text-sm">
             © 2024 ShelfSpace. All rights reserved.
           </p>
         </div>
       </div>
 
       {/* Right Side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-gradient-to-br from-gray-50 via-white to-indigo-dye-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="flex-1 flex items-center justify-center p-8 bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-            <div className="bg-indigo-dye-600 p-3 rounded-xl">
+            <div className="bg-gradient-to-br from-amber-400 to-orange-500 p-3 rounded-xl">
               <BookOpen className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-serif">
               ShelfSpace
             </h1>
           </div>
 
           {/* Login Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-8 md:p-10">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-amber-200 dark:border-slate-700 p-8 md:p-10">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3 font-serif">
                 Welcome Back
               </h2>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-gray-600 dark:text-slate-400">
                 Sign in to continue your reading journey
               </p>
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm text-red-800 dark:text-red-200">
+                  {error === "backend_verification_failed" 
+                    ? "Unable to connect to the server. Please make sure the backend services are running and try again."
+                    : "An error occurred during sign in. Please try again."}
+                </p>
+              </div>
+            )}
+
             {/* Google Sign In Button */}
             <button
-              onClick={() => signIn("google", { callbackUrl })}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-xl border-2 border-gray-300 dark:border-gray-600 shadow-sm transition-all duration-200 ease-in-out hover:shadow-md hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-indigo-dye-500/20 group"
+              onClick={() => signIn("google", { redirect: false })}
+              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200 font-semibold rounded-xl border-2 border-gray-300 dark:border-slate-600 shadow-sm transition-all duration-200 ease-in-out hover:shadow-md hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-amber-500/20 group"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -156,45 +184,45 @@ export default function LoginPage() {
             {/* Divider */}
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                <div className="w-full border-t border-gray-300 dark:border-slate-600"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                <span className="px-4 bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400">
                   Secure authentication
                 </span>
               </div>
             </div>
 
             {/* Features List */}
-            <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
+            <div className="space-y-3 text-sm text-gray-600 dark:text-slate-400">
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-verdigris-500"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
                 <span>Access your personal library</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-safety-orange-500"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-500"></div>
                 <span>Track reading progress</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-dye-500"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
                 <span>Get AI-powered recommendations</span>
               </div>
             </div>
           </div>
 
           {/* Privacy Notice */}
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
+          <p className="text-center text-sm text-gray-500 dark:text-slate-400 mt-6">
             By signing in, you agree to our{" "}
             <a
               href="#"
-              className="text-indigo-dye-600 dark:text-indigo-dye-400 hover:underline"
+              className="text-amber-600 dark:text-amber-400 hover:underline"
             >
               Terms of Service
             </a>{" "}
             and{" "}
             <a
               href="#"
-              className="text-indigo-dye-600 dark:text-indigo-dye-400 hover:underline"
+              className="text-amber-600 dark:text-amber-400 hover:underline"
             >
               Privacy Policy
             </a>

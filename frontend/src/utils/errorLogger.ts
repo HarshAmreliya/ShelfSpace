@@ -2,11 +2,11 @@
  * Error logging and debugging utilities for development and production
  */
 
-import { BaseError, ErrorBreadcrumb, ErrorReport } from "@/types/error";
+import { BaseError, ErrorBreadcrumb, ErrorReport } from "../../types/error";
 
 // Environment detection
-const isDevelopment = process.env.NODE_ENV === "development";
-const isProduction = process.env.NODE_ENV === "production";
+const isDevelopment = process.env['NODE_ENV'] === "development";
+const isProduction = process.env['NODE_ENV'] === "production";
 
 // Error logger configuration
 interface ErrorLoggerConfig {
@@ -14,8 +14,8 @@ interface ErrorLoggerConfig {
   enableRemoteLogging: boolean;
   enableBreadcrumbs: boolean;
   maxBreadcrumbs: number;
-  apiEndpoint?: string;
-  apiKey?: string;
+  apiEndpoint?: string | undefined;
+  apiKey?: string | undefined;
 }
 
 const defaultConfig: ErrorLoggerConfig = {
@@ -23,8 +23,12 @@ const defaultConfig: ErrorLoggerConfig = {
   enableRemoteLogging: isProduction,
   enableBreadcrumbs: true,
   maxBreadcrumbs: 50,
-  apiEndpoint: process.env.NEXT_PUBLIC_ERROR_LOGGING_ENDPOINT,
-  apiKey: process.env.NEXT_PUBLIC_ERROR_LOGGING_API_KEY,
+  ...(process.env['NEXT_PUBLIC_ERROR_LOGGING_ENDPOINT'] && {
+    apiEndpoint: process.env['NEXT_PUBLIC_ERROR_LOGGING_ENDPOINT'],
+  }),
+  ...(process.env['NEXT_PUBLIC_ERROR_LOGGING_API_KEY'] && {
+    apiKey: process.env['NEXT_PUBLIC_ERROR_LOGGING_API_KEY'],
+  }),
 };
 
 class ErrorLogger {
@@ -60,7 +64,7 @@ class ErrorLogger {
     // Add to breadcrumbs for future errors
     this.addBreadcrumb({
       timestamp: new Date().toISOString(),
-      category: "error",
+      category: "state-change",
       message: error.message,
       data: { ...context, stack: error.stack },
       level: "error",
@@ -79,7 +83,7 @@ class ErrorLogger {
     };
 
     if (this.config.enableConsoleLogging) {
-      console.warn("⚠️ Warning:", message, context);
+      console.warn("[WARNING]", message, context);
     }
 
     this.addBreadcrumb({
@@ -103,7 +107,7 @@ class ErrorLogger {
     };
 
     if (this.config.enableConsoleLogging) {
-      console.info("ℹ️ Info:", message, context);
+      console.info("[INFO]", message, context);
     }
 
     this.addBreadcrumb({
@@ -160,8 +164,8 @@ class ErrorLogger {
           typeof window !== "undefined" ? window.navigator.userAgent : "server",
         url: typeof window !== "undefined" ? window.location.href : "server",
         timestamp: new Date().toISOString(),
-        buildVersion: process.env.NEXT_PUBLIC_BUILD_VERSION || "unknown",
-        environment: process.env.NODE_ENV || "unknown",
+        buildVersion: process.env['NEXT_PUBLIC_BUILD_VERSION'] || "unknown",
+        environment: process.env['NODE_ENV'] || "unknown",
         ...context,
       },
       breadcrumbs: this.getBreadcrumbs(),
@@ -176,7 +180,7 @@ class ErrorLogger {
       return error;
     }
 
-    return {
+    const baseError: BaseError = {
       code: "UNKNOWN_ERROR",
       message: error.message,
       category: "unknown",
@@ -184,10 +188,15 @@ class ErrorLogger {
       timestamp: new Date().toISOString(),
       details: {
         name: error.name,
-        stack: error.stack,
+        ...(error.stack && { stack: error.stack }),
       },
-      stack: error.stack,
     };
+
+    if (error.stack) {
+      baseError.stack = error.stack;
+    }
+
+    return baseError;
   }
 
   /**
@@ -210,10 +219,10 @@ class ErrorLogger {
       errorReport.breadcrumbs.forEach((breadcrumb, index) => {
         const icon =
           breadcrumb.level === "error"
-            ? "❌"
+            ? "[ERROR]"
             : breadcrumb.level === "warning"
-            ? "⚠️"
-            : "ℹ️";
+            ? "[WARNING]"
+            : "[INFO]";
         console.log(
           `${icon} ${index + 1}. [${breadcrumb.category}] ${
             breadcrumb.message
@@ -311,7 +320,7 @@ export const debugHelpers = {
    */
   logRender: (componentName: string, props: Record<string, unknown> = {}) => {
     if (isDevelopment) {
-      console.log(`🔄 Render: ${componentName}`, props);
+      console.log(`[RENDER] ${componentName}`, props);
       addBreadcrumb({
         timestamp: new Date().toISOString(),
         category: "state-change",
@@ -371,13 +380,16 @@ export const debugHelpers = {
         data
       );
     }
-    addBreadcrumb({
+    const breadcrumb: ErrorBreadcrumb = {
       timestamp: new Date().toISOString(),
       category: "user-action",
       message: `User ${action}${target ? ` on ${target}` : ""}`,
-      data,
       level: "info",
-    });
+    };
+    if (data) {
+      breadcrumb.data = data;
+    }
+    addBreadcrumb(breadcrumb);
   },
 
   /**

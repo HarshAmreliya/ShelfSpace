@@ -63,11 +63,9 @@ export function useCache<T>(
   return { data, loading, error, refresh, invalidate };
 }
 
-// Advanced cache (persistence disabled)
+// Advanced cache (simplified - no persistence)
 interface CacheOptions {
   ttl?: number;
-  serialize?: (data: any) => string;
-  deserialize?: (data: string) => any;
 }
 
 export function useAdvancedCache<T>(
@@ -75,11 +73,7 @@ export function useAdvancedCache<T>(
   fetcher: () => Promise<T>,
   options: CacheOptions = {}
 ) {
-  const {
-    ttl = 5 * 60 * 1000,
-    serialize = JSON.stringify,
-    deserialize = JSON.parse,
-  } = options;
+  const { ttl = 5 * 60 * 1000 } = options;
 
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
@@ -87,42 +81,6 @@ export function useAdvancedCache<T>(
   const cacheRef = useRef<
     Map<string, { data: T; timestamp: number; ttl: number }>
   >(new Map());
-
-  // Load from persistent storage
-  useEffect(() => {
-    if (persist) {
-      try {
-        const stored = window[storage].getItem(`cache_${key}`);
-        if (stored) {
-          const parsed = deserialize(stored);
-          const now = Date.now();
-
-          if (now - parsed.timestamp < parsed.ttl) {
-            cacheRef.current.set(key, parsed);
-            setData(parsed.data);
-          } else {
-            window[storage].removeItem(`cache_${key}`);
-          }
-        }
-      } catch (err) {
-        console.warn("Failed to load from cache:", err);
-      }
-    }
-  }, [key, persist, storage, deserialize]);
-
-  // Save to persistent storage
-  const saveToStorage = useCallback(
-    (cacheData: { data: T; timestamp: number; ttl: number }) => {
-      if (persist) {
-        try {
-          window[storage].setItem(`cache_${key}`, serialize(cacheData));
-        } catch (err) {
-          console.warn("Failed to save to cache:", err);
-        }
-      }
-    },
-    [key, persist, storage, serialize]
-  );
 
   const fetchData = useCallback(async () => {
     const cached = cacheRef.current.get(key);
@@ -146,7 +104,6 @@ export function useAdvancedCache<T>(
       };
 
       cacheRef.current.set(key, cacheData);
-      saveToStorage(cacheData);
       setData(result);
       return result;
     } catch (err) {
@@ -156,20 +113,12 @@ export function useAdvancedCache<T>(
     } finally {
       setLoading(false);
     }
-  }, [key, fetcher, ttl, saveToStorage]);
+  }, [key, fetcher, ttl]);
 
   const invalidate = useCallback(() => {
     cacheRef.current.delete(key);
     setData(null);
-
-    if (persist) {
-      try {
-        window[storage].removeItem(`cache_${key}`);
-      } catch (err) {
-        console.warn("Failed to remove from cache:", err);
-      }
-    }
-  }, [key, persist, storage]);
+  }, [key]);
 
   const refresh = useCallback(() => {
     invalidate();
@@ -179,18 +128,7 @@ export function useAdvancedCache<T>(
   const clearAll = useCallback(() => {
     cacheRef.current.clear();
     setData(null);
-
-    if (persist) {
-      try {
-        const keys = Object.keys(window[storage]).filter((k) =>
-          k.startsWith("cache_")
-        );
-        keys.forEach((k) => window[storage].removeItem(k));
-      } catch (err) {
-        console.warn("Failed to clear cache:", err);
-      }
-    }
-  }, [persist, storage]);
+  }, []);
 
   useEffect(() => {
     fetchData();

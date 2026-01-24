@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Toast, ToastProps } from "@/components/ui/MicroInteractions";
+import { useCallback } from "react";
+import { Toast } from "@/components/ui/MicroInteractions";
 import { createRoot } from "react-dom/client";
 
 interface ToastOptions {
@@ -23,8 +23,6 @@ const getToastContainer = () => {
 };
 
 export const useToast = () => {
-  const [toasts, setToasts] = useState<Array<ToastProps & { id: string }>>([]);
-
   const showToast = useCallback((options: ToastOptions) => {
     const container = getToastContainer();
     const toastId = `toast-${Date.now()}`;
@@ -42,8 +40,8 @@ export const useToast = () => {
     root.render(
       <Toast
         message={options.message}
-        type={options.type}
-        duration={options.duration}
+        type={options.type || "info"}
+        duration={options.duration || 3000}
         onClose={handleClose}
       />
     );
@@ -51,28 +49,28 @@ export const useToast = () => {
 
   const success = useCallback(
     (message: string, duration?: number) => {
-      showToast({ message, type: "success", duration });
+      showToast({ message, type: "success", duration: duration || 3000 });
     },
     [showToast]
   );
 
   const error = useCallback(
     (message: string, duration?: number) => {
-      showToast({ message, type: "error", duration });
+      showToast({ message, type: "error", duration: duration || 3000 });
     },
     [showToast]
   );
 
   const warning = useCallback(
     (message: string, duration?: number) => {
-      showToast({ message, type: "warning", duration });
+      showToast({ message, type: "warning", duration: duration || 3000 });
     },
     [showToast]
   );
 
   const info = useCallback(
     (message: string, duration?: number) => {
-      showToast({ message, type: "info", duration });
+      showToast({ message, type: "info", duration: duration || 3000 });
     },
     [showToast]
   );

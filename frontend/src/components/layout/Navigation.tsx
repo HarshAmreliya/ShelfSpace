@@ -6,9 +6,10 @@ import React, {
   useMemo,
   useCallback,
   Suspense,
-  useState,
 } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { getUserDisplayName, getUserInitials } from "@/utils/greetings";
 // NavigationProps interface defined inline
 interface NavigationProps {
   className?: string;
@@ -17,12 +18,7 @@ interface NavigationProps {
   onToggleCollapse?: () => void;
 }
 import { useNavigation } from "@/hooks/navigation/useNavigation";
-import {
-  useKeyboardNavigation,
-  commonShortcuts,
-} from "@/hooks/useKeyboardNavigation";
 import { preloadNavigationIcons } from "@/utils/lazyIcons";
-import KeyboardShortcutsHelp from "@/components/common/KeyboardShortcutsHelp";
 import { 
   BookOpen, 
   Library, 
@@ -30,8 +26,6 @@ import {
   Users, 
   MessageCircle, 
   Settings,
-  ChevronLeft,
-  ChevronRight,
   LogOut,
   Moon,
   Sun,
@@ -42,8 +36,17 @@ const Navigation: React.FC<NavigationProps> = memo(
   ({ className = "", onSignOut, isCollapsed = false, onToggleCollapse }) => {
     const { actions, isActive, getNavigationItems } =
       useNavigation();
-    const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
     const { actualTheme, toggleTheme } = useTheme();
+    const { data: session } = useSession();
+
+    // Get user display info
+    const userName = useMemo(() => {
+      return getUserDisplayName(session?.user?.name, session?.user?.email);
+    }, [session]);
+
+    const userInitials = useMemo(() => {
+      return getUserInitials(session?.user?.name, session?.user?.email);
+    }, [session]);
 
     // Preload icons on mount
     useEffect(() => {
@@ -58,62 +61,6 @@ const Navigation: React.FC<NavigationProps> = memo(
     const handleToggleCollapse = useCallback(() => {
       onToggleCollapse?.();
     }, [onToggleCollapse]);
-
-    // Define keyboard shortcuts for navigation
-    const keyboardShortcuts = useMemo(
-      () => [
-        commonShortcuts.help(() => setShowKeyboardHelp(true)),
-        {
-          key: "b",
-          altKey: true,
-          action: handleToggleCollapse,
-          description: "Toggle sidebar",
-        },
-        {
-          key: "t",
-          altKey: true,
-          action: toggleTheme,
-          description: "Toggle theme",
-        },
-        {
-          key: "1",
-          altKey: true,
-          action: () => navigationItems[0] && actions.navigateToItem(navigationItems[0]),
-          description: "Go to Dashboard",
-        },
-        {
-          key: "2",
-          altKey: true,
-          action: () => navigationItems[1] && actions.navigateToItem(navigationItems[1]),
-          description: "Go to Library",
-        },
-        {
-          key: "3",
-          altKey: true,
-          action: () => navigationItems[2] && actions.navigateToItem(navigationItems[2]),
-          description: "Go to Discover",
-        },
-        {
-          key: "4",
-          altKey: true,
-          action: () => navigationItems[3] && actions.navigateToItem(navigationItems[3]),
-          description: "Go to Groups",
-        },
-        {
-          key: "5",
-          altKey: true,
-          action: () => navigationItems[4] && actions.navigateToItem(navigationItems[4]),
-          description: "Go to Chat",
-        },
-      ],
-      [handleToggleCollapse, toggleTheme, actions, navigationItems]
-    );
-
-    // Set up keyboard navigation
-    useKeyboardNavigation({
-      shortcuts: keyboardShortcuts,
-      enableArrowNavigation: true,
-    });
 
     const handleItemClick = useCallback(
       (item: any) => {
@@ -181,23 +128,6 @@ const Navigation: React.FC<NavigationProps> = memo(
                 </div>
               )}
             </div>
-            <div className="flex items-center space-x-1 sm:space-x-2">
-              {!isCollapsed && (
-                <div className="text-xs text-amber-300 opacity-70 hidden md:block">
-                  Click to collapse
-                </div>
-              )}
-              <div className="relative">
-                {isCollapsed ? (
-                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 text-amber-200 transition-all duration-200" />
-                ) : (
-                  <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4 text-amber-200 transition-all duration-200" />
-                )}
-                <div className="absolute -top-1 -right-1 text-xs">
-                  {isCollapsed ? "📖" : "📚"}
-                </div>
-              </div>
-            </div>
           </header>
 
           {/* Navigation Items */}
@@ -216,14 +146,13 @@ const Navigation: React.FC<NavigationProps> = memo(
                   <div className="animate-pulse h-8 bg-amber-800/30 rounded mx-2 mb-2" />
                 }
               >
-                {navigationItems.map((item, index) => (
+                {navigationItems.map((item) => (
                   <div key={item.name} onClick={(e) => e.stopPropagation()}>
                     <BookNavigationItem
                     item={item}
                     isActive={isActive(item.href)}
                       isCollapsed={isCollapsed}
                     onItemClick={handleItemClick}
-                    shortcutKey={index < 5 ? `Alt+${index + 1}` : undefined}
                       theme={actualTheme}
                   />
                   </div>
@@ -236,13 +165,52 @@ const Navigation: React.FC<NavigationProps> = memo(
           <footer 
             className={`border-t ${
               actualTheme === "dark" ? "border-slate-700/50" : "border-amber-800/50"
-            } p-3 sm:p-4 flex-shrink-0 cursor-pointer ${
-              actualTheme === "dark" ? "hover:bg-slate-800/20" : "hover:bg-amber-800/20"
-            } transition-colors duration-200`}
-            onClick={handleToggleCollapse}
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            } p-3 sm:p-4 flex-shrink-0`}
           >
             <div className="space-y-2">
+              {/* User Profile Section */}
+              {!isCollapsed && (
+                <Link
+                  href="/settings"
+                  className={`flex items-center space-x-3 p-3 rounded-lg ${
+                    actualTheme === "dark" 
+                      ? "bg-slate-800/50 hover:bg-slate-700/50" 
+                      : "bg-amber-800/30 hover:bg-amber-800/50"
+                  } transition-colors mb-3`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">
+                    {userInitials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-white truncate">
+                      {userName}
+                    </div>
+                    <div className="text-xs text-amber-200">
+                      View Profile
+                    </div>
+                  </div>
+                  <Settings className="h-4 w-4 text-amber-200" />
+                </Link>
+              )}
+              
+              {isCollapsed && (
+                <Link
+                  href="/settings"
+                  className={`flex items-center justify-center p-2 rounded-lg ${
+                    actualTheme === "dark" 
+                      ? "bg-slate-800/50 hover:bg-slate-700/50" 
+                      : "bg-amber-800/30 hover:bg-amber-800/50"
+                  } transition-colors mb-3`}
+                  onClick={(e) => e.stopPropagation()}
+                  title={`${userName} - View Profile`}
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-lg">
+                    {userInitials}
+                  </div>
+                </Link>
+              )}
+
               {!isCollapsed && (
                 <div className="text-center mb-2 sm:mb-3">
                   <div className="text-xs text-amber-200 italic hidden sm:block">
@@ -261,7 +229,7 @@ const Navigation: React.FC<NavigationProps> = memo(
                   className={`flex items-center justify-center w-full px-3 py-2 text-sm ${
                     actualTheme === "dark" ? "text-slate-200 hover:text-white hover:bg-slate-800/50" : "text-amber-200 hover:text-white hover:bg-amber-800/50"
                   } rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-amber-900`}
-                  title={actualTheme === "dark" ? "Switch to light mode (Alt+T)" : "Switch to dark mode (Alt+T)"}
+                  title={actualTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
                 >
                   <div className="flex items-center space-x-2">
                     {actualTheme === "dark" ? (
@@ -270,14 +238,9 @@ const Navigation: React.FC<NavigationProps> = memo(
                       <Moon className="h-4 w-4" />
                     )}
                     {!isCollapsed && (
-                      <div className="flex items-center justify-between w-full">
-                        <span>
-                          {actualTheme === "dark" ? "Light Mode" : "Dark Mode"}
-                        </span>
-                        <span className="text-xs bg-amber-800/30 text-amber-200 px-2 py-1 rounded">
-                          Alt+T
-                        </span>
-                      </div>
+                      <span>
+                        {actualTheme === "dark" ? "Light Mode" : "Dark Mode"}
+                      </span>
                     )}
                   </div>
                 </button>
@@ -299,22 +262,9 @@ const Navigation: React.FC<NavigationProps> = memo(
                   </div>
                 </button>
               </div>
-
-              {!isCollapsed && (
-                <div className="flex items-center justify-center space-x-1 mt-2">
-                  <div className="text-xs text-amber-300">📚</div>
-                  <div className="text-xs text-amber-200">247 books</div>
-                </div>
-              )}
             </div>
           </footer>
         </nav>
-
-        <KeyboardShortcutsHelp
-          shortcuts={keyboardShortcuts}
-          isOpen={showKeyboardHelp}
-          onClose={() => setShowKeyboardHelp(false)}
-        />
       </>
     );
   }
@@ -326,7 +276,6 @@ interface BookNavigationItemProps {
   isActive: boolean;
   isCollapsed: boolean;
   onItemClick: (item: any) => void;
-  shortcutKey?: string | undefined;
   theme: "light" | "dark";
 }
 
@@ -335,7 +284,6 @@ function BookNavigationItem({
   isActive,
   isCollapsed,
   onItemClick,
-  shortcutKey,
   theme,
 }: BookNavigationItemProps) {
   const getIcon = (name: string) => {
@@ -418,7 +366,7 @@ function BookNavigationItem({
       onKeyDown={handleKeyDown}
       aria-current={isActive ? "page" : undefined}
       aria-label={`Go to ${item.name}`}
-      title={shortcutKey ? `${shortcutKey} - ${item.name}` : item.name}
+      title={item.name}
       role="menuitem"
       tabIndex={0}
     >
@@ -431,24 +379,14 @@ function BookNavigationItem({
         </div>
       </span>
       {!isCollapsed && (
-        <>
-          <span className="flex-1 text-xs sm:text-sm font-medium text-left ml-2 sm:ml-3 font-serif truncate">
-            {item.name}
-          </span>
-          <div className="flex items-center space-x-1 sm:space-x-2">
-            {shortcutKey && (
-              <span className="text-xs bg-amber-800/30 text-amber-200 px-1 sm:px-2 py-1 rounded hidden sm:block">
-                {shortcutKey}
-              </span>
-            )}
-          </div>
-        </>
+        <span className="flex-1 text-xs sm:text-sm font-medium text-left ml-2 sm:ml-3 font-serif truncate">
+          {item.name}
+        </span>
       )}
       {isCollapsed && (
         <div className="absolute left-full ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
           <div className="bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-xl whitespace-nowrap border border-gray-700">
             <div className="font-medium">{item.name}</div>
-            {shortcutKey && <div className="text-xs text-gray-300 mt-1">{shortcutKey}</div>}
             <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 rotate-45 border-l border-b border-gray-700"></div>
           </div>
         </div>

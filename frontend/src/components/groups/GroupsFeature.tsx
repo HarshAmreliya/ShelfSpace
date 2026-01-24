@@ -183,14 +183,6 @@ export function GroupsFeature() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 relative z-10">
-      {/* Decorative book-themed background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 text-6xl opacity-5 dark:opacity-10">📚</div>
-        <div className="absolute top-40 right-20 text-4xl opacity-5 dark:opacity-10">📖</div>
-        <div className="absolute bottom-20 left-1/4 text-5xl opacity-5 dark:opacity-10">📝</div>
-        <div className="absolute bottom-40 right-1/3 text-3xl opacity-5 dark:opacity-10">✍️</div>
-      </div>
-
       <div className="relative container mx-auto px-4 py-8 z-20">
           {/* Header */}
         <div className="text-center mb-12">

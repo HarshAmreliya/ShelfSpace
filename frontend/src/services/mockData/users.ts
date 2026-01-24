@@ -87,5 +87,9 @@ export function getUserById(id: ID): MockUser | undefined {
 }
 
 export function getCurrentUser(): MockUser {
-  return mockUsers[0]; // Return first user as current user for mock purposes
+  const user = mockUsers[0];
+  if (!user) {
+    throw new Error("No mock users available");
+  }
+  return user;
 }

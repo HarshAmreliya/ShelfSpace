@@ -18,3 +18,13 @@ export * from "./FeedbackWidget";
 // Animations
 export * from "./ScrollAnimations";
 export * from "./PageTransition";
+export * from "./AnimatedCard";
+
+// Progress indicators
+export * from "./ProgressRing";
+
+// Toast notifications
+export { useToast, useToastNotifications, ToastProvider } from "./Toast";
+
+// Optimized components
+export * from "./OptimizedImage";

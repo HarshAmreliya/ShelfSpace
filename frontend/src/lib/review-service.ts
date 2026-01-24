@@ -36,8 +36,8 @@ export const ReviewService = {
   async listByBook(bookId: string, opts?: { limit?: number; offset?: number }): Promise<ReviewDTO[]> {
     try {
       const params: Record<string, any> = {};
-      if (opts?.limit) params.limit = opts.limit;
-      if (opts?.offset) params.offset = opts.offset;
+      if (opts?.limit) params['limit'] = opts.limit;
+      if (opts?.offset) params['offset'] = opts.offset;
       const { data } = await api.get(`/reviews/book/${bookId}`, { params });
       return data;
     } catch (error) {

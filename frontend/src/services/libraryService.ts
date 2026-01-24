@@ -1,5 +1,5 @@
 import { Book, BookInput } from "@/types/book";
-import { ReadingList, ReadingListInput } from "@/types/library";
+import { ReadingList as BaseReadingList, ReadingListInput } from "../../types/library";
 import { ID } from "@/types/common";
 import {
   ServiceResponse,
@@ -20,6 +20,11 @@ import { bookService } from "@/lib/book-service";
 import { getSession } from "next-auth/react";
 import axios from "axios";
 
+// ReadingList type that uses the correct Book type
+type ReadingList = Omit<BaseReadingList, 'books'> & {
+  books?: Book[];
+};
+
 // Library service API client
 const LIBRARY_SERVICE_BASE_URL = "/api/library/reading-lists";
 
@@ -30,11 +35,9 @@ const LIBRARY_SERVICE_BASE_URL = "/api/library/reading-lists";
  */
 export class LibraryService {
   private baseUrl: string;
-  private timeout: number;
 
-  constructor(baseUrl = "/api", timeout = 5000) {
+  constructor(baseUrl = "/api", _timeout = 5000) {
     this.baseUrl = baseUrl;
-    this.timeout = timeout;
   }
 
   /**
@@ -61,7 +64,7 @@ export class LibraryService {
         // Fetch books efficiently by fetching them in parallel for each list
         // For now, we'll fetch all books and filter - in production, consider a batch endpoint
         try {
-          const allBooksResponse = await this.getBooks({ options: params.options });
+          const allBooksResponse = await this.getBooks(params.options ? { options: params.options } : {});
           const allBooks = allBooksResponse.data;
 
           response.data.forEach((list) => {
@@ -144,13 +147,21 @@ export class LibraryService {
         );
       } else {
         // Get all books with filters
-        booksResponse = await bookService.getBooks({
+        const getBooksParams: any = {
           page: params.page || 1,
           limit: params.limit || 20,
-          author: params.filter?.author,
           sortBy: params.filter?.sortOrder === "desc" ? "desc" : "asc",
-          search: params.filter?.search,
-        });
+        };
+        
+        // Only add optional properties if they have values
+        if (params.filter?.author) {
+          getBooksParams.author = params.filter.author;
+        }
+        if (params.filter?.search) {
+          getBooksParams.search = params.filter.search;
+        }
+        
+        booksResponse = await bookService.getBooks(getBooksParams);
       }
 
       // Apply additional client-side filters if needed
@@ -180,7 +191,7 @@ export class LibraryService {
    */
   async getBook(id: ID): Promise<ServiceResponse<Book>> {
     try {
-      const book = await bookService.getBookById(id);
+      const book = await bookService.getBookById(String(id));
 
       return {
         data: book,
@@ -236,10 +247,18 @@ export class LibraryService {
       // Transform back to frontend format
       const frontendBook: Book = {
         id: book.book_id || book._id,
-        title: book.title,
-        author: book.authors?.[0]?.name || "Unknown",
-        ...bookInput,
+        title: bookInput.title,
+        author: book.authors?.[0]?.name || bookInput.author || "Unknown",
+        ...(bookInput.description && { description: bookInput.description }),
+        ...(bookInput.coverImage && { coverImage: bookInput.coverImage }),
+        ...(bookInput.cover && { cover: bookInput.cover }),
+        ...(bookInput.isbn && { isbn: bookInput.isbn }),
+        ...(bookInput.pages && { pages: bookInput.pages }),
+        ...(bookInput.publishedYear && { publishedYear: bookInput.publishedYear }),
+        ...(bookInput.language && { language: bookInput.language }),
         genres: bookInput.genres || [],
+        ...(bookInput.rating && { rating: bookInput.rating }),
+        tags: bookInput.tags || [],
         status: "want-to-read",
         progress: 0,
         createdAt: new Date().toISOString(),

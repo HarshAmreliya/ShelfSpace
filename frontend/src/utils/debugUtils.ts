@@ -16,7 +16,7 @@ export function useDebugRender(
   props: Record<string, unknown> = {}
 ) {
   const renderCount = useRef(0);
-  const previousProps = useRef<Record<string, unknown>>();
+  const previousProps = useRef<Record<string, unknown> | undefined>(undefined);
 
   useEffect(() => {
     if (!isDevelopment) return;
@@ -37,7 +37,7 @@ export function useDebugRender(
 
       if (changedProps.length > 0) {
         console.log(
-          `🔄 ${componentName} - Props changed:`,
+          `[PROPS_CHANGED] ${componentName}`,
           changedProps.map((key) => ({
             prop: key,
             from: previousProps.current?.[key],
@@ -57,7 +57,7 @@ export function useDebugRender(
  * Hook to debug state changes
  */
 export function useDebugState<T>(stateName: string, value: T): T {
-  const previousValue = useRef<T>();
+  const previousValue = useRef<T | undefined>(undefined);
 
   useEffect(() => {
     if (!isDevelopment) return;
@@ -83,7 +83,7 @@ export function useDebugEffect(
   dependencies: unknown[],
   callback: () => void | (() => void)
 ) {
-  const previousDeps = useRef<unknown[]>();
+  const previousDeps = useRef<unknown[] | undefined>(undefined);
 
   useEffect(() => {
     if (!isDevelopment) return callback();
@@ -113,7 +113,7 @@ export function useDebugEffect(
 /**
  * Performance measurement utilities
  */
-export const performance = {
+export const performanceDebug = {
   /**
    * Measure component render time
    */
@@ -143,15 +143,15 @@ export const performance = {
   ): Promise<T> => {
     if (!isDevelopment) return operation();
 
-    const start = performance.now();
+    const start = globalThis.performance.now();
     try {
       const result = await operation();
-      const end = performance.now();
-      console.log(`⏱️ ${label}: ${(end - start).toFixed(2)}ms`);
+      const end = globalThis.performance.now();
+      console.log(`[PERF] ${label}: ${(end - start).toFixed(2)}ms`);
       return result;
     } catch (error) {
-      const end = performance.now();
-      console.log(`⏱️ ${label} (failed): ${(end - start).toFixed(2)}ms`);
+      const end = globalThis.performance.now();
+      console.log(`[PERF] ${label} (failed): ${(end - start).toFixed(2)}ms`);
       throw error;
     }
   },
@@ -162,15 +162,15 @@ export const performance = {
   measureSync: <T>(label: string, operation: () => T): T => {
     if (!isDevelopment) return operation();
 
-    const start = performance.now();
+    const start = globalThis.performance.now();
     try {
       const result = operation();
-      const end = performance.now();
-      console.log(`⏱️ ${label}: ${(end - start).toFixed(2)}ms`);
+      const end = globalThis.performance.now();
+      console.log(`[PERF] ${label}: ${(end - start).toFixed(2)}ms`);
       return result;
     } catch (error) {
-      const end = performance.now();
-      console.log(`⏱️ ${label} (failed): ${(end - start).toFixed(2)}ms`);
+      const end = globalThis.performance.now();
+      console.log(`[PERF] ${label} (failed): ${(end - start).toFixed(2)}ms`);
       throw error;
     }
   },
@@ -188,8 +188,8 @@ export const memory = {
 
     // @ts-expect-error - memory API is not in all browsers
     if (window.performance?.memory) {
-      // @ts-expect-error - memory API is not in all browsers
       const { usedJSHeapSize, totalJSHeapSize, jsHeapSizeLimit } =
+        // @ts-expect-error - memory API is not in all browsers
         window.performance.memory;
       console.log(`🧠 Memory${label ? ` (${label})` : ""}:`, {
         used: `${(usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
@@ -287,8 +287,8 @@ export const stateDebug = {
       if (!isDevelopment) return reducer(state, action);
 
       const newState = reducer(state, action);
-      console.log(`🔄 ${reducerName} - Action:`, action);
-      console.log(`🔄 ${reducerName} - State:`, { from: state, to: newState });
+      console.log(`[REDUCER] ${reducerName} - Action:`, action);
+      console.log(`[REDUCER] ${reducerName} - State:`, { from: state, to: newState });
 
       debugHelpers.logStateChange(
         `${reducerName} (${JSON.stringify(action)})`,
@@ -350,7 +350,7 @@ export const debug = {
   render: useDebugRender,
   state: useDebugState,
   effect: useDebugEffect,
-  performance,
+  performance: performanceDebug,
   memory,
   componentTree,
   stateDebug,

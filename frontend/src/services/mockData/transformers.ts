@@ -10,83 +10,46 @@ import { ID } from "../../../types/common";
 
 // Mock data for testing
 export const mockBookDetails: BookDetail = {
-  id: "1",
+  id: 1,
   title: "The Great Gatsby",
   author: "F. Scott Fitzgerald",
-  isbn: "9780743273565",
   cover: "/book-covers/great-gatsby.jpg",
   description: "A classic American novel about the Jazz Age.",
-  pages: 180,
-  publishedDate: "1925-04-10",
-  publisher: "Scribner",
-  language: "en",
-  genres: ["Classic Literature", "Fiction"],
-  tags: ["classic", "american-literature"],
-  status: "completed",
-  format: "physical",
   rating: 4.2,
-  personalNotes: "A timeless classic about the American Dream.",
-  readingProgress: 100,
-  startedAt: "2024-01-01T00:00:00Z",
-  finishedAt: "2024-01-15T00:00:00Z",
-  lastReadAt: "2024-01-15T00:00:00Z",
-  averageRating: 4.2,
   ratingsCount: 1250,
-  isPublic: true,
-  isFavorite: true,
-  createdAt: "2024-01-01T00:00:00Z",
-  updatedAt: "2024-01-15T00:00:00Z",
+  genres: ["Classic Literature", "Fiction"],
 };
 
 export const mockSimilarBooks: SimilarBookItem[] = [
   {
-    id: "2",
+    id: 2,
     title: "The Sun Also Rises",
     author: "Ernest Hemingway",
     cover: "/book-covers/sun-also-rises.jpg",
-    rating: 4.0,
-    similarity: 0.85,
   },
   {
-    id: "3",
+    id: 3,
     title: "To Kill a Mockingbird",
     author: "Harper Lee",
     cover: "/book-covers/mockingbird.jpg",
-    rating: 4.5,
-    similarity: 0.78,
   },
 ];
 
 export const mockDiscussions: DiscussionThread[] = [
   {
-    id: "1",
-    bookId: "1",
+    id: 1,
     title: "The symbolism of the green light",
-    author: "John Doe",
-    content: "What do you think the green light represents?",
-    createdAt: "2024-01-10T00:00:00Z",
-    replies: [
-      {
-        id: "1-1",
-        author: "Jane Smith",
-        content: "I think it represents Gatsby's hope and dreams.",
-        createdAt: "2024-01-11T00:00:00Z",
-      },
-    ],
+    replies: 5,
   },
 ];
 
 export const mockReviews: UserReview[] = [
   {
-    id: "1",
-    bookId: "1",
-    userId: "user1",
-    username: "BookLover123",
+    id: 1,
+    user: "BookLover123",
     rating: 5,
-    title: "A masterpiece of American literature",
-    content: "This book captures the essence of the Jazz Age perfectly.",
+    text: "This book captures the essence of the Jazz Age perfectly.",
     createdAt: "2024-01-05T00:00:00Z",
-    helpful: 12,
   },
 ];
 
@@ -186,34 +149,43 @@ export class DataTransformer {
   static transformBookInputToBook(input: BookInput, id: ID): Book {
     const now = new Date().toISOString();
 
-    return {
+    const book: Book = {
       id,
       title: input.title,
       author: input.author,
-      isbn: input.isbn,
       cover: input.cover || "/book-covers/default.jpg",
-      description: input.description,
-      pages: input.pages,
-      publishedDate: input.publishedDate,
-      publisher: input.publisher,
-      language: input.language || "en",
       genres: input.genres || [],
       tags: input.tags || [],
       status: input.status || "want-to-read",
       format: input.format || "physical",
-      rating: input.rating,
-      personalNotes: input.personalNotes,
       readingProgress: input.readingProgress || 0,
-      startedAt: input.status === "currently-reading" ? now : undefined,
-      finishedAt: input.status === "read" ? now : undefined,
-      lastReadAt: input.status === "currently-reading" ? now : undefined,
-      averageRating: undefined,
-      ratingsCount: 0,
       isPublic: input.isPublic ?? true,
       isFavorite: input.isFavorite ?? false,
+      ratingsCount: 0,
       createdAt: now,
       updatedAt: now,
     };
+
+    // Only add optional properties if they have values
+    if (input.isbn) book.isbn = input.isbn;
+    if (input.description) book.description = input.description;
+    if (input.pages) book.pages = input.pages;
+    if (input.publishedDate) book.publishedDate = input.publishedDate;
+    if (input.publisher) book.publisher = input.publisher;
+    if (input.language) book.language = input.language;
+    if (input.rating) book.rating = input.rating;
+    if (input.personalNotes) book.personalNotes = input.personalNotes;
+    
+    if (input.status === "currently-reading") {
+      book.startedAt = now;
+      book.lastReadAt = now;
+    }
+    
+    if (input.status === "read") {
+      book.finishedAt = now;
+    }
+
+    return book;
   }
 
   // Transform API reading list response to internal ReadingList interface
@@ -268,13 +240,15 @@ export class DataTransformer {
     userId: ID
   ): ReadingList {
     const now = new Date().toISOString();
+    
+    // Import BookOpen as default icon
+    const { BookOpen } = require("lucide-react");
 
-    return {
+    const list: ReadingList = {
       id,
       name: input.name,
-      description: input.description,
       color: input.color || "#3B82F6",
-      icon: input.icon || "BookOpen",
+      icon: input.icon || BookOpen,
       isDefault: false,
       isPublic: input.isPublic ?? false,
       userId,
@@ -284,6 +258,13 @@ export class DataTransformer {
       createdAt: now,
       updatedAt: now,
     };
+
+    // Only add description if it has a value
+    if (input.description) {
+      list.description = input.description;
+    }
+
+    return list;
   }
 
   // Transform legacy BookDetail to new Book interface
@@ -294,34 +275,42 @@ export class DataTransformer {
   ): Book {
     const now = new Date().toISOString();
 
-    return {
+    const book: Book = {
       id: bookDetail.id.toString(),
       title: bookDetail.title,
       author: bookDetail.author,
-      isbn: undefined,
       cover: bookDetail.cover,
-      description: bookDetail.description,
-      pages: undefined,
-      publishedDate: undefined,
-      publisher: undefined,
-      language: "en",
       genres: bookDetail.genres.map(this.transformGenreString) as any[],
       tags: [],
       status,
       format: "physical",
-      rating: undefined,
-      personalNotes: undefined,
       readingProgress: progress,
-      startedAt: status === "currently-reading" ? now : undefined,
-      finishedAt: status === "read" ? now : undefined,
-      lastReadAt: status === "currently-reading" ? now : undefined,
-      averageRating: bookDetail.rating,
-      ratingsCount: bookDetail.ratingsCount,
       isPublic: true,
       isFavorite: false,
+      ratingsCount: bookDetail.ratingsCount,
       createdAt: now,
       updatedAt: now,
     };
+
+    // Add optional properties only if they have values
+    if (bookDetail.description) {
+      book.description = bookDetail.description;
+    }
+    
+    if (bookDetail.rating) {
+      book.averageRating = bookDetail.rating;
+    }
+
+    if (status === "currently-reading") {
+      book.startedAt = now;
+      book.lastReadAt = now;
+    }
+
+    if (status === "read") {
+      book.finishedAt = now;
+    }
+
+    return book;
   }
 
   // Transform genre strings to standardized format

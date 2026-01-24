@@ -9,7 +9,7 @@ import React, {
   ReactNode,
   useEffect,
 } from "react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { AppState, AppActions } from "@/types/state";
 import { userService } from "@/lib/user-service";
 
@@ -106,6 +106,8 @@ export function AppProvider({ children, initialUser }: AppProviderProps) {
     isAuthenticated: !!initialUser,
   });
 
+  const { data: session, status } = useSession();
+
   // Actions
   const actions: AppActions = {
     setTheme: useCallback((theme: AppState["theme"]) => {
@@ -182,6 +184,24 @@ export function AppProvider({ children, initialUser }: AppProviderProps) {
       }
     }, []),
   };
+
+  // Sync user from NextAuth session
+  useEffect(() => {
+    if (status === "loading") return;
+
+    if (session?.user && session.accessToken) {
+      // Set user service token
+      userService.setToken(session.accessToken);
+
+      // Set user in app state
+      dispatch({ type: "SET_USER", payload: session.userData || session.user });
+      dispatch({ type: "SET_AUTHENTICATED", payload: true });
+    } else {
+      // Clear user if not authenticated
+      dispatch({ type: "SET_USER", payload: null });
+      dispatch({ type: "SET_AUTHENTICATED", payload: false });
+    }
+  }, [session, status]);
 
   // Initialize theme on mount
   useEffect(() => {

@@ -3,6 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { Book } from "@/types/book";
+import { BookOpen } from "lucide-react";
 
 interface BookCardProps {
   book: Book;
@@ -65,7 +66,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onSelect, className = 
           />
         ) : (
           <div className="text-amber-600 dark:text-slate-400 text-4xl font-serif">
-            📚
+            <BookOpen className="h-10 w-10" />
           </div>
         )}
       </div>

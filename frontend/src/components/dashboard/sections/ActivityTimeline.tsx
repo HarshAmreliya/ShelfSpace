@@ -76,12 +76,12 @@ export function ActivityTimeline() {
             description: `Completed "${book.title}"`,
             time: formatTimeAgo(addedDate),
             timestamp: addedDate,
-            icon: '📚',
+            icon: 'check',
             color: 'from-green-400 to-emerald-500',
             book: {
               title: book.title || 'Unknown',
               author: book.author || 'Unknown',
-              cover: book.coverImage || book.cover || '📖',
+              cover: book.coverImage || book.cover || '',
             },
             metadata: {
               pages: book.pages,
@@ -96,12 +96,12 @@ export function ActivityTimeline() {
             description: `Began "${book.title}"`,
             time: formatTimeAgo(addedDate),
             timestamp: addedDate,
-            icon: '📖',
+            icon: 'book',
             color: 'from-blue-400 to-indigo-500',
             book: {
               title: book.title || 'Unknown',
               author: book.author || 'Unknown',
-              cover: book.coverImage || book.cover || '📖',
+              cover: book.coverImage || book.cover || '',
             },
             metadata: {
               genre: book.genres?.[0],
@@ -115,12 +115,12 @@ export function ActivityTimeline() {
             description: `Added "${book.title}" to your reading list`,
             time: formatTimeAgo(addedDate),
             timestamp: addedDate,
-            icon: '❤️',
+            icon: 'heart',
             color: 'from-pink-400 to-rose-500',
             book: {
               title: book.title || 'Unknown',
               author: book.author || 'Unknown',
-              cover: book.coverImage || book.cover || '📖',
+              cover: book.coverImage || book.cover || '',
             },
           });
         }
@@ -134,12 +134,12 @@ export function ActivityTimeline() {
             description: `Gave "${book.title}" a ${book.rating}-star rating`,
             time: formatTimeAgo(addedDate), // Using addedAt as proxy for rating time
             timestamp: addedDate,
-            icon: '⭐',
+            icon: 'star',
             color: 'from-yellow-400 to-amber-500',
             book: {
               title: book.title || 'Unknown',
               author: book.author || 'Unknown',
-              cover: book.coverImage || book.cover || '📖',
+              cover: book.coverImage || book.cover || '',
             },
             metadata: {
               rating: book.rating,
@@ -196,7 +196,7 @@ export function ActivityTimeline() {
           <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
             <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </div>
-          <FloatingElement className="text-2xl opacity-60">📚</FloatingElement>
+          <FloatingElement className="text-2xl opacity-60"><Clock className="h-6 w-6" /></FloatingElement>
         </div>
       </div>
 
@@ -221,7 +221,7 @@ export function ActivityTimeline() {
                   {/* Timeline dot */}
                   <div className={`relative z-10 flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br ${activity.color} shadow-lg flex items-center justify-center`}>
                     <FloatingElement className="text-lg">
-                      {activity.icon}
+                      <IconComponent className="h-5 w-5 text-white" />
                     </FloatingElement>
                   </div>
 

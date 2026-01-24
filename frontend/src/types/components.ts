@@ -52,7 +52,7 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   "data-testid"?: string;
 }
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   className?: string;
   type?: string;
   label?: string;
