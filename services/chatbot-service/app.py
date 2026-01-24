@@ -2,14 +2,8 @@ import streamlit as st
 import requests
 import os
 
-# --- Configuration ---
-# The URL of your FastAPI backend.
-# This allows the Streamlit UI to communicate with the chatbot logic.
-# It defaults to localhost for local testing but can be overridden.
 API_URL = os.getenv("CHATBOT_API_URL", "http://localhost:8000/chat")
 
-# --- Streamlit Page Setup ---
-# Set the title and icon that will appear in the browser tab.
 st.set_page_config(
     page_title="Shelf Space AI",
     page_icon="📚",
@@ -18,11 +12,6 @@ st.set_page_config(
 
 st.title("📚 Shelf Space AI Chatbot")
 st.caption("Your personal guide to the world of books")
-
-# --- Session State Management ---
-# This is the key to making the chat interface "remember" the conversation.
-# Streamlit re-runs the script on every interaction, so we must store
-# the conversation history and session ID in st.session_state.
 
 # Initialize session_id to None. The API will create one for the first message.
 if "session_id" not in st.session_state:

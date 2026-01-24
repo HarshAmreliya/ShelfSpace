@@ -1,6 +1,7 @@
 import sys
 import os
 from pathlib import Path
+import redis
 
 # Add project root to Python path
 project_root = Path(__file__).resolve().parent.parent
@@ -55,14 +56,43 @@ class Chatbot:
             dimension=self.embedder.dimension
         )
 
+        redis_url = os.getenv("REDIS_URL")
+        if redis_url:
+            self.redis_client = redis.from_url(
+                redis_url, 
+                decode_responses=True,
+                ssl_cert_reqs=None # Helps with certificate verification in Docker
+            )
+        else:
+            self.redis_client = redis.Redis(
+                host = os.getenv("REDIS_HOST", "localhost"),
+                port = int(os.getenv("REDIS_PORT",6379)),
+                password = os.getenv("REDIS_PASSWORD", None),
+                decode_responses = True
+            )
+        self.history_ttl = 86400
+        logger.info("Redis connection established.")
         logger.info("All retrieval components initialized.")
 
-        self.histories = defaultdict(list)
+        # self.histories = defaultdict(list)
 
         # self.histories = defaultdict(lambda: {"messages": [], "active_work_id": None})
 
         self.rag_chain = self._build_rag_chain()
         logger.info("The Chatbot Engine is operational and ready for commands.")
+
+    def _get_session_data(self, session_id : str) -> Dict[str,Any]:
+        data = self.redis_client.get(f"chat:{session_id}")
+        if data:
+            return json.loads(data)
+        return {"messages": [], "active_work_id": None}
+
+    def _save_session_data(self, session_id : str, data : Dict[str,Any]):
+        self.redis_client.setex(
+            f"chat:{session_id}",
+            self.history_ttl,
+            json.dumps(data)
+        )
     
     def _format_history(self, messages: List[Dict]) -> str:
         """Helper function to format chat history into a readable string for the prompt."""
@@ -154,14 +184,16 @@ class Chatbot:
     def generate_response(self, user_query: str, session_id: str) -> str:
         logger.info("Invoking the RAG chain...")
 
-        chat_history = self.histories[session_id]    
+        session_data = self._get_session_data(session_id)  
 
         try:
-            chain_input = {"user_query": user_query, "chat_history": chat_history}
+            chain_input = {"user_query": user_query, "chat_history": session_data["messages"]}
             final_answer = self.rag_chain.invoke(chain_input)
 
-            self.histories[session_id].append({"role": "user", "content": user_query})
-            self.histories[session_id].append({"role": "ai", "content": final_answer})
+            session_data["messages"].append({"role": "user", "content": user_query})
+            session_data["messages"].append({"role": "ai", "content": final_answer})
+
+            self._save_session_data(session_id, session_data)
 
             logger.info("Successfully generated final answer.")
             return final_answer
