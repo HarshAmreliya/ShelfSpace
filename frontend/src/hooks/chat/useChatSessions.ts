@@ -16,6 +16,12 @@ export function useChatSessions() {
 
   // Load sessions on mount
   useEffect(() => {
+    console.log("[useChatSessions] Session state:", {
+      hasSession: !!session,
+      hasAccessToken: !!session?.accessToken,
+      accessToken: session?.accessToken ? `${session.accessToken.substring(0, 20)}...` : 'none'
+    });
+    
     if (session?.accessToken) {
       loadSessions();
     }
