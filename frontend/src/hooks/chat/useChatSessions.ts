@@ -38,7 +38,11 @@ export function useChatSessions() {
    * Load all sessions for the user
    */
   const loadSessions = async () => {
-    if (!session?.accessToken) return;
+    if (!session?.accessToken) {
+      console.warn("[useChatSessions] No access token available. User may need to re-login.");
+      setError("Please log out and log back in to use chat features");
+      return;
+    }
 
     try {
       const sessionList = await chatService.getSessions(session.accessToken, {
@@ -135,7 +139,7 @@ export function useChatSessions() {
       // Update session title if it's the first message
       if (messages.length === 0 && currentSession) {
         const title = chatService.generateTitle(messageText);
-        await chatService.updateSession(session.accessToken, sessionId, { title });
+        // await chatService.updateSession(session.accessToken, sessionId, { title });
         
         // Update local session
         setCurrentSession((prev) => prev ? { ...prev, title } : null);
@@ -178,7 +182,7 @@ export function useChatSessions() {
     if (!session?.accessToken) return;
 
     try {
-      await chatService.deleteSession(session.accessToken, sessionId);
+      // await chatService.deleteSession(session.accessToken, sessionId);
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
 
       // If deleting current session, clear it
@@ -202,9 +206,9 @@ export function useChatSessions() {
     if (!sessionToUpdate) return;
 
     try {
-      await chatService.updateSession(session.accessToken, sessionId, {
-        isPinned: !sessionToUpdate.isPinned,
-      });
+      // await chatService.updateSession(session.accessToken, sessionId, {
+      //   isPinned: !sessionToUpdate.isPinned,
+      // });
 
       setSessions((prev) =>
         prev.map((s) =>
@@ -224,9 +228,9 @@ export function useChatSessions() {
     if (!session?.accessToken) return;
 
     try {
-      await chatService.updateSession(session.accessToken, sessionId, {
-        title: newTitle,
-      });
+      // await chatService.updateSession(session.accessToken, sessionId, {
+      //   title: newTitle,
+      // });
 
       setSessions((prev) =>
         prev.map((s) => (s.id === sessionId ? { ...s, title: newTitle } : s))

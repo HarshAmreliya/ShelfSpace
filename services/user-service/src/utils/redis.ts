@@ -68,51 +68,51 @@ export async function getChatMessages(sessionId: string): Promise<ChatMessage[]>
   }
 }
 
-export async function setChatMessages(sessionId: string, messages: ChatMessage[]): Promise<boolean> {
-  try {
-    const client = getRedisClient();
-    const key = `${CHAT_KEY_PREFIX}${sessionId}`;
+// export async function setChatMessages(sessionId: string, messages: ChatMessage[]): Promise<boolean> {
+//   try {
+//     const client = getRedisClient();
+//     const key = `${CHAT_KEY_PREFIX}${sessionId}`;
     
-    // Store with 24-hour TTL
-    await client.setex(key, CHAT_TTL, JSON.stringify(messages));
-    return true;
-  } catch (error) {
-    console.error('Error setting chat messages in Redis:', error);
-    return false;
-  }
-}
+//     // Store with 24-hour TTL
+//     await client.setex(key, CHAT_TTL, JSON.stringify(messages));
+//     return true;
+//   } catch (error) {
+//     console.error('Error setting chat messages in Redis:', error);
+//     return false;
+//   }
+// }
 
-export async function appendChatMessage(sessionId: string, message: ChatMessage): Promise<boolean> {
-  try {
-    const messages = await getChatMessages(sessionId);
-    messages.push(message);
-    return await setChatMessages(sessionId, messages);
-  } catch (error) {
-    console.error('Error appending chat message:', error);
-    return false;
-  }
-}
+// export async function appendChatMessage(sessionId: string, message: ChatMessage): Promise<boolean> {
+//   try {
+//     const messages = await getChatMessages(sessionId);
+//     messages.push(message);
+//     return await setChatMessages(sessionId, messages);
+//   } catch (error) {
+//     console.error('Error appending chat message:', error);
+//     return false;
+//   }
+// }
 
-export async function deleteChatMessages(sessionId: string): Promise<boolean> {
-  try {
-    const client = getRedisClient();
-    const key = `${CHAT_KEY_PREFIX}${sessionId}`;
-    await client.del(key);
-    return true;
-  } catch (error) {
-    console.error('Error deleting chat messages from Redis:', error);
-    return false;
-  }
-}
+// export async function deleteChatMessages(sessionId: string): Promise<boolean> {
+//   try {
+//     const client = getRedisClient();
+//     const key = `${CHAT_KEY_PREFIX}${sessionId}`;
+//     await client.del(key);
+//     return true;
+//   } catch (error) {
+//     console.error('Error deleting chat messages from Redis:', error);
+//     return false;
+//   }
+// }
 
-export async function refreshChatTTL(sessionId: string): Promise<boolean> {
-  try {
-    const client = getRedisClient();
-    const key = `${CHAT_KEY_PREFIX}${sessionId}`;
-    await client.expire(key, CHAT_TTL);
-    return true;
-  } catch (error) {
-    console.error('Error refreshing chat TTL:', error);
-    return false;
-  }
-}
+// export async function refreshChatTTL(sessionId: string): Promise<boolean> {
+//   try {
+//     const client = getRedisClient();
+//     const key = `${CHAT_KEY_PREFIX}${sessionId}`;
+//     await client.expire(key, CHAT_TTL);
+//     return true;
+//   } catch (error) {
+//     console.error('Error refreshing chat TTL:', error);
+//     return false;
+//   }
+// }

@@ -82,9 +82,9 @@ class ChatService {
     return response.data;
   }
 
-  /**
-   * Add a message to a session
-   */
+  // /**
+  //  * Add a message to a session
+  //  */
   async addMessage(
     token: string,
     sessionId: string,
@@ -98,38 +98,38 @@ class ChatService {
     return response.data;
   }
 
-  /**
-   * Update session metadata (title, pin status, etc.)
-   */
-  async updateSession(
-    token: string,
-    sessionId: string,
-    updates: UpdateSessionInput
-  ): Promise<void> {
-    await axios.patch(`${CHAT_API_URL}/chat/sessions/${sessionId}`, updates, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  }
+  // /**
+  //  * Update session metadata (title, pin status, etc.)
+  //  */
+  // async updateSession(
+  //   token: string,
+  //   sessionId: string,
+  //   updates: UpdateSessionInput
+  // ): Promise<void> {
+  //   await axios.patch(`${CHAT_API_URL}/chat/sessions/${sessionId}`, updates, {
+  //     headers: { Authorization: `Bearer ${token}` },
+  //   });
+  // }
 
-  /**
-   * Delete a session and its messages
-   */
-  async deleteSession(token: string, sessionId: string): Promise<void> {
-    await axios.delete(`${CHAT_API_URL}/chat/sessions/${sessionId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  }
+  // /**
+  //  * Delete a session and its messages
+  //  */
+  // async deleteSession(token: string, sessionId: string): Promise<void> {
+  //   await axios.delete(`${CHAT_API_URL}/chat/sessions/${sessionId}`, {
+  //     headers: { Authorization: `Bearer ${token}` },
+  //   });
+  // }
 
-  /**
-   * Refresh session TTL (extend by 24 hours)
-   */
-  async refreshSession(token: string, sessionId: string): Promise<void> {
-    await axios.post(
-      `${CHAT_API_URL}/chat/sessions/${sessionId}/refresh`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-  }
+  // /**
+  //  * Refresh session TTL (extend by 24 hours)
+  //  */
+  // async refreshSession(token: string, sessionId: string): Promise<void> {
+  //   await axios.post(
+  //     `${CHAT_API_URL}/chat/sessions/${sessionId}/refresh`,
+  //     {},
+  //     { headers: { Authorization: `Bearer ${token}` } }
+  //   );
+  // }
 
   /**
    * Send a message to the chatbot and store both user message and response
@@ -140,29 +140,32 @@ class ChatService {
     userMessage: string,
     bookContext?: string
   ): Promise<{ userMsg: ChatMessage; botMsg: ChatMessage }> {
+    console.log(token);
     // 1. Store user message
-    const userMsg = await this.addMessage(token, sessionId, {
-      role: "user",
-      content: userMessage,
-      ...(bookContext && { bookContext }),
-    });
-
+    // const userMsg = await this.addMessage(token, sessionId, {
+    //   role: "user",
+    //   content: userMessage,
+    //   ...(bookContext && { bookContext }),
+    // });
     // 2. Get bot response from chatbot service
     const botResponse = await axios.post("/api/chatbot", {
       message: userMessage,
       sessionId, // Pass sessionId for context if needed
     });
-
+    
     const { response, metadata } = botResponse.data;
-
+    
     // 3. Store bot response
-    const botMsg = await this.addMessage(token, sessionId, {
-      role: "assistant",
-      content: response,
-      ...(bookContext && { bookContext }),
-      ...(metadata && { metadata }),
-    });
-
+    // const botMsg = await this.addMessage(token, sessionId, {
+    //   role: "assistant",
+    //   content: response,
+      // ...(bookContext && { bookContext }),
+      // ...(metadata && { metadata }),
+    // });
+    
+    const userMsg: ChatMessage = {role: "user",content: userMessage,timestamp: Date.now().toString(),...(bookContext && { bookContext })};
+    const botMsg: ChatMessage = {role: "assistant",content: response ,timestamp: Date.now().toString(),  ...(bookContext && { bookContext }),
+      ...(metadata && { metadata }),};
     return { userMsg, botMsg };
   }
 

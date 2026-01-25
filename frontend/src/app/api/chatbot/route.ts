@@ -6,6 +6,8 @@ const CHATBOT_URL = process.env['CHATBOT_SERVICE_URL'] ||
     ? "http://chatbot-service:8000/chat"
     : "http://localhost:8000/chat");
 
+// console.log("[Chatbot Route] Using chatbot URL:", CHATBOT_URL);
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
