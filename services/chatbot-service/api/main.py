@@ -2,9 +2,10 @@ import sys
 import os
 import logging
 import uuid
-from typing import Optional
+from typing import Optional, List, Dict
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
+import json
 
 # --- Path Correction ---
 # This ensures the API server can find your other modules (core, retrieval).
@@ -17,6 +18,8 @@ try:
     from fastapi import FastAPI, HTTPException
     from pydantic import BaseModel
     import uvicorn
+    import redis
+    from dotenv import load_dotenv
 except ImportError as e:
     print(f"Missing required API dependencies: {e}")
     print("Please install with: uv pip install fastapi uvicorn pydantic")
@@ -41,10 +44,17 @@ app = FastAPI(
     version="1.1.0"
 )
 
+load_dotenv()
+
+redis_url = os.getenv("REDIS_URL")
+redis_client = redis.from_url(
+    redis_url,
+    decode_responses=True
+)
+
 origins = [
-    "http://localhost:3000", # For a React app
-    "http://localhost:5173", # For a Vite app
-    # Add the origin of your client application
+    "https://shelfspace1.vercel.app",
+    "https://shelfspace-user-service.onrender.com",
 ]
 
 app.add_middleware(
@@ -73,6 +83,25 @@ class ChatResponse(BaseModel):
     session_id: str
 
 # --- API Endpoints ---
+
+@app.get("/history/{session_id}", response_model=List[Dict[str,str]])
+async def get_chat_history(session_id : str):
+    try:
+        key = f"chat:{session_id}"
+        raw_history = redis_client.get(key)
+
+        if not raw_history:
+            return []
+        
+        session_dict = json.loads(raw_history)
+        messages = session_dict.get("messages",[])
+
+        return messages
+    
+    except redis.RedisError as e:
+        raise HTTPException(status_code=500, detail=f"Redis connection error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 @app.post("/chat", response_model=ChatResponse)
 async def handle_chat_query(request: ChatQuery):
@@ -104,7 +133,6 @@ def health_check():
     else:
         return {"status": "degraded", "message": "Chatbot failed to initialize."}
 
-# --- Server Execution ---
 if __name__ == "__main__":
     logger.info("Starting the FastAPI server for local testing...")
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

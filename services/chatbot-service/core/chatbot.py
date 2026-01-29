@@ -20,7 +20,8 @@ from collections import defaultdict
 
 try:
     from dotenv import load_dotenv
-    from langchain_google_genai import ChatGoogleGenerativeAI
+    # from langchain_google_genai import ChatGoogleGenerativeAI
+    from langchain_groq import ChatGroq
     from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
     from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 except ImportError as e:
@@ -40,14 +41,21 @@ class Chatbot:
         logger.info("Initializaing the Chatbot Engine...")
         load_dotenv()
 
-        gemini_api_key = os.getenv("GEMINI_API_KEY")
-        if not gemini_api_key:
+        # gemini_api_key = os.getenv("GEMINI_API_KEY")
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        # if not gemini_api_key:
+        #     raise ValueError("GEMINI_API_KEY not found in environment variables.")
+
+        if not groq_api_key:
             raise ValueError("GEMINI_API_KEY not found in environment variables.")
         
-        model_name = os.getenv("GEMINI_MODEL")
-        self.llm = ChatGoogleGenerativeAI(model=model_name, google_api_key=gemini_api_key, convert_system_message_to_human=True)
+        # model_name = os.getenv("GEMINI_MODEL")
+        model_name = os.getenv("GROQ_MODEL")
+        # self.llm = ChatGoogleGenerativeAI(model=model_name, google_api_key=gemini_api_key, version="v1", convert_system_message_to_human=True)
+        self.llm = ChatGroq(model=model_name, groq_api_key=groq_api_key)
 
-        logger.info("LangChain Google Gemini LLM configured.")
+
+        logger.info("LangChain LLM configured.")
 
         index_name = os.getenv("PINECONE_INDEX_NAME")
         self.embedder = EmbeddingGenerator()
@@ -184,7 +192,7 @@ class Chatbot:
     def generate_response(self, user_query: str, session_id: str) -> str:
         logger.info("Invoking the RAG chain...")
 
-        session_data = self._get_session_data(session_id)  
+        session_data = self._get_session_data(session_id)
 
         try:
             chain_input = {"user_query": user_query, "chat_history": session_data["messages"]}
