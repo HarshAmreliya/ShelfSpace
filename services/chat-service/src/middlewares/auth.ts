@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import axios from "axios";
 
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || "http://localhost:3001";
-const GROUP_SERVICE_URL = process.env.GROUP_SERVICE_URL || "http://localhost:3005";
+const FORUM_SERVICE_URL = process.env.FORUM_SERVICE_URL || "http://localhost:3005";
 
 export async function isAuthenticated(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
@@ -52,7 +52,7 @@ export async function isGroupMember(req: Request, res: Response, next: NextFunct
 
   try {
     const response = await axios.get(
-      `${GROUP_SERVICE_URL}/api/groups/${groupId}/members/${userId}/verify`
+      `${FORUM_SERVICE_URL}/api/forums/${groupId}/members/${userId}/verify`
     );
 
     if (response.status === 200 && response.data.isMember) {

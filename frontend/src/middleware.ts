@@ -12,6 +12,12 @@ export default withAuth(
     console.log("Backend verified:", token?.['backendVerified']);
     console.log("Is new user:", token?.['isNewUser']);
     console.log("Needs preferences:", token?.['needsPreferences']);
+    console.log("Access token expires:", token?.['accessTokenExpires']);
+
+    if (token?.['accessTokenExpires'] && Date.now() >= Number(token['accessTokenExpires'])) {
+      console.log("Blocking access - access token expired");
+      return NextResponse.redirect(new URL("/login?error=token_expired", req.url));
+    }
 
     // If user is not verified with backend, redirect to login
     if (!token?.['backendVerified']) {
@@ -51,7 +57,7 @@ export const config = {
     "/dashboard/:path*",
     "/library/:path*",
     "/discover/:path*",
-    "/groups/:path*",
+    "/forums/:path*",
     "/chat/:path*",
     "/settings/:path*",
     "/profile/:path*",

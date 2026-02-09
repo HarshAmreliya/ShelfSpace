@@ -46,11 +46,12 @@ services:
       - /app/dist
     environment:
       NODE_ENV: development
+      USER_SERVICE_URL: http://user-service:3001
     command: npm run dev
 
-  group-service:
+  forum-service:
     volumes:
-      - ./services/group-service:/app
+      - ./services/forum-service:/app
       - /app/node_modules
       - /app/dist
     environment:
@@ -75,10 +76,18 @@ services:
       NODE_ENV: development
     command: npm run dev
 
+  analytics-service:
+    volumes:
+      - ./services/analytics-service:/app
+      - /app/node_modules
+      - /app/dist
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+
   chatbot-service:
     volumes:
       - ./services/chatbot-service:/app
     environment:
       NODE_ENV: development
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
-

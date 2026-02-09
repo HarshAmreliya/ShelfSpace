@@ -24,7 +24,7 @@ describe('Group Service Integration Tests', () => {
   beforeAll(async () => {
     // Wait for services to be ready
     await waitForService(TEST_CONFIG.USER_SERVICE_URL);
-    await waitForService(TEST_CONFIG.GROUP_SERVICE_URL);
+    await waitForService(TEST_CONFIG.FORUM_SERVICE_URL);
     
     // Create test users
     testUser = await createTestUser(`test-user-${Date.now()}@example.com`, 'Test User');
@@ -35,15 +35,15 @@ describe('Group Service Integration Tests', () => {
     // Cleanup created group if it exists
     if (createdGroupId && testUser) {
       await cleanupTestData(
-        TEST_CONFIG.GROUP_SERVICE_URL,
-        `/api/groups/${createdGroupId}`,
+        TEST_CONFIG.FORUM_SERVICE_URL,
+        `/api/forums/${createdGroupId}`,
         testUser.token
       );
     }
     await cleanup();
   });
 
-  describe('POST /api/groups - Create Group', () => {
+  describe('POST /api/forums - Create Group', () => {
     it('should create a group when authenticated', async () => {
       const groupData = {
         name: `Test Group ${Date.now()}`,
@@ -52,7 +52,7 @@ describe('Group Service Integration Tests', () => {
 
       const response = await authenticatedRequest(
         'POST',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums`,
         testUser.token,
         groupData
       );
@@ -77,7 +77,7 @@ describe('Group Service Integration Tests', () => {
 
       const response = await unauthenticatedRequest(
         'POST',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums`,
         groupData
       );
 
@@ -85,11 +85,11 @@ describe('Group Service Integration Tests', () => {
     });
   });
 
-  describe('GET /api/groups - List Groups', () => {
+  describe('GET /api/forums - List Groups', () => {
     it('should return list of groups without authentication', async () => {
       const response = await unauthenticatedRequest(
         'GET',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups`
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums`
       );
 
       expect(response.status).toBe(200);
@@ -99,7 +99,7 @@ describe('Group Service Integration Tests', () => {
     it('should support pagination', async () => {
       const response = await unauthenticatedRequest(
         'GET',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups?limit=5&offset=0`
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums?limit=5&offset=0`
       );
 
       expect(response.status).toBe(200);
@@ -107,13 +107,13 @@ describe('Group Service Integration Tests', () => {
     });
   });
 
-  describe('GET /api/groups/:id - Get Group Details', () => {
+  describe('GET /api/forums/:id - Get Group Details', () => {
     it('should return group details without authentication', async () => {
       if (!createdGroupId) {
         // Create a group first
         const createResponse = await authenticatedRequest(
           'POST',
-          `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups`,
+          `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums`,
           testUser.token,
           {
             name: `Test Group ${Date.now()}`,
@@ -125,7 +125,7 @@ describe('Group Service Integration Tests', () => {
 
       const response = await unauthenticatedRequest(
         'GET',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}`
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}`
       );
 
       expect(response.status).toBe(200);
@@ -136,19 +136,19 @@ describe('Group Service Integration Tests', () => {
     it('should return 404 for non-existent group', async () => {
       const response = await unauthenticatedRequest(
         'GET',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/non-existent-id`
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/non-existent-id`
       );
 
       expect(response.status).toBe(404);
     });
   });
 
-  describe('PUT /api/groups/:id - Update Group', () => {
+  describe('PUT /api/forums/:id - Update Group', () => {
     it('should update group when user is admin', async () => {
       if (!createdGroupId) {
         const createResponse = await authenticatedRequest(
           'POST',
-          `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups`,
+          `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums`,
           testUser.token,
           {
             name: `Test Group ${Date.now()}`,
@@ -165,7 +165,7 @@ describe('Group Service Integration Tests', () => {
 
       const response = await authenticatedRequest(
         'PUT',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}`,
         testUser.token,
         updateData
       );
@@ -181,14 +181,14 @@ describe('Group Service Integration Tests', () => {
       // Join as second user
       await authenticatedRequest(
         'POST',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}/join`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}/join`,
         secondUser.token
       );
 
       // Try to update as non-admin
       const response = await authenticatedRequest(
         'PUT',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}`,
         secondUser.token,
         {
           name: 'Unauthorized Update',
@@ -199,12 +199,12 @@ describe('Group Service Integration Tests', () => {
     });
   });
 
-  describe('POST /api/groups/:id/join - Join Group', () => {
+  describe('POST /api/forums/:id/join - Join Group', () => {
     it('should allow user to join a group', async () => {
       if (!createdGroupId) {
         const createResponse = await authenticatedRequest(
           'POST',
-          `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups`,
+          `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums`,
           testUser.token,
           {
             name: `Test Group ${Date.now()}`,
@@ -216,7 +216,7 @@ describe('Group Service Integration Tests', () => {
 
       const response = await authenticatedRequest(
         'POST',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}/join`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}/join`,
         secondUser.token
       );
 
@@ -229,7 +229,7 @@ describe('Group Service Integration Tests', () => {
 
       const response = await authenticatedRequest(
         'POST',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}/join`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}/join`,
         secondUser.token
       );
 
@@ -239,25 +239,25 @@ describe('Group Service Integration Tests', () => {
     it('should require authentication', async () => {
       const response = await unauthenticatedRequest(
         'POST',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}/join`
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}/join`
       );
 
       expect(response.status).toBe(401);
     });
   });
 
-  describe('POST /api/groups/:id/leave - Leave Group', () => {
+  describe('POST /api/forums/:id/leave - Leave Group', () => {
     it('should allow user to leave a group', async () => {
       // First join the group
       await authenticatedRequest(
         'POST',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}/join`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}/join`,
         secondUser.token
       );
 
       const response = await authenticatedRequest(
         'POST',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}/leave`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}/leave`,
         secondUser.token
       );
 
@@ -267,20 +267,20 @@ describe('Group Service Integration Tests', () => {
     it('should require authentication', async () => {
       const response = await unauthenticatedRequest(
         'POST',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}/leave`
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}/leave`
       );
 
       expect(response.status).toBe(401);
     });
   });
 
-  describe('GET /api/groups/:id/members - Get Group Members', () => {
+  describe('GET /api/forums/:id/members - Get Group Members', () => {
     it('should return group members without authentication', async () => {
       if (!createdGroupId) return;
 
       const response = await unauthenticatedRequest(
         'GET',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}/members`
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}/members`
       );
 
       expect(response.status).toBe(200);
@@ -288,20 +288,20 @@ describe('Group Service Integration Tests', () => {
     });
   });
 
-  describe('GET /api/groups/:groupId/members/:userId/verify - Verify Membership', () => {
+  describe('GET /api/forums/:groupId/members/:userId/verify - Verify Membership', () => {
     it('should verify membership status', async () => {
       if (!createdGroupId) return;
 
       // Join as second user
       await authenticatedRequest(
         'POST',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}/join`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}/join`,
         secondUser.token
       );
 
       const response = await unauthenticatedRequest(
         'GET',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}/members/${secondUser.id}/verify`
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}/members/${secondUser.id}/verify`
       );
 
       expect(response.status).toBe(200);
@@ -313,19 +313,19 @@ describe('Group Service Integration Tests', () => {
 
       const response = await unauthenticatedRequest(
         'GET',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}/members/non-existent-user/verify`
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}/members/non-existent-user/verify`
       );
 
       expect(response.status).toBe(404);
     });
   });
 
-  describe('DELETE /api/groups/:id - Delete Group', () => {
+  describe('DELETE /api/forums/:id - Delete Group', () => {
     it('should delete group when user is admin', async () => {
       // Create a new group for deletion
       const createResponse = await authenticatedRequest(
         'POST',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums`,
         testUser.token,
         {
           name: `Group to Delete ${Date.now()}`,
@@ -336,7 +336,7 @@ describe('Group Service Integration Tests', () => {
 
       const response = await authenticatedRequest(
         'DELETE',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${groupToDelete}`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${groupToDelete}`,
         testUser.token
       );
 
@@ -348,7 +348,7 @@ describe('Group Service Integration Tests', () => {
 
       const response = await authenticatedRequest(
         'DELETE',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${createdGroupId}`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${createdGroupId}`,
         secondUser.token
       );
 

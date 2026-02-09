@@ -2,6 +2,24 @@ import { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { userService } from "@/lib/user-service";
 
+const USER_SERVICE_TOKEN_MAX_AGE_SECONDS = 6 * 60 * 60;
+
+function getJwtExpiryMs(token: string): number | null {
+  const parts = token.split(".");
+  if (parts.length < 2 || !parts[1]) return null;
+  try {
+    const payload = JSON.parse(
+      Buffer.from(parts[1], "base64url").toString("utf8")
+    ) as { exp?: number };
+    if (typeof payload.exp === "number") {
+      return payload.exp * 1000;
+    }
+  } catch (error) {
+    console.warn("[AUTH] Failed to decode token expiry:", error);
+  }
+  return null;
+}
+
 export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET!,
   providers: [
@@ -22,7 +40,10 @@ export const authOptions: AuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: USER_SERVICE_TOKEN_MAX_AGE_SECONDS,
+  },
+  jwt: {
+    maxAge: USER_SERVICE_TOKEN_MAX_AGE_SECONDS,
   },
   callbacks: {
     async signIn({ user, account }) {
@@ -67,10 +88,10 @@ export const authOptions: AuthOptions = {
         console.error("Error code:", error.code);
         console.error("Error response:", error.response?.data);
         
-        // Block sign in if backend is not available
-        console.error("[BLOCKED] Blocking sign in - backend user creation failed");
-        console.error("=== SIGNIN CALLBACK END (Failed) ===\n\n");
-        return false;
+        // Allow sign in to complete; middleware/session will handle unverified users
+        console.error("[WARNING] Backend user creation failed; allowing sign in to complete");
+        console.error("=== SIGNIN CALLBACK END (Unverified) ===\n\n");
+        return true;
       }
     },
 
@@ -80,6 +101,16 @@ export const authOptions: AuthOptions = {
       console.log("Has user:", !!user);
       console.log("Has account:", !!account);
       console.log("Token email:", token.email);
+
+      const accessTokenExpires = token["accessTokenExpires"] as number | undefined;
+      if (!account && !user && accessTokenExpires && Date.now() >= accessTokenExpires) {
+        console.warn("[AUTH] Access token expired; marking session as invalid");
+        token["error"] = "TokenExpired";
+        token["backendVerified"] = false;
+        token["token"] = undefined;
+        token["accessToken"] = undefined;
+        return token;
+      }
       
       // Handle session update from client (e.g., after onboarding)
       if (trigger === "update" && session) {
@@ -118,11 +149,13 @@ export const authOptions: AuthOptions = {
           // Store all necessary data in the token
           token['accessToken'] = userData.token;
           token['token'] = userData.token;
+          token['accessTokenExpires'] = getJwtExpiryMs(userData.token);
           token['userId'] = userData.user.id;
           token['isNewUser'] = userData.isNewUser;
           token['needsPreferences'] = userData.needsPreferences;
           token['user'] = userData.user;
           token['backendVerified'] = true;
+          token['error'] = undefined;
           
           console.log("[SUCCESS] Token updated successfully with backend data");
         } catch (error: any) {
@@ -147,11 +180,13 @@ export const authOptions: AuthOptions = {
           console.log("[SUCCESS] Existing user verified with backend");
           token['accessToken'] = userData.token;
           token['token'] = userData.token;
+          token['accessTokenExpires'] = getJwtExpiryMs(userData.token);
           token['userId'] = userData.user.id;
           token['isNewUser'] = userData.isNewUser;
           token['needsPreferences'] = userData.needsPreferences;
           token['user'] = userData.user;
           token['backendVerified'] = true;
+          token['error'] = undefined;
         } catch (error: any) {
           console.error("[WARNING] Could not verify existing user:", error.message);
           token['backendVerified'] = false;
@@ -179,11 +214,21 @@ export const authOptions: AuthOptions = {
       console.log("\n=== SESSION CALLBACK START ===");
       console.log("Token userId:", token['userId']);
       console.log("Token backendVerified:", token['backendVerified']);
+
+      const accessTokenExpires = token["accessTokenExpires"] as number | undefined;
+      if (token["error"] === "TokenExpired" || (accessTokenExpires && Date.now() >= accessTokenExpires)) {
+        console.error("[ERROR] Session created with expired token");
+        session.backendVerified = false as boolean;
+        delete session.accessToken;
+        session.error = "TokenExpired";
+        return session;
+      }
       
-      // Only allow session if backend verified
+      // Do not throw here; let middleware handle unverified tokens gracefully
       if (!token['backendVerified']) {
-        console.error("[ERROR] Session blocked - backend not verified");
-        throw new Error("User not verified with backend");
+        console.error("[ERROR] Session created with unverified backend");
+        session.backendVerified = false as boolean;
+        return session;
       }
       
       // Populate session with backend data

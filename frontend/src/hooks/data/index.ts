@@ -6,6 +6,11 @@ export { useReadingLists } from './useReadingLists';
 // Note: useLibraryActions is not exported here to avoid conflict with hooks/library/useLibraryActions
 // It can be imported directly if needed: import { useLibraryActions } from './data/useLibraryActions';
 export { useModerationLogs, useBookValidation, useUserManagement } from './useAdmin';
-export { useGroupChat } from './useGroupChat';
-export { useGroups } from './useGroups';
+export { useForumChat } from './useForumChat';
+export { useForums } from './useForums';
+export { useForumThreads } from './useForumThreads';
+export { useForumPosts } from './useForumPosts';
+export { useForumMembership } from './useForumMembership';
+export { useForumAdmin } from './useForumAdmin';
 export { useReviews } from './useReviews';
+export { useUserReviews } from './useUserReviews';

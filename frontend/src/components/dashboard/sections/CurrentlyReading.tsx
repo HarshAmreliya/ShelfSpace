@@ -137,10 +137,19 @@ export function CurrentlyReading() {
               <div className="flex items-start space-x-4">
                 {/* Book Cover */}
                 <div className="flex-shrink-0">
-                  <div className="w-16 h-20 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg flex items-center justify-center">
-                    <FloatingElement className="text-2xl">
-                      {book.cover}
-                    </FloatingElement>
+                  <div className="w-16 h-20 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg flex items-center justify-center overflow-hidden">
+                    {book.cover ? (
+                      <img
+                        src={book.cover}
+                        alt={`Cover of ${book.title}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <FloatingElement className="text-2xl">
+                        <BookOpen className="h-7 w-7 text-amber-600 dark:text-amber-300" />
+                      </FloatingElement>
+                    )}
                   </div>
                 </div>
 

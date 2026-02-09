@@ -75,7 +75,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/reviews", reviewRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 app.get("/", (req, res) => {
   res.send("Review service is running!");

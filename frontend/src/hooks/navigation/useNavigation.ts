@@ -102,11 +102,11 @@ export function useNavigation(): UseNavigationReturn {
         ariaLabel: "Discover new books",
       },
       {
-        name: "Groups",
-        href: "/groups",
+        name: "Forums",
+        href: "/forums",
         icon: "Users",
         badge: 3,
-        ariaLabel: "Join reading groups",
+        ariaLabel: "Join reading forums",
       },
       {
         name: "Settings",

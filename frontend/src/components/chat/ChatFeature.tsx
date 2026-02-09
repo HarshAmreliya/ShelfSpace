@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { ChatErrorFallback } from "@/components/common/ErrorFallbacks/ChatErrorFallback";
 import { useChatState } from "@/hooks/chat/useChatState";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useSession } from "next-auth/react";
+import { chatService, type ChatSession } from "@/lib/chat-service";
 import { Send, Trash2, BookOpen, User, Menu, X, History } from "lucide-react";
 
 export interface ChatFeatureProps {
@@ -23,16 +25,59 @@ export function ChatFeature({ className }: ChatFeatureProps) {
   } = useChatState();
 
   const { actualTheme: _actualTheme } = useTheme();
+  const { data: session } = useSession();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  // TODO: Fetch chat history from API
-  // For now, show empty state or recent conversations
-  const chatHistory: Array<{
+  const [chatHistory, setChatHistory] = useState<Array<{
     id: number;
     title: string;
     preview: string;
     timestamp: string;
-  }> = [];
+  }>>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadChatHistory = async () => {
+      if (!session?.accessToken) {
+        setChatHistory([]);
+        return;
+      }
+
+      try {
+        const sessions = await chatService.getSessions(session.accessToken, {
+          limit: 20,
+          includePinned: true,
+        });
+
+        if (!isMounted) return;
+
+        setChatHistory(
+          (Array.isArray(sessions) ? sessions : []).map((s: ChatSession, index) => ({
+            id: index,
+            title: s.title || "Chat Session",
+            preview: s.messageCount
+              ? `${s.messageCount} messages`
+              : "Recent conversation",
+            timestamp: s.lastMessageAt
+              ? new Date(s.lastMessageAt).toLocaleString()
+              : "Recently",
+          }))
+        );
+      } catch (error) {
+        console.error("Failed to load chat history:", error);
+        if (isMounted) {
+          setChatHistory([]);
+        }
+      }
+    };
+
+    loadChatHistory();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session?.accessToken]);
 
   return (
     <ErrorBoundary fallback={ChatErrorFallback}>
@@ -322,7 +367,7 @@ export function ChatFeature({ className }: ChatFeatureProps) {
                           }
                         }}
                         placeholder="Ask ShelfAI about books, writing, or literary topics..."
-                        className="w-full px-4 py-3 border border-amber-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 resize-none min-h-[50px] max-h-32 shadow-sm"
+                        className="w-full px-4 py-3 border border-amber-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 resize-none min-h-[50px] max-h-32 shadow-sm"
                         disabled={isLoading}
                         rows={1}
                       />

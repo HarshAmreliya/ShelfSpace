@@ -51,7 +51,7 @@ export function useNavigationState() {
       { id: "dashboard", label: "Dashboard", icon: "Home" },
       { id: "library", label: "Library", icon: "BookOpen" },
       { id: "discover", label: "Discover", icon: "Compass" },
-      { id: "groups", label: "Groups", icon: "Users" },
+      { id: "forums", label: "Forums", icon: "Users" },
       { id: "chat", label: "AI Assistant", icon: "MessageCircle" },
       { id: "profile", label: "Profile", icon: "User" },
       { id: "settings", label: "Settings", icon: "Settings" },

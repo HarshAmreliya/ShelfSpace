@@ -9,6 +9,12 @@ import {
 } from "../../../types/models";
 import { useReadingLists } from "../data/useReadingLists";
 import { bookService } from "@/lib/book-service";
+import {
+  getDashboardSummary,
+  getActivityTimeline,
+  type DashboardSummary,
+  type ActivityTimelineResponse,
+} from "@/lib/analytics-service";
 
 interface CacheEntry<T> {
   data: T;
@@ -49,6 +55,13 @@ export function useDashboardData() {
     readingTime: 0,
     readingGoal: 52,
     activeGroups: 0,
+    booksRead: 0,
+    currentlyReading: 0,
+    wantToRead: 0,
+    currentStreak: 0,
+    averageRating: 0,
+    totalPages: 0,
+    favoriteGenre: "N/A",
   });
   const [isLoading, setIsLoading] = useState(true);
   const [lastFetch, setLastFetch] = useState<number>(0);
@@ -78,13 +91,19 @@ export function useDashboardData() {
         const cachedRecentActivity =
           getCachedData<Activity[]>("recentActivity");
         const cachedStats = getCachedData<typeof stats>("stats");
+        const cachedSummary =
+          getCachedData<DashboardSummary>("dashboardSummary");
+        const cachedActivityTimeline =
+          getCachedData<ActivityTimelineResponse["activity"]>("activityTimeline");
 
         if (
           cachedCurrentlyReading &&
           cachedRecommendations &&
           cachedReadingGroups &&
           cachedRecentActivity &&
-          cachedStats
+          cachedStats &&
+          cachedSummary &&
+          cachedActivityTimeline
         ) {
           setCurrentlyReading(cachedCurrentlyReading);
           setRecommendations(cachedRecommendations);
@@ -128,24 +147,36 @@ export function useDashboardData() {
         console.error('Error fetching recommendations:', err);
       }
 
-      // Calculate stats from reading lists
-      let totalBooks = 0;
-      let totalPages = 0;
-      readingLists?.forEach((list: any) => {
-        const books = list.books || [];
-        totalBooks += books.length;
-        books.forEach((book: any) => {
-          if (book.pages) totalPages += book.pages;
-        });
-      });
+      // Fetch analytics summary + activity timeline
+      let summaryData: DashboardSummary = {
+        totalBooks: 0,
+        booksRead: 0,
+        currentlyReading: 0,
+        wantToRead: 0,
+        readingGoal: 52,
+        currentStreak: 0,
+        averageRating: 0,
+        totalPages: 0,
+        readingTime: 0,
+        favoriteGenre: "N/A",
+      };
+      let activityTimeline: ActivityTimelineResponse["activity"] = [];
+      try {
+        const [summary, activity] = await Promise.all([
+          getDashboardSummary(),
+          getActivityTimeline(),
+        ]);
+        summaryData = summary;
+        activityTimeline = activity.activity || [];
+      } catch (err) {
+        console.error("Error fetching analytics data:", err);
+      }
 
-      const readingTime = Math.round(totalPages * 2 / 60); // Estimate hours
-
-      // Fetch groups from GroupService
+      // Fetch groups from ForumService
       let groupsData: ReadingGroup[] = [];
       try {
-        const { GroupService } = await import("@/lib/group-service");
-        const groupsResponse = await GroupService.list({ limit: 10, offset: 0 });
+        const { ForumService } = await import("@/lib/forum-service");
+        const groupsResponse = await ForumService.list({ limit: 10, offset: 0 });
         groupsData = groupsResponse.map((g: any) => ({
           id: g.id,
           name: g.name,
@@ -161,9 +192,7 @@ export function useDashboardData() {
 
       // Calculate stats after groups are fetched
       const statsData = {
-        totalBooks,
-        readingTime,
-        readingGoal: 52, // Default goal
+        ...summaryData,
         activeGroups: groupsData.length,
       };
 
@@ -176,13 +205,15 @@ export function useDashboardData() {
       setCachedData("currentlyReading", currentlyReadingBooks);
       setCachedData("recommendations", recommendationsData);
       setCachedData("readingGroups", groupsData);
-      setCachedData("recentActivity", []);
+      setCachedData("recentActivity", activityTimeline as any);
       setCachedData("stats", statsData);
+      setCachedData("dashboardSummary", summaryData);
+      setCachedData("activityTimeline", activityTimeline);
 
       setCurrentlyReading(currentlyReadingBooks as any);
       setRecommendations(recommendationsData);
       setReadingGroups(groupsData);
-      setRecentActivity([]);
+      setRecentActivity(activityTimeline as any);
       setStats(statsData);
       setLastFetch(Date.now());
       setIsLoading(false);

@@ -11,7 +11,7 @@ services:
       - frontend
       - user-service
       - review-service
-      - group-service
+      - forum-service
       - chat-service
       - admin-service
       - user-library-service
@@ -31,8 +31,8 @@ services:
     networks:
       - shelfspace-net
 
-  group-service:
-    build: ./services/group-service
+  forum-service:
+    build: ./services/forum-service
     networks:
       - shelfspace-net
 

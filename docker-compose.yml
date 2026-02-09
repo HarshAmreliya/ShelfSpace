@@ -16,7 +16,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./services/user-service/prisma:/docker-entrypoint-initdb.d/user-service
       - ./services/review-service/prisma:/docker-entrypoint-initdb.d/review-service
-      - ./services/group-service/prisma:/docker-entrypoint-initdb.d/group-service
+      - ./services/forum-service/prisma:/docker-entrypoint-initdb.d/forum-service
       - ./services/chat-service/prisma:/docker-entrypoint-initdb.d/chat-service
       - ./services/admin-service/prisma:/docker-entrypoint-initdb.d/admin-service
     ports:
@@ -95,11 +95,13 @@ services:
         condition: service_healthy
       review-service:
         condition: service_healthy
-      group-service:
+      forum-service:
         condition: service_healthy
       chat-service:
         condition: service_healthy
       admin-service:
+        condition: service_healthy
+      analytics-service:
         condition: service_healthy
       user-library-service:
         condition: service_healthy
@@ -166,6 +168,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET environment variable is required}
       LIBRARY_SERVICE_URL: http://user-library-service:3003
       REDIS_URL: redis://redis:6379
+      ANALYTICS_SERVICE_URL: http://analytics-service:3008
     networks:
       - shelfspace-net
     depends_on:
@@ -192,8 +195,10 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3002
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-shelfspace}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-shelfspace}_reviews
       USER_SERVICE_URL: http://user-service:3001
+      ANALYTICS_SERVICE_URL: http://analytics-service:3008
+      BOOK_SERVICE_URL: http://book-service:3004
     networks:
       - shelfspace-net
     depends_on:
@@ -223,6 +228,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-shelfspace}
       USER_SERVICE_URL: http://user-service:3001
       BOOK_SERVICE_URL: http://book-service:3004
+      ANALYTICS_SERVICE_URL: http://analytics-service:3008
     networks:
       - shelfspace-net
     depends_on:
@@ -252,6 +258,10 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3004
       MONGO_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/${MONGO_DATABASE:-books}?authSource=admin
+      USER_SERVICE_URL: http://user-service:3001
+      ANALYTICS_SERVICE_URL: http://analytics-service:3008
+    ports:
+      - "3004:3004"
     networks:
       - shelfspace-net
     depends_on:
@@ -268,16 +278,17 @@ services:
       - prod
     restart: unless-stopped
 
-  group-service:
+  forum-service:
     build:
-      context: ./services/group-service
+      context: ./services/forum-service
       dockerfile: Dockerfile
-    container_name: shelfspace-group-service
+    container_name: shelfspace-forum-service
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3005
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-shelfspace}
       USER_SERVICE_URL: http://user-service:3001
+      ANALYTICS_SERVICE_URL: http://analytics-service:3008
     networks:
       - shelfspace-net
     depends_on:
@@ -306,9 +317,10 @@ services:
       PORT: 3006
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-shelfspace}
       USER_SERVICE_URL: http://user-service:3001
-      GROUP_SERVICE_URL: http://group-service:3005
+      FORUM_SERVICE_URL: http://forum-service:3005
       REDIS_URL: redis://redis:6379
       ALLOWED_ORIGINS: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      ANALYTICS_SERVICE_URL: http://analytics-service:3008
     networks:
       - shelfspace-net
     depends_on:
@@ -318,7 +330,7 @@ services:
         condition: service_healthy
       user-service:
         condition: service_healthy
-      group-service:
+      forum-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3006/health"]
@@ -341,6 +353,7 @@ services:
       PORT: 3007
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-shelfspace}
       USER_SERVICE_URL: http://user-service:3001
+      ANALYTICS_SERVICE_URL: http://analytics-service:3008
     networks:
       - shelfspace-net
     depends_on:
@@ -350,6 +363,35 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - dev
+      - prod
+    restart: unless-stopped
+
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+      dockerfile: Dockerfile
+    container_name: shelfspace-analytics-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3008
+      MONGO_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/${MONGO_ANALYTICS_DB:-analytics}?authSource=admin
+      MONGO_DB: ${MONGO_ANALYTICS_DB:-analytics}
+      USER_SERVICE_URL: http://user-service:3001
+    networks:
+      - shelfspace-net
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3008/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -369,6 +411,7 @@ services:
       PINECONE_API_KEY: ${PINECONE_API_KEY:?PINECONE_API_KEY environment variable is required}
       PINECONE_ENV: ${PINECONE_ENV:?PINECONE_ENV environment variable is required}
       PINECONE_INDEX_NAME: ${PINECONE_INDEX_NAME:-shelfspace-books}
+      ANALYTICS_SERVICE_URL: http://analytics-service:3008
     networks:
       - shelfspace-net
     healthcheck:
@@ -401,4 +444,3 @@ volumes:
 networks:
   shelfspace-net:
     driver: bridge
-

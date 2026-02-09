@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo } from 'react';
 import { AnimatedCard, StaggerContainer, StaggerItem, FloatingElement } from '@/components/ui';
 import { Clock, BookOpen, Star, Heart, Users, Trophy, BookMarked, Plus } from 'lucide-react';
-import { useReadingLists } from '@/hooks/data/useReadingLists';
+import { useActivityTimelineData } from '@/hooks/data/useAnalytics';
 
 interface ActivityItem {
   id: string;
@@ -47,116 +46,33 @@ function formatTimeAgo(date: Date): string {
 }
 
 export function ActivityTimeline() {
-  const { data: readingLists } = useReadingLists({ includeBooks: true });
-  
-  // Generate activities from reading lists and books
-  const activities = useMemo(() => {
-    const items: ActivityItem[] = [];
-    
-    if (!readingLists) return items;
-    
-    // Collect all books with their timestamps
-    readingLists.forEach((list: any) => {
-      const books = list.books || [];
-      const listName = list.name.toLowerCase();
-      
-      books.forEach((book: any) => {
-        if (!book.addedAt) return;
-        
-        const addedDate = new Date(book.addedAt);
-        const isFinished = listName.includes('finished') || listName.includes('read') || listName.includes('completed');
-        const isCurrentlyReading = listName.includes('currently') || listName.includes('reading');
-        const isWantToRead = listName.includes('want') || listName.includes('wish');
-        
-        if (isFinished) {
-          items.push({
-            id: `read-${book.id}`,
-            type: 'read',
-            title: 'Finished Reading',
-            description: `Completed "${book.title}"`,
-            time: formatTimeAgo(addedDate),
-            timestamp: addedDate,
-            icon: 'check',
-            color: 'from-green-400 to-emerald-500',
-            book: {
-              title: book.title || 'Unknown',
-              author: book.author || 'Unknown',
-              cover: book.coverImage || book.cover || '',
-            },
-            metadata: {
-              pages: book.pages,
-              genre: book.genres?.[0],
-            },
-          });
-        } else if (isCurrentlyReading) {
-          items.push({
-            id: `started-${book.id}`,
-            type: 'started',
-            title: 'Started Reading',
-            description: `Began "${book.title}"`,
-            time: formatTimeAgo(addedDate),
-            timestamp: addedDate,
-            icon: 'book',
-            color: 'from-blue-400 to-indigo-500',
-            book: {
-              title: book.title || 'Unknown',
-              author: book.author || 'Unknown',
-              cover: book.coverImage || book.cover || '',
-            },
-            metadata: {
-              genre: book.genres?.[0],
-            },
-          });
-        } else if (isWantToRead) {
-          items.push({
-            id: `added-${book.id}`,
-            type: 'added',
-            title: 'Added to Wishlist',
-            description: `Added "${book.title}" to your reading list`,
-            time: formatTimeAgo(addedDate),
-            timestamp: addedDate,
-            icon: 'heart',
-            color: 'from-pink-400 to-rose-500',
-            book: {
-              title: book.title || 'Unknown',
-              author: book.author || 'Unknown',
-              cover: book.coverImage || book.cover || '',
-            },
-          });
-        }
-        
-        // Add rating activity if book has rating
-        if (book.rating && book.rating >= 1 && book.rating <= 5) {
-          items.push({
-            id: `rated-${book.id}`,
-            type: 'rated',
-            title: `Rated ${book.rating} Stars`,
-            description: `Gave "${book.title}" a ${book.rating}-star rating`,
-            time: formatTimeAgo(addedDate), // Using addedAt as proxy for rating time
-            timestamp: addedDate,
-            icon: 'star',
-            color: 'from-yellow-400 to-amber-500',
-            book: {
-              title: book.title || 'Unknown',
-              author: book.author || 'Unknown',
-              cover: book.coverImage || book.cover || '',
-            },
-            metadata: {
-              rating: book.rating,
-            },
-          });
-        }
-      });
-    });
-    
-    // Sort by timestamp (newest first) and limit to most recent
-    return items
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-      .slice(0, 20); // Show last 20 activities
-  }, [readingLists]);
+  const { data } = useActivityTimelineData();
+  const activities: ActivityItem[] = (data?.activity || []).map((item: any) => {
+    const baseActivity = {
+      id: item.id,
+      type: item.type,
+      title: item.title,
+      description: item.description,
+      time: formatTimeAgo(new Date(item.timestamp)),
+      timestamp: new Date(item.timestamp),
+      icon: item.type,
+      color: '',
+      metadata: item.metadata,
+    };
 
-  // Note: For reviews created separately, we'd need to fetch reviews and add them
-  // For now, we show activities from reading list changes
+    if (item.metadata?.title || item.metadata?.author) {
+      return {
+        ...baseActivity,
+        book: {
+          title: item.metadata?.title || 'Unknown',
+          author: item.metadata?.author || 'Unknown',
+          cover: '',
+        },
+      };
+    }
+
+    return baseActivity;
+  });
 
   const getActivityIcon = (type: ActivityItem['type']) => {
     const icons = {

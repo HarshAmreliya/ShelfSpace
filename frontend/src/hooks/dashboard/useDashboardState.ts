@@ -82,15 +82,19 @@ export function useDashboardState() {
 
   const statsData = useMemo(() => {
     return {
-      ...stats,
       totalBooks: stats?.totalBooks || 0,
-      booksRead:
-        recentActivity?.filter((activity) => activity.type === "finished_book")
-          .length || 0,
-      readingStreak: 7, // This would come from actual data
-      averageRating: 4.2, // This would be calculated from user ratings
+      booksRead: stats?.booksRead || 0,
+      currentlyReading: stats?.currentlyReading || 0,
+      wantToRead: stats?.wantToRead || 0,
+      readingGoal: stats?.readingGoal || 52,
+      readingTime: stats?.readingTime || 0,
+      currentStreak: stats?.currentStreak || 0,
+      averageRating: stats?.averageRating || 0,
+      totalPages: stats?.totalPages || 0,
+      favoriteGenre: stats?.favoriteGenre || "N/A",
+      activeGroups: stats?.activeGroups || 0,
     };
-  }, [stats, recentActivity]);
+  }, [stats]);
 
   return {
     // State

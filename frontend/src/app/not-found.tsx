@@ -82,10 +82,10 @@ export default function NotFound() {
               AI Chat
             </Link>
             <Link
-              href="/groups"
+              href="/forums"
               className="px-4 py-2 bg-white dark:bg-gray-700 hover:bg-indigo-dye-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors duration-200 text-sm font-medium"
             >
-              Groups
+              Forums
             </Link>
             <Link
               href="/settings"

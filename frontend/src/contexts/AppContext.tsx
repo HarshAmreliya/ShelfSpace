@@ -8,6 +8,7 @@ import {
   useCallback,
   ReactNode,
   useEffect,
+  useRef,
 } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { AppState, AppActions } from "@/types/state";
@@ -107,6 +108,7 @@ export function AppProvider({ children, initialUser }: AppProviderProps) {
   });
 
   const { data: session, status } = useSession();
+  const hasSignedOutRef = useRef(false);
 
   // Actions
   const actions: AppActions = {
@@ -202,6 +204,14 @@ export function AppProvider({ children, initialUser }: AppProviderProps) {
       dispatch({ type: "SET_AUTHENTICATED", payload: false });
     }
   }, [session, status]);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    if (session?.error !== "TokenExpired") return;
+    if (hasSignedOutRef.current) return;
+    hasSignedOutRef.current = true;
+    actions.signOut();
+  }, [actions.signOut, session?.error, status]);
 
   // Initialize theme on mount
   useEffect(() => {

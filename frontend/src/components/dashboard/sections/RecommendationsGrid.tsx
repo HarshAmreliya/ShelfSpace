@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AnimatedCard, StaggerContainer, StaggerItem, FloatingElement, GradientProgressBar } from '@/components/ui';
 import {
   Star,
@@ -9,8 +9,6 @@ import {
   Plus,
   Sparkles
 } from 'lucide-react';
-import { bookService } from '@/lib/book-service';
-import { Book } from '@/types/book';
 
 interface Recommendation {
   id: string;
@@ -28,57 +26,11 @@ interface Recommendation {
   isBookClubPick?: boolean;
 }
 
-// Transform Book to Recommendation format
-function transformBookToRecommendation(book: Book, index: number): Recommendation {
-  return {
-    id: book.id,
-    title: book.title,
-    author: book.author,
-    cover: book.coverImage || book.cover || '',
-    rating: book.averageRating || book.rating || 0,
-    genre: book.genres?.[0] || 'General',
-    pages: book.pages || 0,
-    description: book.description || '',
-    reason: `Based on your reading preferences and genre interests`,
-    matchScore: 85 + (index % 10), // Placeholder match score
-    isNewRelease: index % 3 === 0,
-    isTrending: index % 4 === 0,
-    isBookClubPick: index % 5 === 0,
-  };
-}
-
 export function RecommendationsGrid() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchRecommendations = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Fetch books from API - using a general search or recent books
-        const response = await bookService.getBooks({ 
-          page: 1, 
-          limit: 6,
-          sortBy: 'desc' 
-        });
-        const transformed = response.data.map((book, index) => 
-          transformBookToRecommendation(book, index)
-        );
-        setRecommendations(transformed);
-      } catch (err: any) {
-        console.error('Error fetching recommendations:', err);
-        setError('Failed to load recommendations');
-        setRecommendations([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRecommendations();
-  }, []);
+  const [recommendations] = useState<Recommendation[]>([]);
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
 
   const toggleFavorite = (id: string) => {
     setFavorites(prev => {
@@ -100,7 +52,7 @@ export function RecommendationsGrid() {
             Personalized Recommendations
           </h3>
           <p className="text-sm text-gray-600 dark:text-slate-300 italic">
-            Curated just for you by our AI
+            Personalized recommendations coming soon.
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -125,7 +77,7 @@ export function RecommendationsGrid() {
 
       {!loading && !error && recommendations.length === 0 && (
         <div className="text-center py-8 text-gray-600 dark:text-slate-400">
-          No recommendations available at the moment.
+          Personalized recommendations coming soon.
         </div>
       )}
 
@@ -141,10 +93,19 @@ export function RecommendationsGrid() {
             >
               {/* Book cover and badges */}
               <div className="relative mb-4">
-                <div className="flex items-center justify-center w-16 h-20 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg mx-auto">
-                  <FloatingElement className="text-3xl">
-                    {book.cover}
-                  </FloatingElement>
+                <div className="flex items-center justify-center w-16 h-20 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg mx-auto overflow-hidden">
+                  {book.cover ? (
+                    <img
+                      src={book.cover}
+                      alt={`Cover of ${book.title}`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <FloatingElement className="text-3xl">
+                      <BookOpen className="h-8 w-8 text-amber-600 dark:text-amber-300" />
+                    </FloatingElement>
+                  )}
                 </div>
                 
                 {/* Badges */}
@@ -242,13 +203,14 @@ export function RecommendationsGrid() {
       </StaggerContainer>
       )}
 
-      {/* Load more recommendations */}
-      <div className="mt-6 text-center">
-        <button className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium rounded-lg transition-all transform hover:scale-105 shadow-lg">
-          <Sparkles className="h-4 w-4" />
-          <span>Get More Recommendations</span>
-        </button>
-      </div>
+      {recommendations.length > 0 && (
+        <div className="mt-6 text-center">
+          <button className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium rounded-lg transition-all transform hover:scale-105 shadow-lg">
+            <Sparkles className="h-4 w-4" />
+            <span>Get More Recommendations</span>
+          </button>
+        </div>
+      )}
     </AnimatedCard>
   );
 }

@@ -14,8 +14,71 @@ import { z } from "zod";
 import { updateUserStatusSchema } from "../schemas.js";
 import axios from "axios";
 import * as cache from "../utils/cache.js";
+import { emitAnalyticsEvents } from "../utils/analytics.js";
 
 const router = express.Router();
+
+// Public profile lookup by userId
+router.get(
+  "/users/:userId/public",
+  async (
+    req: Request<{ userId: string }>,
+    res: Response<{ id: string; name?: string; avatarUrl?: string | null; bio?: string | null; isPublic: boolean }>
+  ) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.params.userId },
+        select: {
+          id: true,
+          name: true,
+          avatarUrl: true,
+          bio: true,
+          isPublic: true,
+        },
+      });
+      if (!user) {
+        res.status(404).json({ error: "User not found" } as any);
+        return;
+      }
+
+      res.json({
+        id: user.id,
+        name: user.name || undefined,
+        avatarUrl: user.avatarUrl,
+        bio: user.isPublic ? user.bio : null,
+        isPublic: user.isPublic,
+      });
+    } catch (error) {
+      console.error("Error fetching public user profile:", error);
+      res.status(500).json({ error: "Internal server error" } as any);
+    }
+  }
+);
+
+// Authenticated profile lookup by userId (returns name even if profile is private)
+router.get(
+  "/users/:userId/lookup",
+  isAuthenticated,
+  async (
+    req: Request<{ userId: string }>,
+    res: Response<{ id: string; name: string | null }>
+  ) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.params.userId },
+        select: { id: true, name: true },
+      });
+      if (!user) {
+        res.status(404).json({ error: "User not found" } as any);
+        return;
+      }
+      res.json({ id: user.id, name: user.name || null });
+    } catch (error) {
+      console.error("Error fetching user lookup:", error);
+      res.status(500).json({ error: "Internal server error" } as any);
+    }
+  }
+);
 
 // Create the user
 router.post(
@@ -88,6 +151,18 @@ router.post(
         isNewUser: true,
         needsPreferences: true
       });
+
+      await emitAnalyticsEvents(
+        req as Request,
+        [
+          {
+            type: "USER_CREATED",
+            userId: user.id,
+            payload: { targetUserId: user.id },
+          },
+        ],
+        `Bearer ${token}`
+      );
     } catch (error) {
       console.error("Error creating/finding user:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -95,7 +170,7 @@ router.post(
   }
 );
 
-router.get("/:userId", async (req: Request, res: Response) => {
+router.get("/public/:userId", async (req: Request, res: Response) => {
   try {
     const userId = req.params.userId as string;
     const user = await prisma.user.findUnique({
@@ -142,6 +217,13 @@ router.patch(
       await cache.del(cache.cacheKeys.user(req.userId!));
       
       res.json(updatedUser);
+
+      await emitAnalyticsEvents(req as Request, [
+        {
+          type: "USER_PROFILE_UPDATED",
+          userId: req.userId,
+        },
+      ]);
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -249,6 +331,13 @@ router.put(
       await cache.del(cache.cacheKeys.user(req.userId!)); // Also invalidate user cache
       
       res.json(updatedPreferences);
+
+      await emitAnalyticsEvents(req as Request, [
+        {
+          type: "USER_PREFERENCES_UPDATED",
+          userId: req.userId,
+        },
+      ]);
     } catch (error) {
       console.error("Error updating preferences:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -310,6 +399,17 @@ router.put(
         data: { status: parseResult.data.status },
       });
       res.json(updatedUser);
+
+      await emitAnalyticsEvents(req as Request, [
+        {
+          type: "USER_STATUS_UPDATED",
+          userId: req.userId,
+          payload: {
+            targetUserId: userId,
+            status: parseResult.data.status,
+          },
+        },
+      ]);
     } catch (error) {
       console.error("Error updating user status:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -331,6 +431,14 @@ router.put(
         where: { userId },
       });
       res.status(200).json({ message: "User preferences reset successfully." });
+
+      await emitAnalyticsEvents(req as Request, [
+        {
+          type: "USER_PREFERENCES_RESET",
+          userId: req.userId,
+          payload: { targetUserId: userId },
+        },
+      ]);
     } catch (error) {
       console.error("Error resetting user preferences:", error);
       res.status(500).json({ error: "Internal server error" });

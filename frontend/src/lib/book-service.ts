@@ -1,8 +1,5 @@
-import axios from "axios";
-import { getSession } from "next-auth/react";
-
-// Book service API client
-const BOOK_SERVICE_BASE_URL = "/api/books";
+import { createApiClient } from "./api";
+import { getErrorMessage } from "./api-utils";
 
 // Backend book response structure
 interface BackendBook {
@@ -12,13 +9,17 @@ interface BackendBook {
   authors: Array<{ name: string; role?: string }>;
   image_url?: string;
   published_year?: number;
+  publication_year?: string;
   published_date?: string;
   publisher?: string;
   language?: string;
+  language_code?: string;
   genres?: string[];
   isbn?: string;
+  isbn13?: string;
   description?: string;
   pages?: number;
+  num_pages?: number;
   rating?: number;
   average_rating?: number;
   ratings_count?: number;
@@ -72,30 +73,60 @@ interface PaginatedBooksResponse {
 
 // Transform backend book to frontend book format
 function transformBook(backendBook: BackendBook): Book {
+  const coverUrlRaw = backendBook.image_url || "";
+  const coverUrl = coverUrlRaw.startsWith("http://")
+    ? coverUrlRaw.replace("http://", "https://")
+    : coverUrlRaw;
+
   // Get first author name or "Unknown"
   const authorName =
     backendBook.authors && backendBook.authors.length > 0
       ? backendBook.authors.map((a) => a.name).join(", ")
       : "Unknown Author";
 
+  const publishedYear =
+    backendBook.published_year ||
+    (backendBook.publication_year
+      ? parseInt(backendBook.publication_year, 10)
+      : 0);
+
+  const pages =
+    backendBook.pages ||
+    (typeof backendBook.num_pages === "number" ? backendBook.num_pages : 0);
+
+  const averageRating =
+    typeof backendBook.average_rating === "number"
+      ? backendBook.average_rating
+      : 0;
+
+  const rating =
+    typeof backendBook.rating === "number"
+      ? backendBook.rating
+      : averageRating;
+
+  const ratingsCount =
+    typeof backendBook.ratings_count === "number"
+      ? backendBook.ratings_count
+      : 0;
+
   return {
     id: backendBook.book_id || backendBook._id,
     title: backendBook.title || "Untitled",
     author: authorName,
-    isbn: backendBook.isbn || "",
-    publishedYear: backendBook.published_year || 0,
+    isbn: backendBook.isbn13 || backendBook.isbn || "",
+    publishedYear: publishedYear,
     publishedDate: backendBook.published_date || "",
     publisher: backendBook.publisher || "",
-    language: backendBook.language || "en",
+    language: backendBook.language_code || backendBook.language || "en",
     genres: backendBook.genres || [],
     status: "want-to-read", // Default status, will be set by reading lists
-    rating: backendBook.rating || backendBook.average_rating || 0,
-    pages: backendBook.pages || 0,
+    rating: rating,
+    pages: pages,
     description: backendBook.description || "",
-    coverImage: backendBook.image_url || "",
-    cover: backendBook.image_url || "",
-    averageRating: backendBook.average_rating || 0,
-    ratingsCount: backendBook.ratings_count || 0,
+    coverImage: coverUrl,
+    cover: coverUrl,
+    averageRating: averageRating,
+    ratingsCount: ratingsCount,
     progress: 0,
     createdAt: backendBook.createdAt || new Date().toISOString(),
     updatedAt: backendBook.updatedAt || new Date().toISOString(),
@@ -104,29 +135,9 @@ function transformBook(backendBook: BackendBook): Book {
 }
 
 class BookServiceClient {
-  private baseURL: string;
-
-  constructor() {
-    this.baseURL = BOOK_SERVICE_BASE_URL;
-  }
-
-  // Get headers with auth token
-  private async getHeaders() {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
-    try {
-      const session = await getSession();
-      if (session?.accessToken) {
-        headers["Authorization"] = `Bearer ${session.accessToken}`;
-      }
-    } catch (error) {
-      // Session not available, continue without auth
-    }
-
-    return headers;
-  }
+  private bookApi = createApiClient(
+    process.env["NEXT_PUBLIC_BOOK_SERVICE_URL"] || "http://localhost:3004"
+  );
 
   // Get all books with pagination and filters
   async getBooks(params: {
@@ -138,18 +149,7 @@ class BookServiceClient {
     search?: string;
   } = {}): Promise<{ data: Book[]; pagination: any }> {
     try {
-      const queryParams = new URLSearchParams();
-      if (params.page) queryParams.append("page", params.page.toString());
-      if (params.author) queryParams.append("author", params.author);
-      if (params.genre) queryParams.append("genre", params.genre);
-      if (params.sortBy) queryParams.append("sortBy", params.sortBy);
-      if (params.search) queryParams.append("search", params.search);
-
-      const url = `${this.baseURL}${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
-      const response = await axios.get<PaginatedBooksResponse>(url, {
-        headers: await this.getHeaders(),
-      });
-
+      const response = await this.bookApi.get<PaginatedBooksResponse>("/api/books", { params });
       const books = response.data.books.map(transformBook);
 
       return {
@@ -164,7 +164,7 @@ class BookServiceClient {
         },
       };
     } catch (error: any) {
-      const message = error?.userMessage || error?.response?.data?.error || error?.message || "Failed to fetch books";
+      const message = getErrorMessage(error);
       console.error("Error fetching books:", error);
       throw new Error(message);
     }
@@ -173,15 +173,10 @@ class BookServiceClient {
   // Get a single book by ID
   async getBookById(bookId: string): Promise<Book> {
     try {
-      const response = await axios.get<BackendBook>(
-        `${this.baseURL}/${bookId}`,
-        {
-          headers: await this.getHeaders(),
-        }
-      );
+      const response = await this.bookApi.get<BackendBook>(`/api/books/${bookId}`);
       return transformBook(response.data);
     } catch (error: any) {
-      const message = error?.userMessage || error?.response?.data?.error || error?.message || "Failed to fetch book";
+      const message = getErrorMessage(error) || "Failed to fetch book";
       console.error("Error fetching book:", error);
       if (error?.response?.status === 404) {
         throw new Error("Book not found");
@@ -193,13 +188,9 @@ class BookServiceClient {
   // Search books
   async searchBooks(query: string, page: number = 1): Promise<{ data: Book[]; pagination: any }> {
     try {
-      const response = await axios.get<PaginatedBooksResponse>(
-        `${this.baseURL}/search`,
-        {
-          params: { q: query, page },
-          headers: await this.getHeaders(),
-        }
-      );
+      const response = await this.bookApi.get<PaginatedBooksResponse>("/api/books/search", {
+        params: { q: query, page },
+      });
 
       const books = response.data.books.map(transformBook);
 
@@ -215,7 +206,7 @@ class BookServiceClient {
         },
       };
     } catch (error: any) {
-      const message = error?.userMessage || error?.response?.data?.error || error?.message || "Failed to search books";
+      const message = getErrorMessage(error) || "Failed to search books";
       console.error("Error searching books:", error);
       throw new Error(message);
     }
@@ -224,12 +215,10 @@ class BookServiceClient {
   // Get all genres
   async getGenres(): Promise<string[]> {
     try {
-      const response = await axios.get<string[]>(`${this.baseURL}/genres`, {
-        headers: await this.getHeaders(),
-      });
+      const response = await this.bookApi.get<string[]>("/api/books/genres");
       return response.data;
     } catch (error: any) {
-      const message = error?.userMessage || error?.response?.data?.error || error?.message || "Failed to fetch genres";
+      const message = getErrorMessage(error) || "Failed to fetch genres";
       console.error("Error fetching genres:", error);
       throw new Error(message);
     }
@@ -238,12 +227,10 @@ class BookServiceClient {
   // Get all authors
   async getAuthors(): Promise<string[]> {
     try {
-      const response = await axios.get<string[]>(`${this.baseURL}/authors`, {
-        headers: await this.getHeaders(),
-      });
+      const response = await this.bookApi.get<string[]>("/api/books/authors");
       return response.data;
     } catch (error: any) {
-      const message = error?.userMessage || error?.response?.data?.error || error?.message || "Failed to fetch authors";
+      const message = getErrorMessage(error) || "Failed to fetch authors";
       console.error("Error fetching authors:", error);
       throw new Error(message);
     }
@@ -252,12 +239,10 @@ class BookServiceClient {
   // Get all languages
   async getLanguages(): Promise<string[]> {
     try {
-      const response = await axios.get<string[]>(`${this.baseURL}/languages`, {
-        headers: await this.getHeaders(),
-      });
+      const response = await this.bookApi.get<string[]>("/api/books/languages");
       return response.data;
     } catch (error: any) {
-      const message = error?.userMessage || error?.response?.data?.error || error?.message || "Failed to fetch languages";
+      const message = getErrorMessage(error) || "Failed to fetch languages";
       console.error("Error fetching languages:", error);
       throw new Error(message);
     }
@@ -266,4 +251,3 @@ class BookServiceClient {
 
 // Export singleton instance
 export const bookService = new BookServiceClient();
-

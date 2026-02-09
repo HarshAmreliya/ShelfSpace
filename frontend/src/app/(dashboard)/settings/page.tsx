@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { ProfileSettings } from "@/components/settings/ProfileSettings";
 import { PreferencesSettings } from "@/components/settings/PreferencesSettings";
-import { AccountSettings } from "@/components/settings/AccountSettings";
 import { PrivacySettings } from "@/components/settings/PrivacySettings";
 import { NotificationsSettings } from "@/components/settings/NotificationsSettings";
 import {
@@ -12,7 +11,6 @@ import {
   Shield,
   Settings as SettingsIcon,
   Palette,
-  Lock,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -23,7 +21,6 @@ export default function SettingsPage() {
     { id: "preferences", label: "Preferences", icon: Palette },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "privacy", label: "Privacy", icon: Shield },
-    { id: "account", label: "Account", icon: Lock },
   ];
 
   const renderSettingsContent = () => {
@@ -36,8 +33,6 @@ export default function SettingsPage() {
         return <NotificationsSettings />;
       case "privacy":
         return <PrivacySettings />;
-      case "account":
-        return <AccountSettings />;
       default:
         return <ProfileSettings />;
     }

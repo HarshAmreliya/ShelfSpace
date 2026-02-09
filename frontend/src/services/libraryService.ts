@@ -17,8 +17,8 @@ import {
   ConflictError,
 } from "./types";
 import { bookService } from "@/lib/book-service";
-import { getSession } from "next-auth/react";
-import axios from "axios";
+import api, { createApiClient } from "@/lib/api";
+import { getErrorMessage } from "@/lib/api-utils";
 
 // ReadingList type that uses the correct Book type
 type ReadingList = Omit<BaseReadingList, 'books'> & {
@@ -26,7 +26,15 @@ type ReadingList = Omit<BaseReadingList, 'books'> & {
 };
 
 // Library service API client
-const LIBRARY_SERVICE_BASE_URL = "/api/library/reading-lists";
+const LIBRARY_SERVICE_BASE_URL =
+  process.env["NEXT_PUBLIC_LIBRARY_SERVICE_URL"] ||
+  (process.env["NEXT_PUBLIC_API_URL"]
+    ? `${process.env["NEXT_PUBLIC_API_URL"]}/api/library`
+    : "http://localhost:3003");
+
+const libraryApi = createApiClient(LIBRARY_SERVICE_BASE_URL);
+
+const READING_LISTS_PATH = "/reading-lists";
 
 /**
  * LibraryService handles all library-related data operations
@@ -47,33 +55,23 @@ export class LibraryService {
     params: GetReadingListsParams = {}
   ): Promise<ServiceResponse<ReadingList[]>> {
     try {
-      const session = await getSession();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      
-      if (session?.accessToken) {
-        headers["Authorization"] = `Bearer ${session.accessToken}`;
-      }
-
-      const url = `${LIBRARY_SERVICE_BASE_URL}${params.includeBooks ? "?includeBooks=true" : ""}`;
-      const response = await axios.get<ReadingList[]>(url, { headers });
+      const url = `${READING_LISTS_PATH}${params.includeBooks ? "?includeBooks=true" : ""}`;
+      const response = await libraryApi.get<ReadingList[]>(url);
 
       // Optionally include books in the response
       if (params.includeBooks && response.data) {
-        // Fetch books efficiently by fetching them in parallel for each list
-        // For now, we'll fetch all books and filter - in production, consider a batch endpoint
         try {
-          const allBooksResponse = await this.getBooks(params.options ? { options: params.options } : {});
-          const allBooks = allBooksResponse.data;
-
-          response.data.forEach((list) => {
-            list.books = allBooks.filter((book) =>
-              list.bookIds.includes(book.id)
+          const fetchListBooks = async (list: ReadingList) => {
+            const books = await Promise.all(
+              list.bookIds.map((id) => bookService.getBookById(String(id)))
             );
+            return books;
+          };
+          const listBooks = await Promise.all(response.data.map(fetchListBooks));
+          response.data.forEach((list, index) => {
+            list.books = listBooks[index] || [];
           });
         } catch (err) {
-          // If book fetching fails, still return lists without books
           console.warn("Failed to fetch books for reading lists:", err);
           response.data.forEach((list) => {
             list.books = [];
@@ -88,8 +86,48 @@ export class LibraryService {
       };
     } catch (error: any) {
       throw new ServiceError(
-        "Failed to fetch reading lists",
+        getErrorMessage(error) || "Failed to fetch reading lists",
         "FETCH_READING_LISTS_ERROR",
+        error.response?.status || 500,
+        error
+      );
+    }
+  }
+
+  /**
+   * Get a single reading list by ID
+   */
+  async getReadingList(
+    id: ID,
+    includeBooks = false
+  ): Promise<ServiceResponse<ReadingList>> {
+    try {
+      const url = `${READING_LISTS_PATH}/${id}${includeBooks ? "?includeBooks=true" : ""}`;
+      const response = await libraryApi.get<ReadingList>(url);
+
+      if (includeBooks && response.data) {
+        try {
+          const books = await Promise.all(
+            response.data.bookIds.map((bookId) => bookService.getBookById(String(bookId)))
+          );
+          response.data.books = books;
+        } catch {
+          response.data.books = [];
+        }
+      }
+
+      return {
+        data: response.data,
+        success: true,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        throw new NotFoundError("Reading list", id);
+      }
+      throw new ServiceError(
+        getErrorMessage(error) || `Failed to fetch reading list with id ${id}`,
+        "FETCH_READING_LIST_ERROR",
         error.response?.status || 500,
         error
       );
@@ -219,15 +257,6 @@ export class LibraryService {
       // Validate required fields
       this.validateBookInput(bookInput);
 
-      const session = await getSession();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      
-      if (session?.accessToken) {
-        headers["Authorization"] = `Bearer ${session.accessToken}`;
-      }
-
       // Transform to backend format
       const backendBook = {
         title: bookInput.title,
@@ -241,7 +270,7 @@ export class LibraryService {
         image_url: bookInput.coverImage || bookInput.cover,
       };
 
-      const response = await axios.post(`${this.baseUrl}/books`, backendBook, { headers });
+      const response = await api.post(`${this.baseUrl}/books`, backendBook);
       const book = response.data;
 
       // Transform back to frontend format
@@ -249,21 +278,20 @@ export class LibraryService {
         id: book.book_id || book._id,
         title: bookInput.title,
         author: book.authors?.[0]?.name || bookInput.author || "Unknown",
-        ...(bookInput.description && { description: bookInput.description }),
-        ...(bookInput.coverImage && { coverImage: bookInput.coverImage }),
-        ...(bookInput.cover && { cover: bookInput.cover }),
-        ...(bookInput.isbn && { isbn: bookInput.isbn }),
-        ...(bookInput.pages && { pages: bookInput.pages }),
-        ...(bookInput.publishedYear && { publishedYear: bookInput.publishedYear }),
-        ...(bookInput.language && { language: bookInput.language }),
         genres: bookInput.genres || [],
-        ...(bookInput.rating && { rating: bookInput.rating }),
         tags: bookInput.tags || [],
         status: "want-to-read",
         progress: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         addedAt: new Date().toISOString(),
+        ...(bookInput.description && { description: bookInput.description }),
+        ...(bookInput.coverImage || bookInput.cover ? { coverImage: bookInput.coverImage || bookInput.cover } : {}),
+        ...(bookInput.isbn && { isbn: bookInput.isbn }),
+        ...(bookInput.pages && { pages: bookInput.pages }),
+        ...(bookInput.publishedYear && { publishedYear: bookInput.publishedYear }),
+        ...(bookInput.language && { language: bookInput.language }),
+        ...(bookInput.rating && { rating: bookInput.rating }),
       };
 
       return {
@@ -276,7 +304,7 @@ export class LibraryService {
         throw error;
       }
       throw new ServiceError(
-        "Failed to create book",
+        getErrorMessage(error) || "Failed to create book",
         "CREATE_BOOK_ERROR",
         error.response?.status || 500,
         error
@@ -304,12 +332,21 @@ export class LibraryService {
         });
       }
 
-      // In production: PUT /api/books/:id
-      const updatedBook: Book = {
-        ...existingBook,
-        ...params.updates,
-        updatedAt: new Date().toISOString(),
+      // Transform updates to backend shape where needed
+      const backendBook = {
+        title: params.updates.title ?? existingBook.title,
+        authors: [{ name: params.updates.author ?? existingBook.author }],
+        description: params.updates.description ?? existingBook.description,
+        genres: params.updates.genres ?? existingBook.genres,
+        isbn13: params.updates.isbn ?? existingBook.isbn,
+        num_pages: params.updates.pages ?? existingBook.pages,
+        publication_year: params.updates.publishedYear?.toString(),
+        language_code: params.updates.language ?? existingBook.language,
+        image_url: params.updates.coverImage ?? params.updates.cover ?? existingBook.coverImage ?? existingBook.cover,
       };
+
+      await api.put(`/books/${params.id}`, backendBook);
+      const updatedBook = await bookService.getBookById(String(params.id));
 
       return {
         data: updatedBook,
@@ -321,7 +358,7 @@ export class LibraryService {
         throw error;
       }
       throw new ServiceError(
-        `Failed to update book with id ${params.id}`,
+        getErrorMessage(error) || `Failed to update book with id ${params.id}`,
         "UPDATE_BOOK_ERROR",
         500,
         error
@@ -337,8 +374,7 @@ export class LibraryService {
       // Check if book exists
       await this.getBook(id);
 
-      // In production: DELETE /api/books/:id
-      // For now, just return success
+      await api.delete(`/books/${id}`);
 
       return {
         data: undefined,
@@ -350,7 +386,7 @@ export class LibraryService {
         throw error;
       }
       throw new ServiceError(
-        `Failed to delete book with id ${id}`,
+        getErrorMessage(error) || `Failed to delete book with id ${id}`,
         "DELETE_BOOK_ERROR",
         500,
         error
@@ -368,20 +404,7 @@ export class LibraryService {
       // Validate required fields
       this.validateReadingListInput(params.list);
 
-      const session = await getSession();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      
-      if (session?.accessToken) {
-        headers["Authorization"] = `Bearer ${session.accessToken}`;
-      }
-
-      const response = await axios.post<ReadingList>(
-        LIBRARY_SERVICE_BASE_URL,
-        params.list,
-        { headers }
-      );
+      const response = await libraryApi.post<ReadingList>(READING_LISTS_PATH, params.list);
 
       return {
         data: response.data,
@@ -396,7 +419,7 @@ export class LibraryService {
         throw new ConflictError("A reading list with this name already exists");
       }
       throw new ServiceError(
-        "Failed to create reading list",
+        getErrorMessage(error) || "Failed to create reading list",
         "CREATE_READING_LIST_ERROR",
         error.response?.status || 500,
         error
@@ -416,19 +439,9 @@ export class LibraryService {
         this.validateReadingListInput({ name: params.updates.name });
       }
 
-      const session = await getSession();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      
-      if (session?.accessToken) {
-        headers["Authorization"] = `Bearer ${session.accessToken}`;
-      }
-
-      const response = await axios.put<ReadingList>(
-        `${LIBRARY_SERVICE_BASE_URL}/${params.id}`,
-        params.updates,
-        { headers }
+      const response = await libraryApi.put<ReadingList>(
+        `${READING_LISTS_PATH}/${params.id}`,
+        params.updates
       );
 
       return {
@@ -447,7 +460,7 @@ export class LibraryService {
         throw new ConflictError("A reading list with this name already exists");
       }
       throw new ServiceError(
-        `Failed to update reading list with id ${params.id}`,
+        getErrorMessage(error) || `Failed to update reading list with id ${params.id}`,
         "UPDATE_READING_LIST_ERROR",
         error.response?.status || 500,
         error
@@ -462,16 +475,7 @@ export class LibraryService {
     params: DeleteReadingListParams
   ): Promise<ServiceResponse<void>> {
     try {
-      const session = await getSession();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      
-      if (session?.accessToken) {
-        headers["Authorization"] = `Bearer ${session.accessToken}`;
-      }
-
-      await axios.delete(`${LIBRARY_SERVICE_BASE_URL}/${params.id}`, { headers });
+      await libraryApi.delete(`${READING_LISTS_PATH}/${params.id}`);
 
       return {
         data: undefined,
@@ -486,7 +490,7 @@ export class LibraryService {
         throw new ValidationError("Cannot delete default reading lists");
       }
       throw new ServiceError(
-        `Failed to delete reading list with id ${params.id}`,
+        getErrorMessage(error) || `Failed to delete reading list with id ${params.id}`,
         "DELETE_READING_LIST_ERROR",
         error.response?.status || 500,
         error
@@ -499,28 +503,15 @@ export class LibraryService {
    */
   async moveBooks(params: MoveBooksParams): Promise<ServiceResponse<void>> {
     try {
-      const session = await getSession();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      
-      if (session?.accessToken) {
-        headers["Authorization"] = `Bearer ${session.accessToken}`;
-      }
-
       // Extract source list ID from params (assuming it's in the URL path)
       // The API expects: POST /reading-lists/:id/move-books
       // We need to know which list to move FROM - this should be in params
       const sourceListId = (params as any).sourceListId || params.targetListId;
       
-      await axios.post(
-        `${LIBRARY_SERVICE_BASE_URL}/${sourceListId}/move-books`,
-        {
-          bookIds: params.bookIds,
-          targetListId: params.targetListId,
-        },
-        { headers }
-      );
+      await libraryApi.post(`${READING_LISTS_PATH}/${sourceListId}/move-books`, {
+        bookIds: params.bookIds,
+        targetListId: params.targetListId,
+      });
 
       return {
         data: undefined,
@@ -535,8 +526,73 @@ export class LibraryService {
         throw error;
       }
       throw new ServiceError(
-        "Failed to move books",
+        getErrorMessage(error) || "Failed to move books",
         "MOVE_BOOKS_ERROR",
+        error.response?.status || 500,
+        error
+      );
+    }
+  }
+
+  /**
+   * Add books to a reading list
+   */
+  async addBooksToReadingList(id: ID, bookIds: string[]): Promise<ServiceResponse<ReadingList>> {
+    try {
+      const response = await libraryApi.post<ReadingList>(`${READING_LISTS_PATH}/${id}/books`, {
+        bookIds,
+      });
+      return {
+        data: response.data,
+        success: true,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      throw new ServiceError(
+        getErrorMessage(error) || "Failed to add books",
+        "ADD_BOOKS_ERROR",
+        error.response?.status || 500,
+        error
+      );
+    }
+  }
+
+  /**
+   * Remove books from a reading list
+   */
+  async removeBooksFromReadingList(id: ID, bookIds: string[]): Promise<ServiceResponse<void>> {
+    try {
+      await libraryApi.delete(`${READING_LISTS_PATH}/${id}/books`, { data: { bookIds } });
+      return {
+        data: undefined,
+        success: true,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      throw new ServiceError(
+        getErrorMessage(error) || "Failed to remove books",
+        "REMOVE_BOOKS_ERROR",
+        error.response?.status || 500,
+        error
+      );
+    }
+  }
+
+  /**
+   * Initialize default reading lists
+   */
+  async initializeDefaults(): Promise<ServiceResponse<any>> {
+    try {
+      const response = await libraryApi.post(`${READING_LISTS_PATH}/initialize-defaults`, {});
+      return {
+        data: response.data,
+        success: true,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      throw new ServiceError(
+        getErrorMessage(error) || "Failed to initialize defaults",
+        "INIT_DEFAULTS_ERROR",
         error.response?.status || 500,
         error
       );

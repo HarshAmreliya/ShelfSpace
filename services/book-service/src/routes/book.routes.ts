@@ -9,27 +9,29 @@ import {
   getGenres,
   getAuthors,
   getLanguages,
-} from "../controllers/book.controller.ts";
-import validate from "../middlewares/validate.ts";
+} from "../controllers/book.controller.js";
+import validate from "../middlewares/validate.js";
+import { authenticateToken } from "../middlewares/auth.js";
 import {
   createBookSchema,
   updateBookSchema,
   getBookByIdSchema,
   deleteBookSchema,
   searchBookSchema,
-} from "../schemas.ts";
+  getBooksSchema,
+} from "../schemas.js";
 
 const router = Router();
 
-router.post("/", validate(createBookSchema), createBook);
+router.post("/", authenticateToken, validate(createBookSchema), createBook);
 router.get("/search", validate(searchBookSchema), searchBooks);
 router.get("/genres", getGenres);
 router.get("/authors", getAuthors);
 router.get("/languages", getLanguages);
 
-router.get("/", getAllBooks);
+router.get("/", validate(getBooksSchema), getAllBooks);
 router.get("/:bookId", validate(getBookByIdSchema), getBookById);
-router.put("/:id", validate(updateBookSchema), updateBook);
-router.delete("/:id", validate(deleteBookSchema), deleteBook);
+router.put("/:id", authenticateToken, validate(updateBookSchema), updateBook);
+router.delete("/:id", authenticateToken, validate(deleteBookSchema), deleteBook);
 
 export default router;

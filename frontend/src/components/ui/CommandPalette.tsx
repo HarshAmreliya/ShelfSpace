@@ -46,12 +46,12 @@ const defaultCommands: Command[] = [
     action: () => (window.location.href = "/discover"),
   },
   {
-    id: "groups",
-    label: "Reading Groups",
-    description: "Join or create reading groups",
+    id: "forums",
+    label: "Reading Forums",
+    description: "Join or create reading forums",
     category: "Navigation",
     keywords: ["community", "discussion"],
-    action: () => (window.location.href = "/groups"),
+    action: () => (window.location.href = "/forums"),
   },
   {
     id: "chat",

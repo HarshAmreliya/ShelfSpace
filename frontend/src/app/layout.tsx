@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     "book management",
     "reading tracker",
     "book recommendations",
-    "reading groups",
+    "reading forums",
     "book reviews",
     "personal library",
   ],

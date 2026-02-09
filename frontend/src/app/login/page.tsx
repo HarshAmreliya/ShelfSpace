@@ -16,6 +16,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (status === "authenticated" && session) {
+      if (session.backendVerified === false) {
+        console.log("Login page - backend not verified, staying on login");
+        return;
+      }
       console.log("Login page - Session authenticated");
       console.log("Session data:", {
         isNewUser: session.isNewUser,
@@ -103,7 +107,7 @@ export default function LoginPage() {
             </div>
             <div>
               <h3 className="text-white font-semibold mb-1">
-                Join Reading Groups
+                Join Reading Forums
               </h3>
               <p className="text-white/80 text-sm">
                 Connect with fellow readers and share insights
@@ -145,19 +149,19 @@ export default function LoginPage() {
             </div>
 
             {/* Error Message */}
-            {error && (
+            {(error || session?.backendVerified === false) && (
               <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                 <p className="text-sm text-red-800 dark:text-red-200">
-                  {error === "backend_verification_failed" 
+                  {error === "backend_verification_failed" || session?.backendVerified === false
                     ? "Unable to connect to the server. Please make sure the backend services are running and try again."
-                    : "An error occurred during sign in. Please try again."}
+                    : `An error occurred during sign in (${error}). Please try again.`}
                 </p>
               </div>
             )}
 
             {/* Google Sign In Button */}
             <button
-              onClick={() => signIn("google", { redirect: false })}
+              onClick={() => signIn("google")}
               className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200 font-semibold rounded-xl border-2 border-gray-300 dark:border-slate-600 shadow-sm transition-all duration-200 ease-in-out hover:shadow-md hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-amber-500/20 group"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">

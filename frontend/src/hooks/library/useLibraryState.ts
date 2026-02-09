@@ -1,10 +1,11 @@
 // src/hooks/library/useLibraryState.ts
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { LibraryState, LibraryActions } from "../../../types/state";
 import { useReadingLists } from "../data/useReadingLists";
 import { validateLibraryState } from "../../utils/stateValidation";
+import { libraryService } from "@/services/libraryService";
 
 const defaultFilters: LibraryState["filters"] = {
   search: "",
@@ -15,7 +16,7 @@ const defaultFilters: LibraryState["filters"] = {
 };
 
 const initialState: Omit<LibraryState, "isLoading" | "error"> = {
-  selectedList: "1",
+  selectedList: "",
   viewMode: "grid",
   filters: defaultFilters,
   selectedBooks: [],
@@ -50,7 +51,12 @@ export function useLibraryState(searchParams?: { [key: string]: string | string[
   );
 
   // Get reading lists data
-  const { data: readingLists, isLoading, error } = useReadingLists({ includeBooks: true });
+  const {
+    data: readingLists,
+    isLoading,
+    error,
+    refetch: refetchReadingLists,
+  } = useReadingLists({ includeBooks: true });
 
   // Actions
   const setSelectedList = useCallback((listId: string) => {
@@ -117,6 +123,17 @@ export function useLibraryState(searchParams?: { [key: string]: string | string[
     return readingLists?.find((list) => list.id === state.selectedList);
   }, [readingLists, state.selectedList]);
 
+  useEffect(() => {
+    if (!readingLists || readingLists.length === 0) return;
+    if (state.selectedList && readingLists.some((list) => list.id === state.selectedList)) {
+      return;
+    }
+    setState((prev) => ({
+      ...prev,
+      selectedList: readingLists[0]?.id || "",
+    }));
+  }, [readingLists, state.selectedList]);
+
   const filteredBooks = useMemo(() => {
     if (!selectedListData?.books) return [];
 
@@ -166,6 +183,13 @@ export function useLibraryState(searchParams?: { [key: string]: string | string[
     return Array.from(uniqueGenres).sort();
   }, [readingLists]);
 
+  const createReadingList = useCallback(async (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    await libraryService.createReadingList({ list: { name: trimmed } });
+    await refetchReadingLists();
+  }, [refetchReadingLists]);
+
   return {
     // State
     selectedList: state.selectedList,
@@ -183,5 +207,6 @@ export function useLibraryState(searchParams?: { [key: string]: string | string[
 
     // Actions
     actions,
+    createReadingList,
   };
 }

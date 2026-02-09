@@ -32,82 +32,8 @@ import {
   ReadingGoals,
   CurrentlyReading
 } from "./sections";
-import { useReadingLists } from "@/hooks/data/useReadingLists";
-import { useMemo } from "react";
+import { useDashboardSummary } from "@/hooks/data/useAnalytics";
 
-// Calculate reading stats from real data
-function calculateReadingStats(readingLists: any[]) {
-  if (!readingLists || readingLists.length === 0) {
-    return {
-      totalBooks: 0,
-      booksRead: 0,
-      currentlyReading: 0,
-      wantToRead: 0,
-      readingGoal: 52, // Default goal
-      currentStreak: 0,
-      averageRating: 0,
-      totalPages: 0,
-      readingTime: 0,
-      favoriteGenre: "N/A",
-    };
-  }
-
-  let totalBooks = 0;
-  let booksRead = 0;
-  let currentlyReading = 0;
-  let wantToRead = 0;
-  let totalPages = 0;
-  let totalRating = 0;
-  let ratingCount = 0;
-  const genreCounts: Record<string, number> = {};
-
-  readingLists.forEach((list) => {
-    const books = list.books || [];
-    totalBooks += books.length;
-
-    books.forEach((book: any) => {
-      if (book.pages) totalPages += book.pages;
-      if (book.rating) {
-        totalRating += book.rating;
-        ratingCount++;
-      }
-      if (book.genres) {
-        book.genres.forEach((genre: string) => {
-          genreCounts[genre] = (genreCounts[genre] || 0) + 1;
-        });
-      }
-    });
-
-    const listName = list.name.toLowerCase();
-    if (listName.includes("finished") || listName.includes("read") || listName.includes("completed")) {
-      booksRead += books.length;
-    } else if (listName.includes("currently") || listName.includes("reading")) {
-      currentlyReading += books.length;
-    } else if (listName.includes("want") || listName.includes("wish")) {
-      wantToRead += books.length;
-    }
-  });
-
-  const favoriteGenre = Object.keys(genreCounts).length > 0
-    ? (Object.entries(genreCounts).sort(([, a], [, b]) => b - a)[0]?.[0] ?? "N/A")
-    : "N/A";
-
-  // Estimate reading time (assuming 2 minutes per page)
-  const readingTime = Math.round(totalPages * 2 / 60); // hours
-
-  return {
-    totalBooks,
-    booksRead,
-    currentlyReading,
-    wantToRead,
-    readingGoal: 52, // Default goal, can be customized
-    currentStreak: 0, // Would need additional tracking
-    averageRating: ratingCount > 0 ? totalRating / ratingCount : 0,
-    totalPages,
-    readingTime,
-    favoriteGenre,
-  };
-}
 
 export interface DashboardFeatureProps {
   className?: string;
@@ -117,7 +43,7 @@ export function DashboardFeature({ className }: DashboardFeatureProps) {
   const { needsPreferences, isLoading, isNewUser } = useUserSetup();
   const [showPreferences, setShowPreferences] = useState(false);
   const { success, info } = useToastNotifications();
-  const { data: readingLists } = useReadingLists({ includeBooks: true });
+  const { data: summary } = useDashboardSummary();
   const { data: session } = useSession();
 
   // Get user name from session
@@ -125,10 +51,18 @@ export function DashboardFeature({ className }: DashboardFeatureProps) {
   const personalizedGreeting = getPersonalizedGreeting(userName);
   const readingQuote = getReadingQuote();
 
-  // Calculate stats from real data
-  const readingStats = useMemo(() => {
-    return calculateReadingStats(readingLists || []);
-  }, [readingLists]);
+  const readingStats = summary || {
+    totalBooks: 0,
+    booksRead: 0,
+    currentlyReading: 0,
+    wantToRead: 0,
+    readingGoal: 52,
+    currentStreak: 0,
+    averageRating: 0,
+    totalPages: 0,
+    readingTime: 0,
+    favoriteGenre: "N/A",
+  };
 
   // Show preferences modal for new users or users without preferences
   useEffect(() => {

@@ -31,7 +31,7 @@ describe("Navigation", () => {
     expect(screen.getByText("Library")).toBeInTheDocument();
     expect(screen.getByText("Chat")).toBeInTheDocument();
     expect(screen.getByText("Discover")).toBeInTheDocument();
-    expect(screen.getByText("Groups")).toBeInTheDocument();
+    expect(screen.getByText("Forums")).toBeInTheDocument();
     expect(screen.getByText("Settings")).toBeInTheDocument();
   });
 
@@ -47,7 +47,7 @@ describe("Navigation", () => {
     expect(screen.getByText("12")).toBeInTheDocument();
   });
 
-  it("shows badge for Groups item", () => {
+  it("shows badge for Forums item", () => {
     render(<Navigation />);
 
     expect(screen.getByText("3")).toBeInTheDocument();

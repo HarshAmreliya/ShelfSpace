@@ -3,21 +3,32 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { Book } from "@/types/book";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Bookmark, BookmarkCheck } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { toBookSlug } from "@/lib/book-slug";
 
 interface BookListItemProps {
   book: Book;
   onSelect?: (book: Book) => void;
+  onSave?: (book: Book) => void;
+  isSaved?: boolean;
+  isSaving?: boolean;
 }
 
-export const BookListItem: React.FC<BookListItemProps> = ({ book, onSelect }) => {
+export const BookListItem: React.FC<BookListItemProps> = ({
+  book,
+  onSelect,
+  onSave,
+  isSaved = false,
+  isSaving = false,
+}) => {
   const router = useRouter();
 
   const handleClick = () => {
     if (onSelect) {
       onSelect(book);
     } else {
-      router.push(`/book/${book.id}`);
+      router.push(`/book/${toBookSlug(book)}`);
     }
   };
 
@@ -54,12 +65,12 @@ export const BookListItem: React.FC<BookListItemProps> = ({ book, onSelect }) =>
       role="button"
       aria-label={`View details for ${book.title} by ${book.author}`}
     >
-      <div className="flex items-center space-x-4">
+    <div className="flex items-center space-x-4">
         {/* Cover Image */}
         <div className="w-16 h-20 bg-gradient-to-br from-amber-100 to-orange-200 dark:from-slate-700 dark:to-slate-600 rounded flex items-center justify-center flex-shrink-0">
-          {book.coverImage ? (
+          {book.coverImage || book.cover ? (
             <img
-              src={book.coverImage}
+              src={book.coverImage || book.cover}
               alt={`Cover of ${book.title}`}
               className="w-full h-full object-cover rounded"
             />
@@ -88,6 +99,20 @@ export const BookListItem: React.FC<BookListItemProps> = ({ book, onSelect }) =>
             </div>
 
             <div className="flex items-center space-x-3 ml-4">
+              {onSave && (
+                <Button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSave(book);
+                  }}
+                  variant="secondary"
+                  size="sm"
+                  disabled={isSaving}
+                  leftIcon={isSaved ? BookmarkCheck : Bookmark}
+                >
+                  {isSaved ? "Saved" : "Save"}
+                </Button>
+              )}
               {/* Status */}
               <span
                 className={`

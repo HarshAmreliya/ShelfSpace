@@ -37,7 +37,7 @@ services:
     deploy:
       replicas: 2
 
-  group-service:
+  forum-service:
     environment:
       NODE_ENV: production
     deploy:
@@ -50,6 +50,12 @@ services:
       replicas: 2
 
   admin-service:
+    environment:
+      NODE_ENV: production
+    deploy:
+      replicas: 1
+
+  analytics-service:
     environment:
       NODE_ENV: production
     deploy:
@@ -70,4 +76,3 @@ services:
     # ports:
     #   - "80:80"
     #   - "443:443"
-

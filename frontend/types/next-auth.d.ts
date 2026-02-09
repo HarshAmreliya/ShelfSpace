@@ -12,15 +12,18 @@ declare module "next-auth" {
     needsPreferences?: boolean;
     userData?: any;
     backendVerified?: boolean;
+    error?: "TokenExpired";
   }
 
   interface JWT {
     token?: string;
     accessToken?: string;
+    accessTokenExpires?: number;
     userId?: string;
     isNewUser?: boolean;
     needsPreferences?: boolean;
     user?: any;
     backendVerified?: boolean;
+    error?: "TokenExpired";
   }
 }

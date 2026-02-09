@@ -44,7 +44,7 @@ export const DashboardErrorFallback: React.FC<ErrorFallbackProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => (window.location.href = "/groups")}
+                onClick={() => (window.location.href = "/forums")}
                 leftIcon={Users}
                 className="w-full justify-start"
               >

@@ -7,7 +7,7 @@ import { createMessageSchema } from "./schemas.js";
 import axios from "axios";
 
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || "http://localhost:3001";
-const GROUP_SERVICE_URL = process.env.GROUP_SERVICE_URL || "http://localhost:3005";
+const FORUM_SERVICE_URL = process.env.FORUM_SERVICE_URL || "http://localhost:3005";
 const REDIS_URL = process.env.REDIS_URL || "redis://redis:6379";
 
 export default async function initializeSocket(httpServer: ReturnType<typeof createServer>) {
@@ -84,7 +84,7 @@ export default async function initializeSocket(httpServer: ReturnType<typeof cre
       try {
         // Verify that the user is a member of the group
         const memberResponse = await axios.get(
-          `${GROUP_SERVICE_URL}/api/groups/${groupId}/members/${senderId}/verify`
+          `${FORUM_SERVICE_URL}/api/forums/${groupId}/members/${senderId}/verify`
         );
 
         if (memberResponse.status !== 200 || !memberResponse.data.isMember) {

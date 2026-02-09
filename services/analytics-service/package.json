@@ -1,0 +1,31 @@
+{
+  "name": "analytics-service",
+  "version": "1.0.0",
+  "description": "CQRS analytics service for dashboard charts",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "backfill": "tsx src/scripts/backfill.ts"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "mongodb": "^6.19.0",
+    "morgan": "^1.10.0",
+    "zod": "^4.0.17"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.2.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.2"
+  }
+}

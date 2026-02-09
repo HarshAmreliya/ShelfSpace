@@ -30,7 +30,7 @@ typecheck:
 	@cd services/user-library-service && npx tsc --noEmit
 	@cd services/review-service && npx tsc --noEmit
 	@cd services/book-service && npx tsc --noEmit
-	@cd services/group-service && npx tsc --noEmit
+	@cd services/forum-service && npx tsc --noEmit
 	@cd services/chat-service && npx tsc --noEmit
 	@cd services/admin-service && npx tsc --noEmit
 
@@ -46,7 +46,7 @@ build:
 	@cd services/user-library-service && npm run build
 	@cd services/review-service && npm run build
 	@cd services/book-service && npm run build || true
-	@cd services/group-service && npm run build
+	@cd services/forum-service && npm run build
 	@cd services/chat-service && npm run build
 	@cd services/admin-service && npm run build
 

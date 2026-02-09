@@ -109,19 +109,19 @@ export const EmptyReadingList: React.FC<{ onAddBooks: () => void }> = ({
   );
 };
 
-export const EmptyGroups: React.FC<{ onCreateGroup: () => void }> = ({
+export const EmptyForums: React.FC<{ onCreateGroup: () => void }> = ({
   onCreateGroup,
 }) => {
   const { Users } = require("lucide-react");
   return (
     <EmptyState
       icon={Users}
-      title="No Reading Groups Yet"
+      title="No Reading Forums Yet"
       description="Join or create a reading group to discuss books with fellow readers and share insights."
       actionLabel="Create a Group"
       onAction={onCreateGroup}
-      secondaryActionLabel="Browse Groups"
-      onSecondaryAction={() => (window.location.href = "/groups")}
+      secondaryActionLabel="Browse Forums"
+      onSecondaryAction={() => (window.location.href = "/forums")}
     />
   );
 };

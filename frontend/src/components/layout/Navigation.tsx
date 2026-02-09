@@ -171,7 +171,7 @@ const Navigation: React.FC<NavigationProps> = memo(
               {/* User Profile Section */}
               {!isCollapsed && (
                 <Link
-                  href="/settings"
+                  href="/profile"
                   className={`flex items-center space-x-3 p-3 rounded-lg ${
                     actualTheme === "dark" 
                       ? "bg-slate-800/50 hover:bg-slate-700/50" 
@@ -196,7 +196,7 @@ const Navigation: React.FC<NavigationProps> = memo(
               
               {isCollapsed && (
                 <Link
-                  href="/settings"
+                  href="/profile"
                   className={`flex items-center justify-center p-2 rounded-lg ${
                     actualTheme === "dark" 
                       ? "bg-slate-800/50 hover:bg-slate-700/50" 
@@ -294,7 +294,7 @@ function BookNavigationItem({
         return Library;
       case "discover":
         return Search;
-      case "groups":
+      case "forums":
         return Users;
       case "chat":
         return MessageCircle;
@@ -313,7 +313,7 @@ function BookNavigationItem({
         return "📖";
       case "discover":
         return "🔍";
-      case "groups":
+      case "forums":
         return "👥";
       case "chat":
         return "💬";
@@ -347,11 +347,17 @@ function BookNavigationItem({
   const baseClasses = `
     group flex items-center w-full transition-all duration-200 ease-in-out
     focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-amber-900
-    px-3 sm:px-4 py-2 sm:py-3 rounded-xl mx-1 sm:mx-2 cursor-pointer
+    cursor-pointer
   `;
 
+  const spacingClasses = isCollapsed
+    ? "px-2 py-2 mx-2 rounded-lg"
+    : "px-3 sm:px-4 py-2 sm:py-3 mx-1 sm:mx-2 rounded-xl";
+
   const activeClasses = isActive
-    ? "bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg transform scale-105"
+    ? isCollapsed
+      ? "bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md"
+      : "bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg transform scale-105"
     : theme === "dark" 
       ? "text-slate-200 hover:bg-slate-800/50 hover:text-white hover:shadow-md"
       : "text-amber-200 hover:bg-amber-800/50 hover:text-white hover:shadow-md";
@@ -361,7 +367,7 @@ function BookNavigationItem({
   return (
     <Link
       href={item.href}
-      className={`${baseClasses} ${activeClasses} ${collapsedClasses}`}
+      className={`${baseClasses} ${spacingClasses} ${activeClasses} ${collapsedClasses}`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       aria-current={isActive ? "page" : undefined}

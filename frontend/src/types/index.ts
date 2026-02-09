@@ -3,7 +3,7 @@ export * from "./book";
 export * from "./bookDetail";
 export * from "./common";
 export * from "./components";
-export * from "./groups";
+export * from "./forums";
 export * from "./library";
 // export * from "./models"; // Skipping to avoid BookDetail conflict
 export * from "./state";

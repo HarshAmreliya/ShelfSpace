@@ -29,6 +29,7 @@ export const updatePreferencesSchema = z.object({
   accessibilityFont: z.boolean().optional(),
   reducedMotion: z.boolean().optional(),
   autoPlayMedia: z.boolean().optional(),
+  settings: z.record(z.any()).optional(),
 });
 
 export const updateUserStatusSchema = z.object({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Shield,
   Eye,
@@ -8,9 +8,42 @@ import {
   BookOpen,
   CheckCircle,
 } from "lucide-react";
+import apiClient from "@/lib/api";
+import { getErrorMessage } from "@/lib/api-utils";
+
+type PrivacySettingsState = {
+  profile: {
+    showEmail: boolean;
+    showLocation: boolean;
+    showBio: boolean;
+    showReadingGoal: boolean;
+  };
+  reading: {
+    showCurrentlyReading: boolean;
+    showReadingProgress: boolean;
+    showReviews: boolean;
+    showRatings: boolean;
+    showReadingHistory: boolean;
+  };
+  social: {
+    allowMessages: boolean;
+    allowFriendRequests: boolean;
+    showInSearch: boolean;
+    showOnlineStatus: boolean;
+  };
+  data: {
+    allowAnalytics: boolean;
+    allowPersonalization: boolean;
+    allowMarketing: boolean;
+  };
+};
+
+type SettingsBlob = {
+  privacy?: PrivacySettingsState;
+};
 
 export function PrivacySettings() {
-  const [privacySettings, setPrivacySettings] = useState({
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettingsState>({
     profile: {
       showEmail: false,
       showLocation: true,
@@ -36,6 +69,49 @@ export function PrivacySettings() {
       allowMarketing: false,
     },
   });
+  const [serverSettings, setServerSettings] = useState<SettingsBlob>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadSettings = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { data } = await apiClient.get("/api/user/preferences");
+        const settings: SettingsBlob = data?.settings ?? {};
+        if (settings.privacy && isMounted) {
+          setPrivacySettings(settings.privacy);
+        }
+        if (isMounted) {
+          setServerSettings(settings);
+        }
+      } catch (err) {
+        const status = (err as any)?.response?.status;
+        if (status === 404) {
+          if (isMounted) {
+            setServerSettings({});
+          }
+          return;
+        }
+        if (isMounted) {
+          setError(getErrorMessage(err));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadSettings();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleToggle = (category: 'profile' | 'reading' | 'social' | 'data', setting: string) => {
     setPrivacySettings(prev => ({
@@ -48,7 +124,28 @@ export function PrivacySettings() {
   };
 
   const handleSave = () => {
-    console.log("Saving privacy settings:", privacySettings);
+    const saveSettings = async () => {
+      setIsSaving(true);
+      setError(null);
+      setSaveMessage(null);
+      try {
+        const updatedSettings: SettingsBlob = {
+          ...serverSettings,
+          privacy: privacySettings,
+        };
+        await apiClient.put("/api/user/preferences", {
+          settings: updatedSettings,
+        });
+        setServerSettings(updatedSettings);
+        setSaveMessage("Privacy settings saved.");
+      } catch (err) {
+        setError(getErrorMessage(err));
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    saveSettings();
   };
 
   return (
@@ -300,11 +397,21 @@ export function PrivacySettings() {
       <div className="flex justify-end pt-6 border-t border-amber-200 dark:border-slate-600">
         <button
           onClick={handleSave}
-          className="px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors font-medium"
+          disabled={isLoading || isSaving}
+          className="px-8 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-lg transition-colors font-medium"
         >
-          Save Privacy Settings
+          {isSaving ? "Saving..." : "Save Privacy Settings"}
         </button>
       </div>
+      {(error || saveMessage) && (
+        <div className="flex justify-end">
+          {error ? (
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          ) : (
+            <p className="text-sm text-emerald-600 dark:text-emerald-400">{saveMessage}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

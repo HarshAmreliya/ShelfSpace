@@ -9,8 +9,8 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "typeRoots": ["./types", "./node_modules/@types"],
-    "moduleResolution": "node",
-    "module": "ESNext",
+    "moduleResolution": "node16",
+    "module": "NodeNext",
     "allowImportingTsExtensions": true,
     "noEmit": true
   },

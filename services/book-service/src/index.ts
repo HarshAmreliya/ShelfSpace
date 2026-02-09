@@ -4,11 +4,14 @@ import morgan from "morgan";
 import helmet from "helmet";
 import { randomUUID } from "crypto";
 import mongoose from "mongoose";
-import { authenticateToken } from "./middlewares/auth.ts";
-import bookRoutes from "./routes/book.routes.ts";
+import { authenticateToken } from "./middlewares/auth.js";
+import bookRoutes from "./routes/book.routes.js";
 import dotenv from "dotenv";
 
 dotenv.config();
+// Avoid automatic index builds in environments where the DB indexes
+// are managed manually (Atlas) and may not match schema definitions.
+mongoose.set("autoIndex", false);
 
 const app = express();
 const PORT = process.env.PORT || 3002;

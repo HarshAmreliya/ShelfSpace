@@ -4,7 +4,10 @@
  * Utility functions for integration tests
  */
 
-import axios, { AxiosError } from 'axios';
+function getAxios(): any {
+  // Lazy-load to avoid hard dependency during partial test runs
+  return require("axios");
+}
 import { TEST_CONFIG, getAuthHeaders } from '../setup';
 
 export interface TestUser {
@@ -24,6 +27,7 @@ export interface ApiResponse<T = any> {
  */
 export async function createTestUser(email: string, name?: string): Promise<TestUser> {
   try {
+    const axios = getAxios();
     const response = await axios.post(
       `${TEST_CONFIG.USER_SERVICE_URL}/api/me`,
       {
@@ -42,6 +46,7 @@ export async function createTestUser(email: string, name?: string): Promise<Test
       token,
     };
   } catch (error) {
+    const axios = getAxios();
     if (axios.isAxiosError(error)) {
       throw new Error(`Failed to create test user: ${error.response?.data?.error || error.message}`);
     }
@@ -59,6 +64,7 @@ export async function authenticatedRequest<T = any>(
   data?: any
 ): Promise<ApiResponse<T>> {
   try {
+    const axios = getAxios();
     const response = await axios({
       method,
       url,
@@ -71,6 +77,7 @@ export async function authenticatedRequest<T = any>(
       status: response.status,
     };
   } catch (error) {
+    const axios = getAxios();
     if (axios.isAxiosError(error)) {
       return {
         error: error.response?.data?.error || error.message,
@@ -90,6 +97,7 @@ export async function unauthenticatedRequest<T = any>(
   data?: any
 ): Promise<ApiResponse<T>> {
   try {
+    const axios = getAxios();
     const response = await axios({
       method,
       url,
@@ -104,6 +112,7 @@ export async function unauthenticatedRequest<T = any>(
       status: response.status,
     };
   } catch (error) {
+    const axios = getAxios();
     if (axios.isAxiosError(error)) {
       return {
         error: error.response?.data?.error || error.message,
@@ -120,6 +129,7 @@ export async function unauthenticatedRequest<T = any>(
 export async function waitForService(url: string, maxRetries = 10, delay = 1000): Promise<boolean> {
   for (let i = 0; i < maxRetries; i++) {
     try {
+      const axios = getAxios();
       await axios.get(`${url}/health`, { timeout: 2000 });
       return true;
     } catch (error) {
@@ -142,4 +152,3 @@ export async function cleanupTestData(serviceUrl: string, resourcePath: string, 
     console.warn('Cleanup failed:', error);
   }
 }
-

@@ -91,14 +91,14 @@ export default function DashboardNotFound() {
             </Link>
 
             <Link
-              href="/groups"
+              href="/forums"
               className="flex flex-col items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 hover:bg-indigo-dye-50 dark:hover:bg-indigo-dye-900/30 rounded-xl border border-gray-200 dark:border-gray-600 transition-all duration-200 hover:shadow-md hover:scale-105 group"
             >
               <div className="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm group-hover:shadow-md transition-shadow">
                 <Users className="w-6 h-6 text-peach-yellow-600 dark:text-peach-yellow-400" />
               </div>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                Groups
+                Forums
               </span>
             </Link>
 

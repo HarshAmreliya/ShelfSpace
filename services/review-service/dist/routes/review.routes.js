@@ -2,7 +2,38 @@ import express from "express";
 import prisma from "../prisma.js";
 import { createReviewSchema, updateReviewSchema } from "../schemas.js";
 import { isAuthenticated } from "../middlewares/auth.js";
+import axios from "axios";
 const router = express.Router();
+const ANALYTICS_SERVICE_URL = process.env.ANALYTICS_SERVICE_URL?.trim() || "";
+const BOOK_SERVICE_URL = process.env.BOOK_SERVICE_URL?.trim() || "http://localhost:3004";
+async function emitAnalyticsEvent(req, payload) {
+    if (!ANALYTICS_SERVICE_URL)
+        return;
+    const authHeader = req.headers.authorization;
+    if (!authHeader)
+        return;
+    try {
+        await axios.post(`${ANALYTICS_SERVICE_URL}/api/analytics/events`, { events: [payload] }, { headers: { Authorization: authHeader } });
+    }
+    catch (error) {
+        console.warn("Failed to emit analytics event");
+    }
+}
+async function fetchBookMeta(bookId) {
+    try {
+        const response = await axios.get(`${BOOK_SERVICE_URL}/api/books/${bookId}`, {
+            timeout: 5000,
+        });
+        const book = response.data;
+        const author = Array.isArray(book?.authors) && book.authors.length > 0
+            ? book.authors[0]?.name
+            : undefined;
+        return { title: book?.title, author };
+    }
+    catch {
+        return {};
+    }
+}
 // Create a new review
 router.post("/", isAuthenticated, async (req, res) => {
     const parseResult = createReviewSchema.safeParse(req.body);
@@ -16,6 +47,15 @@ router.post("/", isAuthenticated, async (req, res) => {
             data: { ...parseResult.data, userId: req.userId },
         });
         res.status(201).json(review);
+        const bookMeta = await fetchBookMeta(review.bookId);
+        await emitAnalyticsEvent(req, {
+            type: "BOOK_RATED",
+            payload: {
+                bookId: review.bookId,
+                rating: review.rating,
+                ...bookMeta,
+            },
+        });
     }
     catch (error) {
         console.error("Error creating review:", error);
@@ -25,8 +65,14 @@ router.post("/", isAuthenticated, async (req, res) => {
 // Get all reviews for a specific book
 router.get("/book/:bookId", async (req, res) => {
     const { bookId } = req.params;
-    const limit = parseInt(req.query.limit) || 10;
-    const offset = parseInt(req.query.offset) || 0;
+    const limitRaw = req.query.limit ? Number(req.query.limit) : undefined;
+    const offsetRaw = req.query.offset ? Number(req.query.offset) : undefined;
+    if ((limitRaw !== undefined && (!Number.isInteger(limitRaw) || limitRaw <= 0)) ||
+        (offsetRaw !== undefined && (!Number.isInteger(offsetRaw) || offsetRaw < 0))) {
+        return res.status(400).json({ error: "Invalid pagination parameters" });
+    }
+    const limit = Math.min(limitRaw ?? 10, 100);
+    const offset = Math.min(offsetRaw ?? 0, 10_000);
     try {
         const reviews = await prisma.review.findMany({
             where: { bookId },
@@ -54,8 +100,14 @@ router.get("/book/:bookId", async (req, res) => {
 // Get all reviews from a specific user
 router.get("/user/:userId", async (req, res) => {
     const { userId } = req.params;
-    const limit = parseInt(req.query.limit) || 10;
-    const offset = parseInt(req.query.offset) || 0;
+    const limitRaw = req.query.limit ? Number(req.query.limit) : undefined;
+    const offsetRaw = req.query.offset ? Number(req.query.offset) : undefined;
+    if ((limitRaw !== undefined && (!Number.isInteger(limitRaw) || limitRaw <= 0)) ||
+        (offsetRaw !== undefined && (!Number.isInteger(offsetRaw) || offsetRaw < 0))) {
+        return res.status(400).json({ error: "Invalid pagination parameters" });
+    }
+    const limit = Math.min(limitRaw ?? 10, 100);
+    const offset = Math.min(offsetRaw ?? 0, 10_000);
     try {
         const reviews = await prisma.review.findMany({
             where: { userId },
@@ -116,6 +168,9 @@ router.put("/:id", isAuthenticated, async (req, res) => {
             .status(400)
             .json({ error: "Invalid input", details: parseResult.error.issues });
     }
+    if (Object.keys(parseResult.data).length === 0) {
+        return res.status(400).json({ error: "At least one field must be provided" });
+    }
     try {
         const review = await prisma.review.findUnique({
             where: { id },
@@ -142,6 +197,17 @@ router.put("/:id", isAuthenticated, async (req, res) => {
             },
         });
         res.json(updatedReview);
+        if (parseResult.data.rating !== undefined) {
+            const bookMeta = await fetchBookMeta(updatedReview.bookId);
+            await emitAnalyticsEvent(req, {
+                type: "BOOK_RATED",
+                payload: {
+                    bookId: updatedReview.bookId,
+                    rating: updatedReview.rating,
+                    ...bookMeta,
+                },
+            });
+        }
     }
     catch (error) {
         console.error("Error updating review:", error);

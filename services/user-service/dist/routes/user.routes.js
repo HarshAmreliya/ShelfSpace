@@ -6,7 +6,56 @@ import { isAdmin } from "../middlewares/isAdmin.js";
 import { updateUserStatusSchema } from "../schemas.js";
 import axios from "axios";
 import * as cache from "../utils/cache.js";
+import { emitAnalyticsEvents } from "../utils/analytics.js";
 const router = express.Router();
+// Public profile lookup by userId
+router.get("/users/:userId/public", async (req, res) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: req.params.userId },
+            select: {
+                id: true,
+                name: true,
+                avatarUrl: true,
+                bio: true,
+                isPublic: true,
+            },
+        });
+        if (!user) {
+            res.status(404).json({ error: "User not found" });
+            return;
+        }
+        res.json({
+            id: user.id,
+            name: user.name || undefined,
+            avatarUrl: user.avatarUrl,
+            bio: user.isPublic ? user.bio : null,
+            isPublic: user.isPublic,
+        });
+    }
+    catch (error) {
+        console.error("Error fetching public user profile:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+// Authenticated profile lookup by userId (returns name even if profile is private)
+router.get("/users/:userId/lookup", isAuthenticated, async (req, res) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: req.params.userId },
+            select: { id: true, name: true },
+        });
+        if (!user) {
+            res.status(404).json({ error: "User not found" });
+            return;
+        }
+        res.json({ id: user.id, name: user.name || null });
+    }
+    catch (error) {
+        console.error("Error fetching user lookup:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
 // Create the user
 router.post("/me", async (req, res) => {
     // console.log(req.body);
@@ -60,13 +109,20 @@ router.post("/me", async (req, res) => {
             isNewUser: true,
             needsPreferences: true
         });
+        await emitAnalyticsEvents(req, [
+            {
+                type: "USER_CREATED",
+                userId: user.id,
+                payload: { targetUserId: user.id },
+            },
+        ], `Bearer ${token}`);
     }
     catch (error) {
         console.error("Error creating/finding user:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 });
-router.get("/:userId", async (req, res) => {
+router.get("/public/:userId", async (req, res) => {
     try {
         const userId = req.params.userId;
         const user = await prisma.user.findUnique({
@@ -104,6 +160,12 @@ router.patch("/me", async (req, res) => {
         // Invalidate cache
         await cache.del(cache.cacheKeys.user(req.userId));
         res.json(updatedUser);
+        await emitAnalyticsEvents(req, [
+            {
+                type: "USER_PROFILE_UPDATED",
+                userId: req.userId,
+            },
+        ]);
     }
     catch (error) {
         console.error("Error updating user:", error);
@@ -184,6 +246,12 @@ router.put("/me/preferences", async (req, res) => {
         await cache.del(cache.cacheKeys.userPreferences(req.userId));
         await cache.del(cache.cacheKeys.user(req.userId)); // Also invalidate user cache
         res.json(updatedPreferences);
+        await emitAnalyticsEvents(req, [
+            {
+                type: "USER_PREFERENCES_UPDATED",
+                userId: req.userId,
+            },
+        ]);
     }
     catch (error) {
         console.error("Error updating preferences:", error);
@@ -226,6 +294,16 @@ router.put("/users/:userId/status", isAdmin, async (req, res) => {
             data: { status: parseResult.data.status },
         });
         res.json(updatedUser);
+        await emitAnalyticsEvents(req, [
+            {
+                type: "USER_STATUS_UPDATED",
+                userId: req.userId,
+                payload: {
+                    targetUserId: userId,
+                    status: parseResult.data.status,
+                },
+            },
+        ]);
     }
     catch (error) {
         console.error("Error updating user status:", error);
@@ -240,6 +318,13 @@ router.put("/users/:userId/preferences/reset", isAdmin, async (req, res) => {
             where: { userId },
         });
         res.status(200).json({ message: "User preferences reset successfully." });
+        await emitAnalyticsEvents(req, [
+            {
+                type: "USER_PREFERENCES_RESET",
+                userId: req.userId,
+                payload: { targetUserId: userId },
+            },
+        ]);
     }
     catch (error) {
         console.error("Error resetting user preferences:", error);

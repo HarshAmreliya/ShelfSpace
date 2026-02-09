@@ -2,6 +2,7 @@ import express from "express";
 import prisma from "../prisma.js";
 import { isAuthenticated } from "../middlewares/auth.js";
 import { getChatMessages, appendChatMessage, deleteChatMessages, refreshChatTTL } from "../utils/redis.js";
+import { emitAnalyticsEvents } from "../utils/analytics.js";
 const router = express.Router();
 // All routes require authentication
 router.use(isAuthenticated);
@@ -51,6 +52,13 @@ router.post("/sessions", async (req, res) => {
             }
         });
         res.status(201).json(session);
+        await emitAnalyticsEvents(req, [
+            {
+                type: "CHAT_SESSION_CREATED",
+                userId: req.userId,
+                payload: { sessionId: session.id },
+            },
+        ]);
     }
     catch (error) {
         console.error("Error creating chat session:", error);
@@ -152,6 +160,16 @@ router.post("/sessions/:sessionId/messages", async (req, res) => {
             }
         });
         res.status(201).json(message);
+        await emitAnalyticsEvents(req, [
+            {
+                type: "CHAT_MESSAGE_SENT",
+                userId: req.userId,
+                payload: {
+                    sessionId,
+                    messageLength: typeof content === "string" ? content.length : undefined,
+                },
+            },
+        ]);
     }
     catch (error) {
         console.error("Error adding message:", error);
@@ -185,6 +203,13 @@ router.patch("/sessions/:sessionId", async (req, res) => {
             return;
         }
         res.json({ success: true });
+        await emitAnalyticsEvents(req, [
+            {
+                type: "CHAT_SESSION_UPDATED",
+                userId: req.userId,
+                payload: { sessionId },
+            },
+        ]);
     }
     catch (error) {
         console.error("Error updating session:", error);
@@ -212,6 +237,13 @@ router.delete("/sessions/:sessionId", async (req, res) => {
         // Delete messages from Redis
         await deleteChatMessages(sessionId);
         res.json({ success: true });
+        await emitAnalyticsEvents(req, [
+            {
+                type: "CHAT_SESSION_DELETED",
+                userId: req.userId,
+                payload: { sessionId },
+            },
+        ]);
     }
     catch (error) {
         console.error("Error deleting session:", error);
@@ -246,6 +278,13 @@ router.post("/sessions/:sessionId/refresh", async (req, res) => {
         // Refresh Redis TTL
         await refreshChatTTL(sessionId);
         res.json({ success: true, message: "Session refreshed for 24 hours" });
+        await emitAnalyticsEvents(req, [
+            {
+                type: "CHAT_SESSION_UPDATED",
+                userId: req.userId,
+                payload: { sessionId, reason: "refresh" },
+            },
+        ]);
     }
     catch (error) {
         console.error("Error refreshing session:", error);

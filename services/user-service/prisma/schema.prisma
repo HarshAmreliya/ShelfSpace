@@ -55,6 +55,7 @@ model Preferences {
   accessibilityFont   Boolean   @default(false)
   reducedMotion       Boolean   @default(false)
   autoPlayMedia       Boolean   @default(false)
+  settings            Json?
 
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt

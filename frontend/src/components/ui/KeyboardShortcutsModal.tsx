@@ -21,7 +21,7 @@ const defaultShortcuts: Shortcut[] = [
   { keys: ["G", "L"], description: "Go to Library", category: "Navigation" },
   { keys: ["G", "S"], description: "Go to Search", category: "Navigation" },
   { keys: ["G", "C"], description: "Go to Chat", category: "Navigation" },
-  { keys: ["G", "G"], description: "Go to Groups", category: "Navigation" },
+  { keys: ["G", "G"], description: "Go to Forums", category: "Navigation" },
   { keys: ["G", "P"], description: "Go to Profile", category: "Navigation" },
 
   // Actions

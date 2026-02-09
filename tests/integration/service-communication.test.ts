@@ -23,7 +23,7 @@ describe('Service-to-Service Communication Tests', () => {
     // Wait for all services to be ready
     await waitForService(TEST_CONFIG.USER_SERVICE_URL);
     await waitForService(TEST_CONFIG.REVIEW_SERVICE_URL);
-    await waitForService(TEST_CONFIG.GROUP_SERVICE_URL);
+    await waitForService(TEST_CONFIG.FORUM_SERVICE_URL);
     await waitForService(TEST_CONFIG.LIBRARY_SERVICE_URL);
     await waitForService(TEST_CONFIG.BOOK_SERVICE_URL);
     await waitForService(TEST_CONFIG.CHAT_SERVICE_URL);
@@ -34,7 +34,7 @@ describe('Service-to-Service Communication Tests', () => {
     // Create a test group for membership verification tests
     const groupResponse = await authenticatedRequest(
       'POST',
-      `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups`,
+      `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums`,
       testUser.token,
       {
         name: `Test Group ${Date.now()}`,
@@ -94,7 +94,7 @@ describe('Service-to-Service Communication Tests', () => {
       // The group service calls user service /api/auth/verify
       const response = await authenticatedRequest(
         'POST',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums`,
         testUser.token,
         {
           name: `Test Group ${Date.now()}`,
@@ -114,7 +114,7 @@ describe('Service-to-Service Communication Tests', () => {
         // Create a group if needed
         const groupResponse = await authenticatedRequest(
           'POST',
-          `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups`,
+          `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums`,
           testUser.token,
           {
             name: `Test Group ${Date.now()}`,
@@ -127,7 +127,7 @@ describe('Service-to-Service Communication Tests', () => {
       // Verify membership endpoint should work
       const verifyResponse = await authenticatedRequest(
         'GET',
-        `${TEST_CONFIG.GROUP_SERVICE_URL}/api/groups/${testGroupId}/members/${testUser.id}/verify`,
+        `${TEST_CONFIG.FORUM_SERVICE_URL}/api/forums/${testGroupId}/members/${testUser.id}/verify`,
         testUser.token
       );
 

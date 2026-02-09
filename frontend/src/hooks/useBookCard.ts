@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Book } from "@/types/book";
+import { toBookSlug } from "@/lib/book-slug";
 
 export interface BookCardActions {
   onView?: (book: Book) => void | undefined;
@@ -27,7 +28,7 @@ export function useBookCard({ book, actions, onClick }: UseBookCardProps) {
     } else if (actions?.onView) {
       actions.onView(book);
     } else {
-      router.push(`/book/${book.id}`);
+      router.push(`/book/${toBookSlug(book)}`);
     }
   }, [router, book, onClick, actions]);
 

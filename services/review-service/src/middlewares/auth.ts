@@ -34,9 +34,18 @@ export async function isAuthenticated(req: Request, res: Response, next: NextFun
     }
   } catch (error) {
     console.error("Authentication Error: ", error);
-    return res.status(401).json({
-      error: "Forbidden",
-      message: "Your Authentication token is invalid or has expired",
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      if (status === 401 || status === 403) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          message: "Your authentication token is invalid or has expired",
+        });
+      }
+    }
+    return res.status(503).json({
+      error: "Service Unavailable",
+      message: "Authentication service is unavailable",
     });
   }
 }

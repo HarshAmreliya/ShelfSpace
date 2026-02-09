@@ -9,7 +9,9 @@ import { BookListItem } from "@/components/library/components/BookListItem";
 import { cn } from "@/utils/cn";
 import { PageSkeleton } from "@/components/common/LoadingStates/PageSkeleton";
 import { Book } from "@/types/book";
+import { ReadingList } from "@/types/library";
 import { useDebounce } from "@/hooks/useDebounce";
+import { libraryService } from "@/services/libraryService";
 import {
   BookOpen,
   Search,
@@ -45,6 +47,15 @@ export function DiscoverFeature() {
     hasNext: boolean;
     hasPrev: boolean;
   } | null>(null);
+  const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [listCache, setListCache] = useState<ReadingList[] | null>(null);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [saveTargetListId, setSaveTargetListId] = useState("");
+  const [saveListError, setSaveListError] = useState<string | null>(null);
+  const [saveBook, setSaveBook] = useState<Book | null>(null);
+  const [newListName, setNewListName] = useState("");
+  const [isCreatingList, setIsCreatingList] = useState(false);
 
   // Fetch genres on mount
   useEffect(() => {
@@ -83,6 +94,86 @@ export function DiscoverFeature() {
     setPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedGenre, debouncedSearch, sortBy, sortOrder]);
+
+  const loadReadingLists = useCallback(async () => {
+    const response = await libraryService.getReadingLists({ includeBooks: false });
+    setListCache(response.data as any);
+    return response.data as any;
+  }, []);
+
+  const ensureWantToReadList = useCallback(async () => {
+    let lists = listCache || (await loadReadingLists());
+    if (!lists || lists.length === 0) {
+      await libraryService.initializeDefaults();
+      lists = await loadReadingLists();
+    }
+    const wantList = lists.find((list: ReadingList) =>
+      list.name.toLowerCase().includes("want")
+    );
+    if (wantList) return wantList;
+
+    const created = await libraryService.createReadingList({
+      list: { name: "Want to Read" },
+    });
+    await loadReadingLists();
+    return created.data;
+  }, [listCache, loadReadingLists]);
+
+  const openSaveModal = useCallback(async (book: Book) => {
+    if (savingIds.has(book.id) || savedIds.has(book.id)) return;
+    setSaveBook(book);
+    setSaveListError(null);
+    const lists = await ensureWantToReadList().then(() => loadReadingLists());
+    const want = lists.find((list: ReadingList) =>
+      list.name.toLowerCase().includes("want")
+    );
+    setSaveTargetListId(want?.id || (lists[0]?.id ?? ""));
+    setIsSaveModalOpen(true);
+  }, [ensureWantToReadList, loadReadingLists, savingIds, savedIds]);
+
+  const handleCreateList = useCallback(async () => {
+    const name = newListName.trim();
+    if (!name) {
+      setSaveListError("Please enter a list name.");
+      return;
+    }
+    setIsCreatingList(true);
+    try {
+      const created = await libraryService.createReadingList({
+        list: { name },
+      });
+      const lists = await loadReadingLists();
+      setSaveTargetListId((created.data as any)?.id || lists[0]?.id || "");
+      setNewListName("");
+      setSaveListError(null);
+    } catch (err: any) {
+      setSaveListError(err?.message || "Failed to create list");
+    } finally {
+      setIsCreatingList(false);
+    }
+  }, [newListName, loadReadingLists]);
+
+  const confirmSave = useCallback(async () => {
+    if (!saveBook || !saveTargetListId) {
+      setSaveListError("Please select a list.");
+      return;
+    }
+    setSavingIds((prev) => new Set(prev).add(saveBook.id));
+    try {
+      await libraryService.addBooksToReadingList(saveTargetListId, [saveBook.id]);
+      setSavedIds((prev) => new Set(prev).add(saveBook.id));
+      setIsSaveModalOpen(false);
+    } catch (err) {
+      console.error("Failed to save book:", err);
+      setSaveListError("Failed to save book. Please sign in and try again.");
+    } finally {
+      setSavingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(saveBook.id);
+        return next;
+      });
+    }
+  }, [saveBook, saveTargetListId]);
 
   if (isLoading && !books.length) {
     return <PageSkeleton variant="discover" />;
@@ -214,13 +305,25 @@ export function DiscoverFeature() {
                 {viewMode === "grid" ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                     {books.map(book => (
-                      <BookCard key={book.id} book={book} />
+                      <BookCard
+                        key={book.id}
+                        book={book}
+                        onSave={openSaveModal}
+                        isSaved={savedIds.has(book.id)}
+                        isSaving={savingIds.has(book.id)}
+                      />
                     ))}
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {books.map(book => (
-                      <BookListItem key={book.id} book={book} />
+                      <BookListItem
+                        key={book.id}
+                        book={book}
+                        onSave={openSaveModal}
+                        isSaved={savedIds.has(book.id)}
+                        isSaving={savingIds.has(book.id)}
+                      />
                     ))}
                   </div>
                 )}
@@ -270,6 +373,84 @@ export function DiscoverFeature() {
           </section>
         </div>
       </div>
+
+      {isSaveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-800 border border-amber-200 dark:border-slate-700 shadow-xl">
+            <div className="p-5 border-b border-amber-200 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
+                Add to Reading List
+              </h3>
+              {saveBook && (
+                <p className="text-sm text-gray-600 dark:text-slate-300 mt-1">
+                  {saveBook.title}
+                </p>
+              )}
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label htmlFor="list-select" className="block text-sm text-gray-600 dark:text-slate-300 mb-1">
+                  Choose a list
+                </label>
+                <select
+                  id="list-select"
+                  value={saveTargetListId}
+                  onChange={(e) => setSaveTargetListId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-amber-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                >
+                  {(listCache || []).map((list) => (
+                    <option key={list.id} value={list.id}>
+                      {list.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="border-t border-amber-200 dark:border-slate-700 pt-4">
+                <label htmlFor="new-list-name" className="block text-sm text-gray-600 dark:text-slate-300 mb-1">
+                  Or create a new list
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="new-list-name"
+                    value={newListName}
+                    onChange={(e) => setNewListName(e.target.value)}
+                    className="flex-1 px-3 py-2 rounded-lg border border-amber-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"
+                    placeholder="New list name"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCreateList}
+                    className="px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm"
+                    disabled={isCreatingList}
+                  >
+                    {isCreatingList ? "Creating..." : "Create"}
+                  </button>
+                </div>
+              </div>
+
+              {saveListError && <p className="text-sm text-red-600">{saveListError}</p>}
+            </div>
+            <div className="p-5 border-t border-amber-200 dark:border-slate-700 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsSaveModalOpen(false)}
+                className="px-3 py-2 rounded-lg bg-white dark:bg-slate-700 border border-amber-200 dark:border-slate-600 text-gray-800 dark:text-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmSave}
+                className="px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white"
+                disabled={!saveTargetListId || (saveBook ? savingIds.has(saveBook.id) : false)}
+              >
+                Add to List
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ErrorBoundary>
   );
 }

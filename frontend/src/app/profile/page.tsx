@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ProfilePageClient } from "@/components/profile/ProfilePageClient";
 
 export const metadata: Metadata = {
   title: "Profile | ShelfSpace",
@@ -8,9 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function ProfilePage() {
-  return (
-    <div className="bg-whiteBg min-h-screen text-black">
-      {/* ...existing content... */}
-    </div>
-  );
+  return <ProfilePageClient />;
 }

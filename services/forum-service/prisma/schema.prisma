@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Forum {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isPublic    Boolean  @default(true)
+  tags        String[]
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships ForumMembership[]
+  threads     ForumThread[]
+}
+
+model ForumMembership {
+  id        String    @id @default(cuid())
+  forumId   String
+  userId    String
+  role      ForumRole @default(MEMBER)
+  createdAt DateTime  @default(now())
+
+  forum Forum @relation(fields: [forumId], references: [id], onDelete: Cascade)
+
+  @@unique([forumId, userId])
+}
+
+model ForumThread {
+  id          String   @id @default(cuid())
+  forumId     String
+  title       String
+  content     String
+  createdById String
+  isPinned    Boolean  @default(false)
+  isLocked    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  forum Forum @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  posts ForumPost[]
+}
+
+model ForumPost {
+  id           String   @id @default(cuid())
+  threadId     String
+  authorId     String
+  content      String
+  parentPostId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  thread    ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  parent    ForumPost?  @relation("ForumPostReplies", fields: [parentPostId], references: [id], onDelete: Cascade)
+  replies   ForumPost[] @relation("ForumPostReplies")
+  reactions ForumPostReaction[]
+}
+
+model ForumPostReaction {
+  id        String        @id @default(cuid())
+  postId    String
+  userId    String
+  type      ReactionType  @default(LIKE)
+  createdAt DateTime      @default(now())
+
+  post ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId, type])
+}
+
+enum ForumRole {
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+enum ReactionType {
+  LIKE
+  UPVOTE
+  LAUGH
+  SAD
+  ANGRY
+}

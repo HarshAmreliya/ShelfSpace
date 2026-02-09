@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bell,
   Mail,
@@ -8,9 +8,43 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
+import apiClient from "@/lib/api";
+import { getErrorMessage } from "@/lib/api-utils";
+
+type NotificationSettings = {
+  email: {
+    newMessages: boolean;
+    groupUpdates: boolean;
+    bookRecommendations: boolean;
+    readingReminders: boolean;
+    weeklyDigest: boolean;
+  };
+  push: {
+    newMessages: boolean;
+    groupUpdates: boolean;
+    bookRecommendations: boolean;
+    readingReminders: boolean;
+    weeklyDigest: boolean;
+  };
+  inApp: {
+    newMessages: boolean;
+    groupUpdates: boolean;
+    bookRecommendations: boolean;
+    readingReminders: boolean;
+    weeklyDigest: boolean;
+  };
+  sound: {
+    enabled: boolean;
+    volume: number;
+  };
+};
+
+type SettingsBlob = {
+  notifications?: NotificationSettings;
+};
 
 export function NotificationsSettings() {
-  const [notifications, setNotifications] = useState({
+  const [notifications, setNotifications] = useState<NotificationSettings>({
     email: {
       newMessages: true,
       groupUpdates: true,
@@ -37,6 +71,49 @@ export function NotificationsSettings() {
       volume: 70,
     },
   });
+  const [serverSettings, setServerSettings] = useState<SettingsBlob>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadSettings = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { data } = await apiClient.get("/api/user/preferences");
+        const settings: SettingsBlob = data?.settings ?? {};
+        if (settings.notifications && isMounted) {
+          setNotifications(settings.notifications);
+        }
+        if (isMounted) {
+          setServerSettings(settings);
+        }
+      } catch (err) {
+        const status = (err as any)?.response?.status;
+        if (status === 404) {
+          if (isMounted) {
+            setServerSettings({});
+          }
+          return;
+        }
+        if (isMounted) {
+          setError(getErrorMessage(err));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadSettings();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleToggle = (category: keyof typeof notifications, setting: string) => {
     setNotifications(prev => {
@@ -91,7 +168,7 @@ export function NotificationsSettings() {
         <div className="space-y-4">
           {[
             { key: "newMessages", label: "New Messages", desc: "When someone sends you a message" },
-            { key: "groupUpdates", label: "Group Updates", desc: "When your groups have new discussions" },
+            { key: "groupUpdates", label: "Group Updates", desc: "When your forums have new discussions" },
             { key: "bookRecommendations", label: "Book Recommendations", desc: "Personalized book suggestions" },
             { key: "readingReminders", label: "Reading Reminders", desc: "Daily reading goal reminders" },
             { key: "weeklyDigest", label: "Weekly Digest", desc: "Summary of your reading activity" },
@@ -141,7 +218,7 @@ export function NotificationsSettings() {
         <div className="space-y-4">
           {[
             { key: "newMessages", label: "New Messages", desc: "When someone sends you a message" },
-            { key: "groupUpdates", label: "Group Updates", desc: "When your groups have new discussions" },
+            { key: "groupUpdates", label: "Group Updates", desc: "When your forums have new discussions" },
             { key: "bookRecommendations", label: "Book Recommendations", desc: "Personalized book suggestions" },
             { key: "readingReminders", label: "Reading Reminders", desc: "Daily reading goal reminders" },
             { key: "weeklyDigest", label: "Weekly Digest", desc: "Summary of your reading activity" },
@@ -191,7 +268,7 @@ export function NotificationsSettings() {
         <div className="space-y-4">
           {[
             { key: "newMessages", label: "New Messages", desc: "When someone sends you a message" },
-            { key: "groupUpdates", label: "Group Updates", desc: "When your groups have new discussions" },
+            { key: "groupUpdates", label: "Group Updates", desc: "When your forums have new discussions" },
             { key: "bookRecommendations", label: "Book Recommendations", desc: "Personalized book suggestions" },
             { key: "readingReminders", label: "Reading Reminders", desc: "Daily reading goal reminders" },
             { key: "weeklyDigest", label: "Weekly Digest", desc: "Summary of your reading activity" },
@@ -288,10 +365,42 @@ export function NotificationsSettings() {
 
       {/* Save Button */}
       <div className="flex justify-end pt-6 border-t border-amber-200 dark:border-slate-600">
-        <button className="px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors font-medium">
-          Save Notification Settings
+        <button
+          disabled={isLoading || isSaving}
+          onClick={async () => {
+            setIsSaving(true);
+            setError(null);
+            setSaveMessage(null);
+            try {
+              const updatedSettings: SettingsBlob = {
+                ...serverSettings,
+                notifications,
+              };
+              await apiClient.put("/api/user/preferences", {
+                settings: updatedSettings,
+              });
+              setServerSettings(updatedSettings);
+              setSaveMessage("Notification settings saved.");
+            } catch (err) {
+              setError(getErrorMessage(err));
+            } finally {
+              setIsSaving(false);
+            }
+          }}
+          className="px-8 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-lg transition-colors font-medium"
+        >
+          {isSaving ? "Saving..." : "Save Notification Settings"}
         </button>
       </div>
+      {(error || saveMessage) && (
+        <div className="flex justify-end">
+          {error ? (
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          ) : (
+            <p className="text-sm text-emerald-600 dark:text-emerald-400">{saveMessage}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

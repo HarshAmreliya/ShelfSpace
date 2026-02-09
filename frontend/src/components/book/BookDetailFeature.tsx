@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -22,7 +22,9 @@ import { BookDiscussion } from "@/types/bookDetail";
 import { bookService } from "@/lib/book-service";
 import { useReviews } from "@/hooks/data/useReviews";
 import { useSession } from "next-auth/react";
-import { useEffect } from "react";
+import { libraryService } from "@/services/libraryService";
+import { ReadingList } from "@/types/library";
+import { useToast } from "@/hooks/useToast";
 
 interface BookDetailFeatureProps {
   bookId: string;
@@ -31,17 +33,34 @@ interface BookDetailFeatureProps {
 export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
   const router = useRouter();
   const { data: session } = useSession();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<"overview" | "reviews" | "discussions">("overview");
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [book, setBook] = useState<Book | null>(null);
   const [bookLoading, setBookLoading] = useState(true);
   const [bookError, setBookError] = useState<string | null>(null);
+  const [newReviewText, setNewReviewText] = useState("");
+  const [newTldr, setNewTldr] = useState("");
+  const [newRating, setNewRating] = useState(5);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+  const [editReviewText, setEditReviewText] = useState("");
+  const [editTldr, setEditTldr] = useState("");
+  const [editRating, setEditRating] = useState(5);
+  const [coverFailed, setCoverFailed] = useState(false);
+  const [listCache, setListCache] = useState<ReadingList[] | null>(null);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [saveTargetListId, setSaveTargetListId] = useState("");
+  const [saveListError, setSaveListError] = useState<string | null>(null);
+  const [newListName, setNewListName] = useState("");
+  const [isCreatingList, setIsCreatingList] = useState(false);
+  const [isSavingBook, setIsSavingBook] = useState(false);
 
   // Fetch book details from API
   useEffect(() => {
     let cancelled = false;
     setBookLoading(true);
     setBookError(null);
+    setCoverFailed(false);
     
     bookService.getBookById(bookId)
       .then((bookData) => {
@@ -64,10 +83,98 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
   }, [bookId]);
 
   // Reviews from API
-  const { reviews, loading: reviewsLoading, error: reviewsError, createReview } = useReviews(bookId);
+  const { reviews, loading: reviewsLoading, error: reviewsError, createReview, updateReview, deleteReview } = useReviews(bookId);
 
   // Discussions - keeping empty for now as there's no discussions backend endpoint yet
   const discussions: BookDiscussion[] = [];
+
+  const loadReadingLists = useCallback(async () => {
+    const response = await libraryService.getReadingLists({ includeBooks: false });
+    setListCache(response.data as any);
+    return response.data as any;
+  }, []);
+
+  const ensureDefaultList = useCallback(async () => {
+    let lists = listCache || (await loadReadingLists());
+    if (!lists || lists.length === 0) {
+      await libraryService.initializeDefaults();
+      lists = await loadReadingLists();
+    }
+    return lists;
+  }, [listCache, loadReadingLists]);
+
+  const openSaveModal = useCallback(async () => {
+    if (!book) return;
+    if (!session?.accessToken) {
+      toast.error("Please sign in to save books.");
+      return;
+    }
+    setSaveListError(null);
+    const lists = await ensureDefaultList();
+    const want = lists.find((list: ReadingList) =>
+      list.name.toLowerCase().includes("want")
+    );
+    setSaveTargetListId(want?.id || (lists[0]?.id ?? ""));
+    setIsSaveModalOpen(true);
+  }, [book, ensureDefaultList, session?.accessToken, toast]);
+
+  const handleBookmark = () => {
+    openSaveModal();
+  };
+
+  const handleShare = () => {
+    if (!book) return;
+    if (navigator.share) {
+      navigator.share({
+        title: book.title,
+        text: `Check out "${book.title}" by ${book.author}`,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+    }
+  };
+
+  const handleCreateList = useCallback(async () => {
+    const name = newListName.trim();
+    if (!name) {
+      setSaveListError("Please enter a list name.");
+      return;
+    }
+    setIsCreatingList(true);
+    try {
+      const created = await libraryService.createReadingList({
+        list: { name },
+      });
+      const lists = await loadReadingLists();
+      setSaveTargetListId((created.data as any)?.id || lists[0]?.id || "");
+      setNewListName("");
+      setSaveListError(null);
+    } catch (err: any) {
+      setSaveListError(err?.message || "Failed to create list");
+    } finally {
+      setIsCreatingList(false);
+    }
+  }, [newListName, loadReadingLists]);
+
+  const confirmSave = useCallback(async () => {
+    if (!book || !saveTargetListId) {
+      setSaveListError("Please select a list.");
+      return;
+    }
+    setIsSavingBook(true);
+    try {
+      await libraryService.addBooksToReadingList(saveTargetListId, [book.id]);
+      setIsBookmarked(true);
+      setIsSaveModalOpen(false);
+      toast.success("Saved to your library.");
+    } catch (err) {
+      console.error("Failed to save book:", err);
+      setSaveListError("Failed to save book. Please sign in and try again.");
+    } finally {
+      setIsSavingBook(false);
+    }
+  }, [book, saveTargetListId, toast]);
 
   if (bookLoading) {
     return (
@@ -112,25 +219,6 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
     );
   }
 
-  const handleBookmark = () => {
-    setIsBookmarked(!isBookmarked);
-  };
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: book.title,
-        text: `Check out "${book.title}" by ${book.author}`,
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-    }
-  };
-
-  const [newReviewText, setNewReviewText] = useState("");
-  const [newTldr, setNewTldr] = useState("");
-  const [newRating, setNewRating] = useState(5);
   const onCreateReview = async () => {
     if (newReviewText.trim().length < 10) {
       alert("Review text must be at least 10 characters long");
@@ -148,17 +236,72 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
     setNewRating(5);
   };
 
+  const startEditReview = (reviewId: string) => {
+    const review = reviews.find((r) => r.id === reviewId);
+    if (!review) return;
+    setEditingReviewId(reviewId);
+    setEditReviewText(review.reviewText || "");
+    setEditTldr(review.tldr || "");
+    setEditRating(review.rating || 5);
+  };
+
+  const cancelEditReview = () => {
+    setEditingReviewId(null);
+    setEditReviewText("");
+    setEditTldr("");
+    setEditRating(5);
+  };
+
+  const onUpdateReview = async () => {
+    if (!editingReviewId) return;
+    if (editReviewText.trim().length < 10) {
+      alert("Review text must be at least 10 characters long");
+      return;
+    }
+    const trimmedTldr = editTldr.trim();
+    await updateReview(editingReviewId, {
+      reviewText: editReviewText,
+      rating: editRating,
+      ...(trimmedTldr ? { tldr: trimmedTldr } : { tldr: "" }),
+    });
+    cancelEditReview();
+  };
+
+  const onDeleteReview = async (reviewId: string) => {
+    const confirmed = window.confirm("Delete this review? This cannot be undone.");
+    if (!confirmed) return;
+    await deleteReview(reviewId);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 relative z-10">
       {/* Main Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-4">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/90 dark:bg-slate-800/95 border border-amber-200 dark:border-slate-700 text-amber-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+        </div>
         {/* Book Header */}
         <div className="bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-xl border border-amber-200 dark:border-slate-700 p-8 mb-8">
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Book Cover */}
             <div className="flex-shrink-0">
-              <div className="w-64 h-80 bg-gradient-to-br from-amber-100 to-orange-200 dark:from-slate-700 dark:to-slate-600 rounded-xl shadow-lg flex items-center justify-center">
-                <BookOpen className="h-24 w-24 text-amber-600 dark:text-slate-400" />
+              <div className="w-64 h-80 bg-gradient-to-br from-amber-100 to-orange-200 dark:from-slate-700 dark:to-slate-600 rounded-xl shadow-lg flex items-center justify-center overflow-hidden">
+                {book.coverImage && !coverFailed ? (
+                  <img
+                    src={book.coverImage}
+                    alt={`Cover of ${book.title}`}
+                    className="w-full h-full object-cover"
+                    onError={() => setCoverFailed(true)}
+                  />
+                ) : (
+                  <BookOpen className="h-24 w-24 text-amber-600 dark:text-slate-400" />
+                )}
               </div>
             </div>
 
@@ -434,17 +577,86 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
                           </div>
                         </div>
                       </div>
-                      <button className="p-2 rounded-lg hover:bg-amber-100 dark:hover:bg-slate-600 transition-colors">
-                        <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-slate-400" />
-                      </button>
+                      {session?.user?.id && review.userId === session.user.id && (
+                        <div className="flex items-center gap-2">
+                          {editingReviewId === review.id ? (
+                            <>
+                              <button
+                                onClick={onUpdateReview}
+                                className="px-3 py-1 rounded bg-amber-500 hover:bg-amber-600 text-white text-xs"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={cancelEditReview}
+                                className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => startEditReview(review.id)}
+                                className="px-3 py-1 rounded bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => onDeleteReview(review.id)}
+                                className="px-3 py-1 rounded bg-red-100 hover:bg-red-200 text-red-700 text-xs"
+                              >
+                                Delete
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    {review.tldr && (
-                      <div className="mb-2 p-2 bg-amber-100 dark:bg-slate-600 rounded">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">TL;DR: {review.tldr}</p>
+                    {editingReviewId === review.id ? (
+                      <div className="space-y-3 mb-4">
+                        <div className="flex gap-3">
+                          <select
+                            className="px-3 py-2 rounded border border-amber-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm"
+                            value={editRating}
+                            onChange={(e) => setEditRating(parseInt(e.target.value))}
+                          >
+                            {[1, 2, 3, 4, 5].map((v) => (
+                              <option key={v} value={v}>
+                                {v}★
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <input
+                          className="w-full px-3 py-2 rounded border border-amber-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm"
+                          placeholder="TL;DR (optional)"
+                          value={editTldr}
+                          onChange={(e) => setEditTldr(e.target.value)}
+                        />
+                        <textarea
+                          className="w-full px-3 py-2 rounded border border-amber-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm min-h-[120px]"
+                          placeholder="Write your review (minimum 10 characters)..."
+                          value={editReviewText}
+                          onChange={(e) => setEditReviewText(e.target.value)}
+                        />
+                        {editReviewText.length > 0 && editReviewText.length < 10 && (
+                          <p className="text-xs text-red-600">
+                            Review must be at least 10 characters ({editReviewText.length}/10)
+                          </p>
+                        )}
                       </div>
+                    ) : (
+                      <>
+                        {review.tldr && (
+                          <div className="mb-2 p-2 bg-amber-100 dark:bg-slate-600 rounded">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">TL;DR: {review.tldr}</p>
+                          </div>
+                        )}
+                        <p className="text-gray-700 dark:text-slate-300 mb-4 whitespace-pre-wrap">{review.reviewText}</p>
+                      </>
                     )}
-                    <p className="text-gray-700 dark:text-slate-300 mb-4 whitespace-pre-wrap">{review.reviewText}</p>
 
                     <div className="flex items-center gap-4">
                       <button className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
@@ -553,6 +765,77 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
           )}
         </div>
       </div>
+
+      {isSaveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-amber-200 dark:border-slate-700 p-6">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+              Add to Reading List
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+              Choose where to save this book.
+            </p>
+
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+              Select List
+            </label>
+            <select
+              value={saveTargetListId}
+              onChange={(e) => setSaveTargetListId(e.target.value)}
+              className="w-full px-4 py-3 border border-amber-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            >
+              {(listCache || []).map((list) => (
+                <option key={list.id} value={list.id}>
+                  {list.name}
+                </option>
+              ))}
+            </select>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                Or create a new list
+              </label>
+              <div className="flex gap-2">
+                <input
+                  value={newListName}
+                  onChange={(e) => setNewListName(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-amber-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  placeholder="List name"
+                />
+                <button
+                  onClick={handleCreateList}
+                  disabled={isCreatingList}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-lg transition-colors"
+                >
+                  {isCreatingList ? "Creating..." : "Create"}
+                </button>
+              </div>
+            </div>
+
+            {saveListError && (
+              <p className="text-sm text-red-600 dark:text-red-400 mt-3">
+                {saveListError}
+              </p>
+            )}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setIsSaveModalOpen(false)}
+                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmSave}
+                disabled={!saveTargetListId || isSavingBook}
+                className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white transition-colors"
+              >
+                {isSavingBook ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

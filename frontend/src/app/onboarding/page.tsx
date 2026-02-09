@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import api from "@/lib/api";
+import { getErrorMessage } from "@/lib/api-utils";
 
 import { 
   BookOpen, 
@@ -113,16 +115,9 @@ export default function OnboardingPage() {
         if (formData.website) updateData.website = formData.website;
         
         console.log("Updating user profile...", updateData);
-        const userResponse = await fetch("/api/user/me", {
-          method: "PATCH",
+        await api.patch("/api/user/me", updateData, {
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updateData),
         });
-        
-        if (!userResponse.ok) {
-          const error = await userResponse.json();
-          throw new Error(error.error || "Failed to update profile");
-        }
         
         console.log("User profile updated successfully");
       }
@@ -136,24 +131,15 @@ export default function OnboardingPage() {
         defaultViewMode: formData.defaultViewMode,
       });
       
-      const prefsResponse = await fetch("/api/user/preferences", {
-        method: "PUT",
+      const updatedPreferences = await api.put("/api/user/preferences", {
+        theme: formData.theme,
+        language: formData.language,
+        notificationsEmail: formData.notificationsEmail,
+        dailyDigest: formData.dailyDigest,
+        defaultViewMode: formData.defaultViewMode,
+      }, {
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          theme: formData.theme,
-          language: formData.language,
-          notificationsEmail: formData.notificationsEmail,
-          dailyDigest: formData.dailyDigest,
-          defaultViewMode: formData.defaultViewMode,
-        }),
-      });
-      
-      if (!prefsResponse.ok) {
-        const error = await prefsResponse.json();
-        throw new Error(error.error || "Failed to update preferences");
-      }
-      
-      const updatedPreferences = await prefsResponse.json();
+      }).then((res) => res.data);
       console.log("User preferences updated successfully:", updatedPreferences);
 
       // Update session to mark onboarding as complete
@@ -174,8 +160,9 @@ export default function OnboardingPage() {
     } catch (error: any) {
       console.error("=== Onboarding Completion Failed ===");
       console.error("Error:", error);
-      console.error("Error message:", error.message);
-      alert(`Failed to save your preferences: ${error.message || 'Unknown error'}. Please try again.`);
+      const message = getErrorMessage(error);
+      console.error("Error message:", message);
+      alert(`Failed to save your preferences: ${message || 'Unknown error'}. Please try again.`);
       setIsLoading(false);
     }
   };

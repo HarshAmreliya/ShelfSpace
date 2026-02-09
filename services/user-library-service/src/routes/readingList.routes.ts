@@ -7,13 +7,99 @@ import {
 } from "../schemas.js";
 import { isAuthenticated } from "../middlewares/auth.js";
 import { z } from "zod";
+import axios from "axios";
 
 const router = express.Router();
+const BOOK_SERVICE_URL =
+  process.env.BOOK_SERVICE_URL?.trim() || "http://localhost:3004";
+const ANALYTICS_SERVICE_URL =
+  process.env.ANALYTICS_SERVICE_URL?.trim() || "";
+const VALIDATE_BOOK_IDS = process.env.VALIDATE_BOOK_IDS === "true";
+
+async function validateBookIds(bookIds: string[]) {
+  if (!VALIDATE_BOOK_IDS || bookIds.length === 0) {
+    return;
+  }
+
+  const uniqueIds = Array.from(new Set(bookIds));
+  try {
+    const results = await Promise.all(
+      uniqueIds.map((bookId) =>
+        axios.get(`${BOOK_SERVICE_URL}/api/books/${bookId}`, { timeout: 5000 })
+      )
+    );
+    const invalid = results.filter((r) => r.status !== 200);
+    if (invalid.length > 0) {
+      throw new Error("Invalid book ids");
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      throw Object.assign(new Error("Invalid book ids"), { status: 400 });
+    }
+    throw Object.assign(new Error("Book service unavailable"), { status: 503 });
+  }
+}
+
+function getStatusFromListName(name: string): string | undefined {
+  const listName = name.toLowerCase();
+  if (listName.includes("finished") || listName.includes("read") || listName.includes("completed")) {
+    return "read";
+  }
+  if (listName.includes("currently") || listName.includes("reading")) {
+    return "currently-reading";
+  }
+  if (listName.includes("want") || listName.includes("wish")) {
+    return "want-to-read";
+  }
+  return undefined;
+}
+
+async function fetchBookDetails(bookIds: string[]) {
+  if (bookIds.length === 0) return new Map<string, any>();
+  const results = await Promise.all(
+    bookIds.map(async (bookId) => {
+      try {
+        const response = await axios.get(`${BOOK_SERVICE_URL}/api/books/${bookId}`, {
+          timeout: 5000,
+        });
+        return [bookId, response.data] as const;
+      } catch (error) {
+        console.warn(`Failed to fetch book details for ${bookId}`);
+        return [bookId, null] as const;
+      }
+    })
+  );
+  return new Map(results);
+}
+
+async function emitAnalyticsEvents(
+  req: Request,
+  events: Array<Record<string, any>>
+) {
+  if (!ANALYTICS_SERVICE_URL || events.length === 0) return;
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return;
+  try {
+    await axios.post(
+      `${ANALYTICS_SERVICE_URL}/api/analytics/events`,
+      { events },
+      { headers: { Authorization: authHeader } }
+    );
+  } catch (error) {
+    console.warn("Failed to emit analytics events");
+  }
+}
 
 // Get all reading lists for the authenticated user
 router.get("/", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const { includeBooks } = req.query;
+    const booksLimit = req.query.booksLimit
+      ? Math.max(parseInt(String(req.query.booksLimit), 10), 0)
+      : undefined;
+    const booksOffset = req.query.booksOffset
+      ? Math.max(parseInt(String(req.query.booksOffset), 10), 0)
+      : undefined;
 
     const lists = await prisma.readingList.findMany({
       where: { userId: req.userId! },
@@ -26,13 +112,13 @@ router.get("/", isAuthenticated, async (req: Request, res: Response) => {
             addedAt: true,
             sortOrder: true,
           },
+          ...(booksLimit !== undefined ? { take: booksLimit } : {}),
+          ...(booksOffset !== undefined ? { skip: booksOffset } : {}),
         },
+        _count: { select: { books: true } },
       } : {
-        books: {
-          select: {
-            bookId: true,
-          },
-        },
+        books: { select: { bookId: true } },
+        _count: { select: { books: true } },
       },
     });
 
@@ -47,7 +133,7 @@ router.get("/", isAuthenticated, async (req: Request, res: Response) => {
       isDefault: list.isDefault,
       sortOrder: list.sortOrder,
       bookIds: list.books.map((b) => b.bookId),
-      bookCount: list.books.length,
+      bookCount: list._count.books,
       createdAt: list.createdAt.toISOString(),
       updatedAt: list.updatedAt.toISOString(),
     }));
@@ -64,6 +150,12 @@ router.get("/:id", isAuthenticated, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { includeBooks } = req.query;
+    const booksLimit = req.query.booksLimit
+      ? Math.max(parseInt(String(req.query.booksLimit), 10), 0)
+      : undefined;
+    const booksOffset = req.query.booksOffset
+      ? Math.max(parseInt(String(req.query.booksOffset), 10), 0)
+      : undefined;
 
     const list = await prisma.readingList.findFirst({
       where: {
@@ -78,13 +170,13 @@ router.get("/:id", isAuthenticated, async (req: Request, res: Response) => {
             addedAt: true,
             sortOrder: true,
           },
+          ...(booksLimit !== undefined ? { take: booksLimit } : {}),
+          ...(booksOffset !== undefined ? { skip: booksOffset } : {}),
         },
+        _count: { select: { books: true } },
       } : {
-        books: {
-          select: {
-            bookId: true,
-          },
-        },
+        books: { select: { bookId: true } },
+        _count: { select: { books: true } },
       },
     });
 
@@ -103,7 +195,7 @@ router.get("/:id", isAuthenticated, async (req: Request, res: Response) => {
       isDefault: list.isDefault,
       sortOrder: list.sortOrder,
       bookIds: list.books.map((b) => b.bookId),
-      bookCount: list.books.length,
+      bookCount: list._count.books,
       createdAt: list.createdAt.toISOString(),
       updatedAt: list.updatedAt.toISOString(),
     };
@@ -128,6 +220,8 @@ router.post(
     }
 
     try {
+      await validateBookIds(parseResult.data.bookIds || []);
+
       // Get current user's list count to set sort order
       const userListsCount = await prisma.readingList.count({
         where: { userId: req.userId! },
@@ -175,8 +269,48 @@ router.post(
       };
 
       res.status(201).json(formattedList);
+
+      await emitAnalyticsEvents(req, [
+        {
+          type: "READING_LIST_CREATED",
+          payload: {
+            listId: formattedList.id,
+            listName: formattedList.name,
+          },
+        },
+      ]);
+
+      if (parseResult.data.bookIds && parseResult.data.bookIds.length > 0) {
+        const bookDetails = await fetchBookDetails(parseResult.data.bookIds);
+        const status = getStatusFromListName(list.name);
+        const events = parseResult.data.bookIds.map((bookId) => {
+          const book = bookDetails.get(bookId);
+          const author =
+            Array.isArray(book?.authors) && book.authors.length > 0
+              ? book.authors[0]?.name
+              : undefined;
+          return {
+            type: "BOOK_ADDED",
+            payload: {
+              bookId,
+              title: book?.title,
+              author,
+              pages: book?.num_pages,
+              genres: book?.genres,
+              status,
+              listName: list.name,
+            },
+          };
+        });
+        await emitAnalyticsEvents(req, events);
+      }
     } catch (error) {
       console.error("Error creating reading list:", error);
+      const status = (error as any)?.status;
+      if (status) {
+        res.status(status).json({ error: (error as Error).message });
+        return;
+      }
       res.status(500).json({ error: "Internal server error" });
     }
   }
@@ -209,10 +343,18 @@ router.put(
       }
 
       // Prevent modification of default lists (except sortOrder)
-      if (existingList.isDefault && parseResult.data.name !== undefined) {
-        return res
-          .status(400)
-          .json({ error: "Cannot modify name of default reading lists" });
+      if (existingList.isDefault) {
+        const hasProtectedField =
+          parseResult.data.name !== undefined ||
+          parseResult.data.description !== undefined ||
+          parseResult.data.color !== undefined ||
+          parseResult.data.icon !== undefined ||
+          parseResult.data.isPublic !== undefined;
+        if (hasProtectedField) {
+          return res
+            .status(400)
+            .json({ error: "Cannot modify default reading lists" });
+        }
       }
 
       const updateData: any = {};
@@ -255,6 +397,16 @@ router.put(
       };
 
       res.json(formattedList);
+
+      await emitAnalyticsEvents(req, [
+        {
+          type: "READING_LIST_UPDATED",
+          payload: {
+            listId: formattedList.id,
+            listName: formattedList.name,
+          },
+        },
+      ]);
     } catch (error) {
       console.error("Error updating reading list:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -289,6 +441,16 @@ router.delete("/:id", isAuthenticated, async (req: Request, res: Response) => {
     });
 
     res.status(204).send();
+
+    await emitAnalyticsEvents(req, [
+      {
+        type: "READING_LIST_DELETED",
+        payload: {
+          listId: existingList.id,
+          listName: existingList.name,
+        },
+      },
+    ]);
   } catch (error) {
     console.error("Error deleting reading list:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -333,6 +495,8 @@ router.post(
         return res.status(404).json({ error: "Target reading list not found" });
       }
 
+      await validateBookIds(parseResult.data.bookIds);
+
       // Remove books from source list
       await prisma.readingListBook.deleteMany({
         where: {
@@ -342,6 +506,19 @@ router.post(
           },
         },
       });
+
+      const sourceBooks = await prisma.readingListBook.findMany({
+        where: {
+          readingListId: id,
+          bookId: { in: parseResult.data.bookIds },
+        },
+        orderBy: { sortOrder: "asc" },
+        select: { bookId: true },
+      });
+      const orderedBookIds =
+        sourceBooks.length > 0
+          ? sourceBooks.map((b) => b.bookId)
+          : parseResult.data.bookIds;
 
       // Add books to target list (skip if already exists)
       const existingBooks = await prisma.readingListBook.findMany({
@@ -355,7 +532,7 @@ router.post(
       });
 
       const existingBookIds = new Set(existingBooks.map((b) => b.bookId));
-      const newBookIds = parseResult.data.bookIds.filter(
+      const newBookIds = orderedBookIds.filter(
         (id) => !existingBookIds.has(id)
       );
 
@@ -378,8 +555,50 @@ router.post(
       }
 
       res.status(200).json({ success: true });
+
+      await emitAnalyticsEvents(req, [
+        {
+          type: "READING_LIST_BOOKS_MOVED",
+          payload: {
+            listId: parseResult.data.targetListId,
+            listName: targetList.name,
+          },
+        },
+      ]);
+
+      const previousStatus = getStatusFromListName(sourceList.name);
+      const status = getStatusFromListName(targetList.name);
+      if (previousStatus !== status) {
+        const bookDetails = await fetchBookDetails(parseResult.data.bookIds);
+        const events = parseResult.data.bookIds.map((bookId) => {
+          const book = bookDetails.get(bookId);
+          const author =
+            Array.isArray(book?.authors) && book.authors.length > 0
+              ? book.authors[0]?.name
+              : undefined;
+          return {
+            type: "BOOK_STATUS_CHANGED",
+            payload: {
+              bookId,
+              title: book?.title,
+              author,
+              pages: book?.num_pages,
+              genres: book?.genres,
+              status,
+              previousStatus,
+              listName: targetList.name,
+            },
+          };
+        });
+        await emitAnalyticsEvents(req, events);
+      }
     } catch (error) {
       console.error("Error moving books:", error);
+      const status = (error as any)?.status;
+      if (status) {
+        res.status(status).json({ error: (error as Error).message });
+        return;
+      }
       res.status(500).json({ error: "Internal server error" });
     }
   }
@@ -391,11 +610,21 @@ router.post(
   isAuthenticated,
   async (req: Request, res: Response) => {
     const { id } = req.params;
+    const bookIdsFromQuery = req.query.bookIds;
+    const bookIdsFromBody = req.body?.bookIds;
+    const bookIdsRaw = Array.isArray(bookIdsFromBody)
+      ? bookIdsFromBody
+      : typeof bookIdsFromQuery === "string"
+        ? bookIdsFromQuery.split(",").map((v) => v.trim()).filter(Boolean)
+        : Array.isArray(bookIdsFromQuery)
+          ? bookIdsFromQuery
+          : [];
+
     const bookIdsSchema = z.object({
       bookIds: z.array(z.string()).min(1),
     });
 
-    const parseResult = bookIdsSchema.safeParse(req.body);
+    const parseResult = bookIdsSchema.safeParse({ bookIds: bookIdsRaw });
     if (!parseResult.success) {
       return res
         .status(400)
@@ -413,6 +642,8 @@ router.post(
       if (!list) {
         return res.status(404).json({ error: "Reading list not found" });
       }
+
+      await validateBookIds(parseResult.data.bookIds);
 
       // Get existing books to avoid duplicates
       const existingBooks = await prisma.readingListBook.findMany({
@@ -477,8 +708,38 @@ router.post(
       };
 
       res.status(200).json(formattedList);
+
+      if (newBookIds.length > 0) {
+        const bookDetails = await fetchBookDetails(newBookIds);
+        const status = getStatusFromListName(list.name);
+        const events = newBookIds.map((bookId) => {
+          const book = bookDetails.get(bookId);
+          const author =
+            Array.isArray(book?.authors) && book.authors.length > 0
+              ? book.authors[0]?.name
+              : undefined;
+          return {
+            type: "BOOK_ADDED",
+            payload: {
+              bookId,
+              title: book?.title,
+              author,
+              pages: book?.num_pages,
+              genres: book?.genres,
+              status,
+              listName: list.name,
+            },
+          };
+        });
+        await emitAnalyticsEvents(req, events);
+      }
     } catch (error) {
       console.error("Error adding books to reading list:", error);
+      const status = (error as any)?.status;
+      if (status) {
+        res.status(status).json({ error: (error as Error).message });
+        return;
+      }
       res.status(500).json({ error: "Internal server error" });
     }
   }
@@ -490,11 +751,21 @@ router.delete(
   isAuthenticated,
   async (req: Request, res: Response) => {
     const { id } = req.params;
+    const bookIdsFromQuery = req.query.bookIds;
+    const bookIdsFromBody = req.body?.bookIds;
+    const bookIdsRaw = Array.isArray(bookIdsFromBody)
+      ? bookIdsFromBody
+      : typeof bookIdsFromQuery === "string"
+        ? bookIdsFromQuery.split(",").map((v) => v.trim()).filter(Boolean)
+        : Array.isArray(bookIdsFromQuery)
+          ? bookIdsFromQuery
+          : [];
+
     const bookIdsSchema = z.object({
       bookIds: z.array(z.string()).min(1),
     });
 
-    const parseResult = bookIdsSchema.safeParse(req.body);
+    const parseResult = bookIdsSchema.safeParse({ bookIds: bookIdsRaw });
     if (!parseResult.success) {
       return res
         .status(400)
@@ -513,6 +784,8 @@ router.delete(
         return res.status(404).json({ error: "Reading list not found" });
       }
 
+      await validateBookIds(parseResult.data.bookIds);
+
       await prisma.readingListBook.deleteMany({
         where: {
           readingListId: id,
@@ -523,8 +796,23 @@ router.delete(
       });
 
       res.status(204).send();
+
+      await emitAnalyticsEvents(req, [
+        {
+          type: "READING_LIST_BOOKS_REMOVED",
+          payload: {
+            listId: list.id,
+            listName: list.name,
+          },
+        },
+      ]);
     } catch (error) {
       console.error("Error removing books from reading list:", error);
+      const status = (error as any)?.status;
+      if (status) {
+        res.status(status).json({ error: (error as Error).message });
+        return;
+      }
       res.status(500).json({ error: "Internal server error" });
     }
   }
@@ -633,4 +921,3 @@ router.post(
 );
 
 export default router;
-

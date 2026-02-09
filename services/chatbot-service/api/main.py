@@ -14,7 +14,7 @@ if str(project_root) not in sys.path:
 
 # --- Third-party Imports ---
 try:
-    from fastapi import FastAPI, HTTPException
+    from fastapi import FastAPI, HTTPException, Request
     from pydantic import BaseModel
     import uvicorn
 except ImportError as e:
@@ -40,6 +40,8 @@ app = FastAPI(
     description="An API for interacting with the RAG-based book recommendation chatbot with memory.",
     version="1.1.0"
 )
+
+ANALYTICS_SERVICE_URL = os.getenv("ANALYTICS_SERVICE_URL", "").strip()
 
 origins = [
     "http://localhost:3000", # For a React app
@@ -74,8 +76,23 @@ class ChatResponse(BaseModel):
 
 # --- API Endpoints ---
 
+async def emit_analytics_event(auth_header: str | None, payload: dict) -> None:
+    if not ANALYTICS_SERVICE_URL or not auth_header:
+        return
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post(
+                f"{ANALYTICS_SERVICE_URL}/api/analytics/events",
+                json={"events": [payload]},
+                headers={"Authorization": auth_header},
+            )
+    except Exception:
+        logger.warning("Failed to emit analytics event")
+
+
 @app.post("/chat", response_model=ChatResponse)
-async def handle_chat_query(request: ChatQuery):
+async def handle_chat_query(request: ChatQuery, http_request: Request):
     """
     Main endpoint for chat, with session management for conversation history.
     """
@@ -91,6 +108,17 @@ async def handle_chat_query(request: ChatQuery):
         response_text = chatbot.generate_response(request.query, session_id)
         # print(response_text)
         # Return the answer and the session_id so the client can continue the conversation
+        await emit_analytics_event(
+            http_request.headers.get("authorization"),
+            {
+                "type": "CHATBOT_QUERY",
+                "payload": {
+                    "sessionId": session_id,
+                    "query": request.query,
+                    "messageLength": len(request.query or ""),
+                },
+            },
+        )
         return ChatResponse(answer=response_text, session_id=session_id)
     except Exception as e:
         logger.error(f"An error occurred while generating response: {e}", exc_info=True)

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { getUserDisplayName, getUserInitials } from "@/utils/greetings";
 import {
   User,
@@ -11,9 +12,23 @@ import {
   Save,
   X,
 } from "lucide-react";
+import apiClient from "@/lib/api";
+import { getErrorMessage } from "@/lib/api-utils";
+
+type SettingsBlob = {
+  profile?: {
+    location?: string;
+    favoriteGenres?: string[];
+  };
+  preferences?: {
+    readingGoal?: number;
+    bookFormat?: string;
+  };
+};
 
 export function ProfileSettings() {
   const { data: session } = useSession();
+  const router = useRouter();
   
   const [profile, setProfile] = useState({
     name: "",
@@ -23,6 +38,13 @@ export function ProfileSettings() {
     favoriteGenres: [] as string[],
     avatar: "",
   });
+  const [serverSettings, setServerSettings] = useState<SettingsBlob>({});
+  const [readingGoal, setReadingGoal] = useState(24);
+  const [bookFormat, setBookFormat] = useState("any");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   // Auto-populate from session when available
   useEffect(() => {
@@ -39,6 +61,61 @@ export function ProfileSettings() {
     }
   }, [session]);
 
+  useEffect(() => {
+    let isMounted = true;
+    const loadProfile = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [userResult, prefResult] = await Promise.allSettled([
+          apiClient.get("/api/user/me"),
+          apiClient.get("/api/user/preferences"),
+        ]);
+
+        if (userResult.status === "rejected") {
+          throw userResult.reason;
+        }
+
+        let prefData: any = null;
+        if (prefResult.status === "fulfilled") {
+          prefData = prefResult.value.data;
+        } else if ((prefResult.reason as any)?.response?.status !== 404) {
+          throw prefResult.reason;
+        }
+
+        const userData = userResult.value.data;
+        const settings: SettingsBlob = prefData?.settings ?? {};
+
+        if (!isMounted) return;
+
+        setProfile((prev) => ({
+          ...prev,
+          name: userData?.name || prev.name,
+          email: userData?.email || prev.email,
+          bio: userData?.bio || prev.bio,
+          location: settings.profile?.location ?? prev.location,
+          favoriteGenres: settings.profile?.favoriteGenres ?? prev.favoriteGenres,
+        }));
+        setReadingGoal(settings.preferences?.readingGoal ?? 24);
+        setBookFormat(settings.preferences?.bookFormat ?? "any");
+        setServerSettings(settings);
+      } catch (err) {
+        if (isMounted) {
+          setError(getErrorMessage(err));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const [newGenre, setNewGenre] = useState("");
 
   const availableGenres = [
@@ -48,7 +125,46 @@ export function ProfileSettings() {
   ];
 
   const handleSave = () => {
-    console.log("Saving profile:", profile);
+    const saveProfile = async () => {
+      setIsSaving(true);
+      setError(null);
+      setSaveMessage(null);
+      try {
+        const updatedSettings: SettingsBlob = {
+          ...serverSettings,
+          profile: {
+            ...(serverSettings.profile ?? {}),
+            location: profile.location,
+            favoriteGenres: profile.favoriteGenres,
+          },
+          preferences: {
+            ...(serverSettings.preferences ?? {}),
+            readingGoal,
+            bookFormat,
+          },
+        };
+
+        await Promise.all([
+          apiClient.patch("/api/user/me", {
+            name: profile.name,
+            bio: profile.bio,
+          }),
+          apiClient.put("/api/user/preferences", {
+            settings: updatedSettings,
+          }),
+        ]);
+
+        setServerSettings(updatedSettings);
+        setSaveMessage("Profile saved.");
+        router.push("/profile");
+      } catch (err) {
+        setError(getErrorMessage(err));
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    saveProfile();
   };
 
   const addGenre = () => {
@@ -144,9 +260,12 @@ export function ProfileSettings() {
             <input
               type="email"
               value={profile.email}
-              onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
-              className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              disabled
+              className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400 cursor-not-allowed"
             />
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+              Email updates are managed by your sign-in provider.
+            </p>
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
@@ -261,7 +380,8 @@ export function ProfileSettings() {
               type="number"
               min="1"
               max="200"
-              defaultValue="24"
+              value={readingGoal}
+              onChange={(e) => setReadingGoal(parseInt(e.target.value || "0", 10))}
               className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
             />
           </div>
@@ -269,7 +389,11 @@ export function ProfileSettings() {
             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
               Preferred Book Format
             </label>
-            <select className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+            <select
+              value={bookFormat}
+              onChange={(e) => setBookFormat(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            >
               <option value="physical">Physical Books</option>
               <option value="ebook">E-books</option>
               <option value="audiobook">Audiobooks</option>
@@ -283,12 +407,22 @@ export function ProfileSettings() {
       <div className="flex justify-end pt-6 border-t border-amber-200 dark:border-slate-600">
         <button
           onClick={handleSave}
-          className="flex items-center gap-2 px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors font-medium"
+          disabled={isLoading || isSaving}
+          className="flex items-center gap-2 px-8 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-lg transition-colors font-medium"
         >
           <Save className="h-5 w-5" />
-          Save Profile
+          {isSaving ? "Saving..." : "Save Profile"}
         </button>
       </div>
+      {(error || saveMessage) && (
+        <div className="flex justify-end">
+          {error ? (
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          ) : (
+            <p className="text-sm text-emerald-600 dark:text-emerald-400">{saveMessage}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

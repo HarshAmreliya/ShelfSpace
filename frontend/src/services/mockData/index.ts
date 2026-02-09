@@ -4,7 +4,7 @@ export * from "./chat";
 export * from "./books";
 export * from "./readingLists";
 export * from "./bookDetails";
-export * from "./groups";
+export * from "./forums";
 
 // Transformers exports (with specific names to avoid conflicts)
 export { DataTransformer } from "./transformers";

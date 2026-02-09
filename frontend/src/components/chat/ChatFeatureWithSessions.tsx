@@ -358,7 +358,7 @@ export function ChatFeatureWithSessions({ className }: ChatFeatureProps) {
                         }
                       }}
                       placeholder="Ask about books, get recommendations..."
-                      className="w-full px-4 py-3 border border-amber-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
+                      className="w-full px-4 py-3 border border-amber-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 resize-none"
                       rows={1}
                       disabled={isLoading || isTyping}
                     />

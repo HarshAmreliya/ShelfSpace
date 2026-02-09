@@ -42,7 +42,9 @@ const bookSchema = new mongoose.Schema(
 );
 
 // Create a text index for efficient searching on title and authors
-bookSchema.index({ title: "text", authors: "text", book_id: "text" });
+bookSchema.index({ title: "text", "authors.name": "text", book_id: "text" });
+// Create a standard index to support title sorting without in-memory sort
+bookSchema.index({ title: 1 });
 
 // Create and export the Mongoose model
 const Book = mongoose.model("Book", bookSchema);

@@ -1,5 +1,26 @@
 import type { Request, Response } from "express";
-import Book from "../models/book.ts";
+import Book from "../models/book.js";
+import mongoose from "mongoose";
+import { randomUUID } from "crypto";
+import axios from "axios";
+
+const ANALYTICS_SERVICE_URL =
+  process.env.ANALYTICS_SERVICE_URL?.trim() || "";
+
+async function emitAnalyticsEvent(req: Request, payload: Record<string, any>) {
+  if (!ANALYTICS_SERVICE_URL) return;
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return;
+  try {
+    await axios.post(
+      `${ANALYTICS_SERVICE_URL}/api/analytics/events`,
+      { events: [payload] },
+      { headers: { Authorization: authHeader } }
+    );
+  } catch {
+    console.warn("Failed to emit analytics event");
+  }
+}
 
 /**
  * Escapes special regex characters to prevent ReDoS and injection attacks
@@ -13,8 +34,25 @@ function escapeRegex(text: string): string {
 //
 export const createBook = async (req: Request, res: Response) => {
   try {
-    const book = await Book.create(req.body);
+    const payload = { ...req.body };
+    if (!payload.book_id) {
+      payload.book_id = randomUUID();
+    }
+    const book = await Book.create(payload);
     res.status(201).json(book);
+
+    await emitAnalyticsEvent(req, {
+      type: "BOOK_CREATED",
+      payload: {
+        bookId: book.book_id || book._id?.toString(),
+        title: book.title,
+        author: Array.isArray(book.authors) && book.authors.length > 0
+          ? book.authors[0]?.name
+          : undefined,
+        pages: book.num_pages,
+        genres: book.genres,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Error creating book", error });
   }
@@ -23,9 +61,11 @@ export const createBook = async (req: Request, res: Response) => {
 export const getAllBooks = async (req: Request, res: Response) => {
   try {
     // --- 1. DESTRUCTURE QUERY PARAMETERS ---
-    const { author, genre, sortBy, page = 1, search } = req.query;
+    const { author, genre, sortBy, page = 1, limit, search } = req.query;
 
-    const pageSize = 30; // As requested, 30 books per page
+    const maxLimit = 100;
+    const pageSizeRaw = typeof limit === "string" ? parseInt(limit, 10) : 30;
+    const pageSize = Math.min(Math.max(pageSizeRaw || 30, 1), maxLimit);
     const pageNum = parseInt(typeof page === 'string' ? page : String(page), 10) || 1;
 
     // --- 2. BUILD THE AGGREGATION PIPELINE ---
@@ -94,7 +134,9 @@ export const getAllBooks = async (req: Request, res: Response) => {
     });
 
     // --- 3. EXECUTE THE PIPELINE ---
-    const result = await Book.aggregate(pipeline);
+    const result = await Book.collection
+      .aggregate(pipeline, { allowDiskUse: true })
+      .toArray();
 
     // --- 4. FORMAT THE RESPONSE ---
     // The result is an array with one element containing metadata and data
@@ -118,11 +160,28 @@ export const getAllBooks = async (req: Request, res: Response) => {
 
 export const getBookById = async (req: Request, res: Response) => {
   try {
-    const book = await Book.findById(req.params.bookId);
+    const { bookId } = req.params;
+    // Support both Mongo _id and external book_id lookups
+    const orConditions: Array<Record<string, string>> = [{ book_id: bookId }];
+    if (mongoose.isValidObjectId(bookId)) {
+      orConditions.push({ _id: bookId });
+    }
+    const book = await Book.findOne({ $or: orConditions });
     if (!book) {
       return res.status(404).json({ message: "Book not found" });
     }
     res.status(200).json(book);
+
+    await emitAnalyticsEvent(req, {
+      type: "BOOK_VIEWED",
+      payload: {
+        bookId: book.book_id || book._id?.toString(),
+        title: book.title,
+        author: Array.isArray(book.authors) && book.authors.length > 0
+          ? book.authors[0]?.name
+          : undefined,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Error getting book", error });
   }
@@ -137,6 +196,19 @@ export const updateBook = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Book not found" });
     }
     res.status(200).json(book);
+
+    await emitAnalyticsEvent(req, {
+      type: "BOOK_UPDATED",
+      payload: {
+        bookId: book.book_id || book._id?.toString(),
+        title: book.title,
+        author: Array.isArray(book.authors) && book.authors.length > 0
+          ? book.authors[0]?.name
+          : undefined,
+        pages: book.num_pages,
+        genres: book.genres,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Error updating book", error });
   }
@@ -149,6 +221,17 @@ export const deleteBook = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Book not found" });
     }
     res.status(204).send();
+
+    await emitAnalyticsEvent(req, {
+      type: "BOOK_DELETED",
+      payload: {
+        bookId: book.book_id || book._id?.toString(),
+        title: book.title,
+        author: Array.isArray(book.authors) && book.authors.length > 0
+          ? book.authors[0]?.name
+          : undefined,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Error deleting book", error });
   }
@@ -156,9 +239,59 @@ export const deleteBook = async (req: Request, res: Response) => {
 
 export const searchBooks = async (req: Request, res: Response) => {
   try {
-    const query = req.query.q;
-    const books = await Book.find({ $text: { $search: query as string } });
-    res.status(200).json(books);
+    const query = req.query.q as string;
+    const pageParam = req.query.page;
+    const limitParam = req.query.limit;
+    const maxLimit = 100;
+    const pageSizeRaw = typeof limitParam === "string" ? parseInt(limitParam, 10) : 30;
+    const pageSize = Math.min(Math.max(pageSizeRaw || 30, 1), maxLimit);
+    const pageNum =
+      parseInt(typeof pageParam === "string" ? pageParam : String(pageParam), 10) || 1;
+
+    const pipeline: any[] = [
+      { $match: { $text: { $search: query } } },
+      { $sort: { score: { $meta: "textScore" } } },
+      {
+        $facet: {
+          metadata: [{ $count: "totalBooks" }],
+          data: [
+            { $skip: (pageNum - 1) * pageSize },
+            { $limit: pageSize },
+            {
+              $project: {
+                series: 0,
+                similar_books: 0,
+                publisher: 0,
+                url: 0,
+                work_id: 0,
+                title_without_series: 0,
+              },
+            },
+          ],
+        },
+      },
+    ];
+
+    const result = await Book.collection
+      .aggregate(pipeline, { allowDiskUse: true })
+      .toArray();
+    const books = result[0].data;
+    const totalBooks = result[0].metadata[0]
+      ? result[0].metadata[0].totalBooks
+      : 0;
+
+    res.status(200).json({
+      success: true,
+      totalBooks,
+      currentPage: pageNum,
+      totalPages: Math.ceil(totalBooks / pageSize),
+      books,
+    });
+
+    await emitAnalyticsEvent(req, {
+      type: "BOOK_SEARCHED",
+      payload: { query },
+    });
   } catch (error) {
     res.status(500).json({ message: "Error searching books", error });
   }

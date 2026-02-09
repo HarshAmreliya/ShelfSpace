@@ -11,6 +11,26 @@ import { z } from "zod";
 import axios from "axios";
 
 const router = express.Router();
+const ANALYTICS_SERVICE_URL =
+  process.env.ANALYTICS_SERVICE_URL?.trim() || "";
+
+async function emitAnalyticsEvents(
+  req: Request,
+  events: Array<Record<string, any>>
+) {
+  if (!ANALYTICS_SERVICE_URL || events.length === 0) return;
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return;
+  try {
+    await axios.post(
+      `${ANALYTICS_SERVICE_URL}/api/analytics/events`,
+      { events },
+      { headers: { Authorization: authHeader } }
+    );
+  } catch (error) {
+    console.warn("Failed to emit analytics events");
+  }
+}
 
 // Log a moderation action
 router.post(
@@ -27,6 +47,14 @@ router.post(
         data: { ...req.body, moderatorId: req.userId! },
       });
       res.status(201).json(log);
+
+      await emitAnalyticsEvents(req, [
+        {
+          type: "MODERATION_LOG_CREATED",
+          userId: req.userId,
+          payload: { reason: req.body?.reason },
+        },
+      ]);
     } catch (error: unknown) {
       console.error("Error creating moderation log:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -87,6 +115,14 @@ router.put(
         create: { bookId, ...req.body, validatorId: req.userId! },
       });
       res.json(updatedValidation);
+
+      await emitAnalyticsEvents(req, [
+        {
+          type: "BOOK_VALIDATION_UPDATED",
+          userId: req.userId,
+          payload: { bookId },
+        },
+      ]);
     } catch (error: unknown) {
       console.error("Error updating book validation:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -140,6 +176,14 @@ router.put(
         },
       });
       res.status(200).json({ message: `User ${userId} status updated to ${status}` });
+
+      await emitAnalyticsEvents(req, [
+        {
+          type: "ADMIN_USER_STATUS_UPDATED",
+          userId: req.userId,
+          payload: { targetUserId: userId, status },
+        },
+      ]);
     } catch (error: any) {
       console.error("Error updating user status:", error.message);
       res.status(error.response?.status || 500).json({ error: error.response?.data?.error || "Internal server error" });
@@ -165,6 +209,14 @@ router.put(
         },
       });
       res.status(200).json({ message: `User ${userId} preferences reset successfully` });
+
+      await emitAnalyticsEvents(req, [
+        {
+          type: "ADMIN_PREFERENCES_RESET",
+          userId: req.userId,
+          payload: { targetUserId: userId },
+        },
+      ]);
     } catch (error: any) {
       console.error("Error resetting user preferences:", error.message);
       res.status(error.response?.status || 500).json({ error: error.response?.data?.error || "Internal server error" });

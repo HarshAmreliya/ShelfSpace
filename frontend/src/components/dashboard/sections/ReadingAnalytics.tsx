@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from 'react';
 import { AnimatedCard, StaggerContainer, StaggerItem, AnimatedCounter } from '@/components/ui';
 import { 
   ReadingTrendsChart, 
@@ -9,146 +8,26 @@ import {
   RatingDistributionChart 
 } from '../charts/ChartComponents';
 import { TrendingUp, BookOpen, Clock, Star } from 'lucide-react';
-import { useReadingLists } from '@/hooks/data/useReadingLists';
+import { useReadingAnalyticsData } from '@/hooks/data/useAnalytics';
 
 export function ReadingAnalytics() {
-  const { data: readingLists } = useReadingLists({ includeBooks: true });
-  
-  // Calculate analytics from reading lists data
-  const analytics = useMemo(() => {
-    if (!readingLists) {
-      return {
-        readingTrends: [],
-        genreData: [],
-        monthlyData: [],
-        ratingData: [],
-        stats: {
-          totalBooksThisYear: 0,
-          averageBooksPerMonth: 0,
-          totalPagesRead: 0,
-          averageRating: 0,
-          readingTime: 0,
-          favoriteGenre: 'N/A',
-          longestStreak: 0,
-          currentStreak: 0,
-        },
-      };
-    }
-    
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    // Initialize monthly data
-    const monthlyStats: Record<string, { books: number; pages: number; hours: number }> = {};
-    months.forEach(month => {
-      monthlyStats[month] = { books: 0, pages: 0, hours: 0 };
-    });
-    
-    const genreCounts: Record<string, number> = {};
-    const ratingCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    
-    let totalBooksThisYear = 0;
-    let totalPagesRead = 0;
-    let totalRating = 0;
-    let ratingCount = 0;
-    
-    readingLists.forEach((list: any) => {
-      const books = list.books || [];
-      
-      books.forEach((book: any) => {
-        const addedDate = book.addedAt ? new Date(book.addedAt) : null;
-        const isThisYear = addedDate && addedDate.getFullYear() === currentYear;
-        const monthIndex = addedDate ? addedDate.getMonth() : -1;
-        
-        if (isThisYear && monthIndex >= 0 && monthIndex < 12) {
-          const monthName = months[monthIndex];
-          if (monthName && monthlyStats[monthName]) {
-            monthlyStats[monthName].books++;
-            totalBooksThisYear++;
-
-            if (book.pages) {
-              monthlyStats[monthName].pages += book.pages;
-              totalPagesRead += book.pages;
-              // Estimate hours (2 minutes per page)
-              monthlyStats[monthName].hours += Math.round(book.pages * 2 / 60);
-            }
-          }
-        }
-        
-        // Genre distribution
-        if (book.genres && Array.isArray(book.genres)) {
-          book.genres.forEach((genre: string) => {
-            genreCounts[genre] = (genreCounts[genre] || 0) + 1;
-          });
-        }
-        
-        // Rating distribution
-        if (book.rating && book.rating >= 1 && book.rating <= 5) {
-          const rating = Math.round(book.rating);
-          ratingCounts[rating] = (ratingCounts[rating] || 0) + 1;
-          totalRating += book.rating;
-          ratingCount++;
-        }
-      });
-    });
-    
-    // Convert to chart formats
-    const readingTrends = months.slice(0, 6).map(month => ({
-      month,
-      books: monthlyStats[month]?.books ?? 0,
-      pages: monthlyStats[month]?.pages ?? 0,
-      hours: monthlyStats[month]?.hours ?? 0,
-    }));
-    
-    const monthlyData = readingTrends;
-    
-    // Genre data (top 6)
-    const colors = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899'];
-    const genreData = Object.entries(genreCounts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 6)
-      .map(([name, value], index) => ({
-        name,
-        value,
-        color: colors[index % colors.length] as string,
-      }));
-    
-    // Rating distribution
-    const ratingData = [
-      { rating: '5★', count: ratingCounts[5] || 0 },
-      { rating: '4★', count: ratingCounts[4] || 0 },
-      { rating: '3★', count: ratingCounts[3] || 0 },
-      { rating: '2★', count: ratingCounts[2] || 0 },
-      { rating: '1★', count: ratingCounts[1] || 0 },
-    ];
-    
-    // Calculate stats
-    const averageBooksPerMonth = totalBooksThisYear / 6; // Last 6 months
-    const averageRating = ratingCount > 0 ? totalRating / ratingCount : 0;
-    const readingTime = Math.round(totalPagesRead * 2 / 60); // hours
-    const favoriteGenre = Object.keys(genreCounts).length > 0
-      ? (Object.entries(genreCounts).sort(([, a], [, b]) => b - a)[0]?.[0] ?? 'N/A')
-      : 'N/A';
-    
-    return {
-      readingTrends,
-      genreData,
-      monthlyData,
-      ratingData,
-      stats: {
-        totalBooksThisYear,
-        averageBooksPerMonth: Math.round(averageBooksPerMonth * 10) / 10,
-        totalPagesRead,
-        averageRating: Math.round(averageRating * 10) / 10,
-        readingTime,
-        favoriteGenre,
-        longestStreak: 0, // Would need additional tracking
-        currentStreak: 0, // Would need additional tracking
-      },
-    };
-  }, [readingLists]);
-  
+  const { data } = useReadingAnalyticsData();
+  const analytics = data || {
+    readingTrends: [],
+    genreData: [],
+    monthlyData: [],
+    ratingData: [],
+    stats: {
+      totalBooksThisYear: 0,
+      averageBooksPerMonth: 0,
+      totalPagesRead: 0,
+      averageRating: 0,
+      readingTime: 0,
+      favoriteGenre: 'N/A',
+      longestStreak: 0,
+      currentStreak: 0,
+    },
+  };
   const { readingTrends, genreData, monthlyData, ratingData, stats } = analytics;
   return (
     <div className="space-y-8">

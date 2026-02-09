@@ -1,11 +1,10 @@
 "use client";
 
 import React from "react";
-import { useMemo } from 'react';
 import { AnimatedCard, StaggerContainer, StaggerItem, AnimatedCounter, GradientProgressBar } from '@/components/ui';
 import { ReadingGoalsChart } from '../charts/ChartComponents';
-import { Target, Trophy, Calendar, TrendingUp, BookOpen, Clock, Star } from 'lucide-react';
-import { useReadingLists } from '@/hooks/data/useReadingLists';
+import { Target, Trophy, TrendingUp, BookOpen, Clock, Star, Calendar } from 'lucide-react';
+import { useReadingGoalsData } from '@/hooks/data/useAnalytics';
 
 interface ReadingGoal {
   id: string;
@@ -22,126 +21,28 @@ interface ReadingGoal {
 }
 
 export function ReadingGoals() {
-  const { data: readingLists } = useReadingLists({ includeBooks: true });
-  
-  // Calculate goals from reading lists data
-  const goals = useMemo(() => {
-    if (!readingLists) return [];
-    
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    
-    // Calculate stats from reading lists
-    let totalBooks = 0;
-    let booksThisYear = 0;
-    let booksThisMonth = 0;
-    let totalPages = 0;
-    let pagesThisMonth = 0;
-    let totalRating = 0;
-    let ratingCount = 0;
-    
-    readingLists.forEach((list: any) => {
-      const books = list.books || [];
-      totalBooks += books.length;
-      
-      books.forEach((book: any) => {
-        const addedDate = book.addedAt ? new Date(book.addedAt) : null;
-        const isThisYear = addedDate && addedDate.getFullYear() === currentYear;
-        const isThisMonth = addedDate && addedDate.getMonth() === currentMonth && addedDate.getFullYear() === currentYear;
-        
-        if (isThisYear) booksThisYear++;
-        if (isThisMonth) booksThisMonth++;
-        
-        if (book.pages) {
-          totalPages += book.pages;
-          if (isThisMonth) pagesThisMonth += book.pages;
-        }
-        
-        if (book.rating) {
-          totalRating += book.rating;
-          ratingCount++;
-        }
-      });
-    });
-    
-    const averageRating = ratingCount > 0 ? totalRating / ratingCount : 0;
-    const estimatedHoursThisMonth = Math.round(pagesThisMonth * 2 / 60);
-    
-    // Default targets (these would ideally come from user settings/backend)
-    const yearlyGoal = 52; // Default: 52 books per year
-    const monthlyPagesGoal = 3000;
-    const monthlyHoursGoal = 60;
-    const targetRating = 4.5;
-    
-    const goalsArray: ReadingGoal[] = [
-      {
-        id: '1',
-        title: 'Books This Year',
-        description: 'Annual reading goal',
-        current: booksThisYear,
-        target: yearlyGoal,
-        unit: 'books',
-        icon: <BookOpen className="h-5 w-5" />,
-        color: 'from-amber-400 to-orange-500',
-        deadline: `Dec 31, ${currentYear}`,
-        category: 'books',
-        isCompleted: booksThisYear >= yearlyGoal,
-      },
-      {
-        id: '2',
-        title: 'Pages This Month',
-        description: 'Monthly page target',
-        current: pagesThisMonth,
-        target: monthlyPagesGoal,
-        unit: 'pages',
-        icon: <BookOpen className="h-5 w-5" />,
-        color: 'from-blue-400 to-indigo-500',
-        deadline: `${now.toLocaleString('default', { month: 'long' })} ${daysInMonth}, ${currentYear}`,
-        category: 'pages',
-        isCompleted: pagesThisMonth >= monthlyPagesGoal,
-      },
-      {
-        id: '3',
-        title: 'Reading Time',
-        description: 'Hours spent reading this month',
-        current: estimatedHoursThisMonth,
-        target: monthlyHoursGoal,
-        unit: 'hours',
-        icon: <Clock className="h-5 w-5" />,
-        color: 'from-cyan-400 to-teal-500',
-        deadline: `${now.toLocaleString('default', { month: 'long' })} ${daysInMonth}, ${currentYear}`,
-        category: 'time',
-        isCompleted: estimatedHoursThisMonth >= monthlyHoursGoal,
-      },
-      {
-        id: '4',
-        title: 'Average Rating',
-        description: 'Maintain high quality reads',
-        current: averageRating,
-        target: targetRating,
-        unit: 'stars',
-        icon: <Star className="h-5 w-5" />,
-        color: 'from-purple-400 to-violet-500',
-        category: 'rating',
-        isCompleted: averageRating >= targetRating,
-      },
-    ];
-    
-    return goalsArray;
-  }, [readingLists]);
-  
-  const chartData = goals.map(goal => ({
-    goal: goal.title,
-    current: goal.current,
-    target: goal.target,
-    unit: goal.unit
-  }));
-  
+  const { data } = useReadingGoalsData();
+  const goals = (data?.goals || []).map((goal) => ({
+    ...goal,
+    icon: goal.category === 'books'
+      ? <BookOpen className="h-5 w-5" />
+      : goal.category === 'pages'
+      ? <BookOpen className="h-5 w-5" />
+      : goal.category === 'time'
+      ? <Clock className="h-5 w-5" />
+      : <Star className="h-5 w-5" />,
+    color: goal.category === 'books'
+      ? 'from-amber-400 to-orange-500'
+      : goal.category === 'pages'
+      ? 'from-blue-400 to-indigo-500'
+      : goal.category === 'time'
+      ? 'from-cyan-400 to-teal-500'
+      : 'from-purple-400 to-violet-500',
+  })) as ReadingGoal[];
+  const chartData = data?.chartData || [];
+  const completionRate = data?.completionRate || 0;
   const completedGoals = goals.filter(goal => goal.isCompleted).length;
   const totalGoals = goals.length;
-  const completionRate = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
   return (
     <div className="space-y-8">

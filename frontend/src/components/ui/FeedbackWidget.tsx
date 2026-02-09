@@ -15,6 +15,7 @@ import {
 import { EnhancedButton } from "./EnhancedButton";
 import { EnhancedTextarea } from "./EnhancedInput";
 import { useToast } from "@/hooks/useToast";
+import api from "@/lib/api";
 
 interface FeedbackWidgetProps {
   position?: "bottom-right" | "bottom-left";
@@ -44,8 +45,13 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
     setIsSubmitting(true);
 
     try {
-      // TODO: Send feedback to API
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await api.post("/api/feedback", {
+        rating,
+        feedback: feedback.trim(),
+        path: typeof window !== "undefined" ? window.location.pathname : undefined,
+        userAgent: typeof window !== "undefined" ? navigator.userAgent : undefined,
+        timestamp: new Date().toISOString(),
+      });
 
       setStep("success");
       setTimeout(() => {

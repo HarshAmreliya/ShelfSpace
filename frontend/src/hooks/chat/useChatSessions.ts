@@ -187,7 +187,7 @@ export function useChatSessions() {
     if (!session?.accessToken) return;
 
     try {
-      // await chatService.deleteSession(session.accessToken, sessionId);
+      await chatService.deleteSession(session.accessToken, sessionId);
       setSessions((prev) => (Array.isArray(prev) ? prev : []).filter((s) => s.id !== sessionId));
 
       // If deleting current session, clear it
@@ -211,9 +211,9 @@ export function useChatSessions() {
     if (!sessionToUpdate) return;
 
     try {
-      // await chatService.updateSession(session.accessToken, sessionId, {
-      //   isPinned: !sessionToUpdate.isPinned,
-      // });
+      await chatService.updateSession(session.accessToken, sessionId, {
+        isPinned: !sessionToUpdate.isPinned,
+      });
 
       setSessions((prev) =>
         (Array.isArray(prev) ? prev : []).map((s) =>
@@ -233,9 +233,9 @@ export function useChatSessions() {
     if (!session?.accessToken) return;
 
     try {
-      // await chatService.updateSession(session.accessToken, sessionId, {
-      //   title: newTitle,
-      // });
+      await chatService.updateSession(session.accessToken, sessionId, {
+        title: newTitle,
+      });
 
       setSessions((prev) =>
         (Array.isArray(prev) ? prev : []).map((s) => (s.id === sessionId ? { ...s, title: newTitle } : s))

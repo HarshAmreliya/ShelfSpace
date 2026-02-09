@@ -28,8 +28,29 @@ export const bookSchema = z.object({
   genres: z.array(z.string()).optional(),
 });
 
+const pageSchema = z
+  .string()
+  .regex(/^\d+$/, { message: "Page must be a positive integer" })
+  .refine((val) => parseInt(val, 10) >= 1, {
+    message: "Page must be at least 1",
+  });
+
+const limitSchema = z
+  .string()
+  .regex(/^\d+$/, { message: "Limit must be a positive integer" })
+  .refine((val) => {
+    const n = parseInt(val, 10);
+    return n >= 1 && n <= 100;
+  }, {
+    message: "Limit must be between 1 and 100",
+  });
+
+const createBookBodySchema = bookSchema.extend({
+  book_id: z.string().optional(),
+});
+
 export const createBookSchema = z.object({
-  body: bookSchema,
+  body: createBookBodySchema,
 });
 
 export const updateBookSchema = z.object({
@@ -53,7 +74,20 @@ export const deleteBookSchema = z.object({
 
 export const searchBookSchema = z.object({
   query: z.object({
-    q: z.string(),
+    q: z.string().min(1, "Search query is required"),
+    page: pageSchema.optional(),
+    limit: limitSchema.optional(),
+  }),
+});
+
+export const getBooksSchema = z.object({
+  query: z.object({
+    page: pageSchema.optional(),
+    limit: limitSchema.optional(),
+    author: z.string().optional(),
+    genre: z.string().optional(),
+    sortBy: z.enum(["asc", "desc"]).optional(),
+    search: z.string().optional(),
   }),
 });
 

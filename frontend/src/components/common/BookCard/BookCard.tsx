@@ -1,24 +1,49 @@
 "use client";
 
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Book } from "@/types/book";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Bookmark, BookmarkCheck } from "lucide-react";
+import { toBookSlug } from "@/lib/book-slug";
+import { libraryService } from "@/services/libraryService";
+import { useToast } from "@/hooks/useToast";
+import { ReadingList } from "@/types/library";
 
 interface BookCardProps {
   book: Book;
   onSelect?: (book: Book) => void;
   className?: string;
+  onSave?: (book: Book) => void;
+  isSaved?: boolean;
+  isSaving?: boolean;
+  showSave?: boolean;
 }
 
-export const BookCard: React.FC<BookCardProps> = ({ book, onSelect, className = "" }) => {
+export const BookCard: React.FC<BookCardProps> = ({
+  book,
+  onSelect,
+  className = "",
+  onSave,
+  isSaved = false,
+  isSaving = false,
+  showSave = true,
+}) => {
   const router = useRouter();
+  const toast = useToast();
+  const [isSavingInternal, setIsSavingInternal] = useState(false);
+  const [isSavedInternal, setIsSavedInternal] = useState(false);
+  const [listCache, setListCache] = useState<ReadingList[] | null>(null);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [saveTargetListId, setSaveTargetListId] = useState("");
+  const [saveListError, setSaveListError] = useState<string | null>(null);
+  const [newListName, setNewListName] = useState("");
+  const [isCreatingList, setIsCreatingList] = useState(false);
 
   const handleClick = () => {
     if (onSelect) {
       onSelect(book);
     } else {
-      router.push(`/book/${book.id}`);
+      router.push(`/book/${toBookSlug(book)}`);
     }
   };
 
@@ -28,6 +53,82 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onSelect, className = 
       handleClick();
     }
   };
+
+  const loadReadingLists = useCallback(async () => {
+    const response = await libraryService.getReadingLists({ includeBooks: false });
+    setListCache(response.data as any);
+    return response.data as any;
+  }, []);
+
+  const ensureDefaultList = useCallback(async () => {
+    let lists = listCache || (await loadReadingLists());
+    if (!lists || lists.length === 0) {
+      await libraryService.initializeDefaults();
+      lists = await loadReadingLists();
+    }
+    return lists;
+  }, [listCache, loadReadingLists]);
+
+  const handleDefaultSave = useCallback(async () => {
+    if (isSavingInternal || isSavedInternal) return;
+    try {
+      setSaveListError(null);
+      const lists = await ensureDefaultList();
+      const want = lists.find((list: ReadingList) =>
+        list.name.toLowerCase().includes("want")
+      );
+      setSaveTargetListId(want?.id || (lists[0]?.id ?? ""));
+      setIsSaveModalOpen(true);
+    } catch (error) {
+      toast.error("Failed to load lists. Please sign in and try again.");
+    }
+  }, [ensureDefaultList, isSavingInternal, isSavedInternal, toast]);
+
+  const handleCreateList = useCallback(async () => {
+    const name = newListName.trim();
+    if (!name) {
+      setSaveListError("Please enter a list name.");
+      return;
+    }
+    setIsCreatingList(true);
+    try {
+      const created = await libraryService.createReadingList({
+        list: { name },
+      });
+      const lists = await loadReadingLists();
+      setSaveTargetListId((created.data as any)?.id || lists[0]?.id || "");
+      setNewListName("");
+      setSaveListError(null);
+    } catch (err: any) {
+      setSaveListError(err?.message || "Failed to create list");
+    } finally {
+      setIsCreatingList(false);
+    }
+  }, [newListName, loadReadingLists]);
+
+  const confirmSave = useCallback(async () => {
+    if (!saveTargetListId) {
+      setSaveListError("Please select a list.");
+      return;
+    }
+    setIsSavingInternal(true);
+    try {
+      await libraryService.addBooksToReadingList(saveTargetListId, [book.id]);
+      setIsSavedInternal(true);
+      setIsSaveModalOpen(false);
+      toast.success("Saved to your library.");
+    } catch (error) {
+      toast.error("Failed to save book. Please sign in and try again.");
+    } finally {
+      setIsSavingInternal(false);
+    }
+  }, [book.id, saveTargetListId, toast]);
+
+  const resolvedIsSaved = isSaved || isSavedInternal;
+  const resolvedIsSaving = isSaving || isSavingInternal;
+  const handleSave = onSave ? () => onSave(book) : handleDefaultSave;
+
+  const showSaveButton = showSave;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -43,33 +144,52 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onSelect, className = 
   };
 
   return (
-    <article
-      className={`
-        bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-lg border border-amber-200 dark:border-slate-700
-        shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer
-        focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2
-        ${className}
-      `}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
-      role="button"
-      aria-label={`View details for ${book.title} by ${book.author}`}
-    >
-      {/* Cover Image */}
-      <div className="aspect-[3/4] bg-gradient-to-br from-amber-100 to-orange-200 dark:from-slate-700 dark:to-slate-600 rounded-t-lg flex items-center justify-center">
-        {book.coverImage ? (
-          <img
-            src={book.coverImage}
-            alt={`Cover of ${book.title}`}
-            className="w-full h-full object-cover rounded-t-lg"
-          />
-        ) : (
-          <div className="text-amber-600 dark:text-slate-400 text-4xl font-serif">
-            <BookOpen className="h-10 w-10" />
-          </div>
-        )}
-      </div>
+    <>
+      <article
+        className={`
+          bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-lg border border-amber-200 dark:border-slate-700
+          shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer
+          focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2
+          ${className}
+        `}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        role="button"
+        aria-label={`View details for ${book.title} by ${book.author}`}
+      >
+        {/* Cover Image */}
+        <div className="relative aspect-[3/4] bg-gradient-to-br from-amber-100 to-orange-200 dark:from-slate-700 dark:to-slate-600 rounded-t-lg flex items-center justify-center">
+          {showSaveButton && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                handleSave();
+              }}
+              className="absolute top-2 right-2 p-2 rounded-full bg-white/90 dark:bg-slate-800/90 border border-amber-200 dark:border-slate-600 text-amber-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-slate-700 transition-colors"
+              aria-label={resolvedIsSaved ? "Saved to library" : "Save to library"}
+              disabled={resolvedIsSaving}
+            >
+              {resolvedIsSaved ? (
+                <BookmarkCheck className="h-4 w-4" />
+              ) : (
+                <Bookmark className="h-4 w-4" />
+              )}
+            </button>
+          )}
+          {book.coverImage || book.cover ? (
+            <img
+              src={book.coverImage || book.cover}
+              alt={`Cover of ${book.title}`}
+              className="w-full h-full object-cover rounded-t-lg"
+            />
+          ) : (
+            <div className="text-amber-600 dark:text-slate-400 text-4xl font-serif">
+              <BookOpen className="h-10 w-10" />
+            </div>
+          )}
+        </div>
 
       {/* Content */}
       <div className="p-4">
@@ -129,6 +249,78 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onSelect, className = 
           </div>
         )}
       </div>
-    </article>
+      </article>
+
+      {isSaveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-amber-200 dark:border-slate-700 p-6">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">
+              Add to Reading List
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+              Choose where to save this book.
+            </p>
+
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+              Select List
+            </label>
+            <select
+              value={saveTargetListId}
+              onChange={(e) => setSaveTargetListId(e.target.value)}
+              className="w-full px-4 py-3 border border-amber-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            >
+              {(listCache || []).map((list) => (
+                <option key={list.id} value={list.id}>
+                  {list.name}
+                </option>
+              ))}
+            </select>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                Or create a new list
+              </label>
+              <div className="flex gap-2">
+                <input
+                  value={newListName}
+                  onChange={(e) => setNewListName(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-amber-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  placeholder="List name"
+                />
+                <button
+                  onClick={handleCreateList}
+                  disabled={isCreatingList}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-lg transition-colors"
+                >
+                  {isCreatingList ? "Creating..." : "Create"}
+                </button>
+              </div>
+            </div>
+
+            {saveListError && (
+              <p className="text-sm text-red-600 dark:text-red-400 mt-3">
+                {saveListError}
+              </p>
+            )}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setIsSaveModalOpen(false)}
+                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmSave}
+                disabled={!saveTargetListId || resolvedIsSaving}
+                className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white transition-colors"
+              >
+                {resolvedIsSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

@@ -13,5 +13,5 @@ RUN npm install
 COPY . .
 
 EXPOSE 3002
-# CMD ["node", "index.js"]
-CMD ["npm", "run", "dev"]
+RUN npm run build
+CMD ["npm", "run", "start"]

@@ -1,15 +1,13 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { LibraryLoadingSkeleton } from "@/components/common/LoadingStates";
 import { LibraryErrorFallback } from "@/components/common/ErrorFallbacks/LibraryErrorFallback";
 import { useLibraryState } from "@/hooks/library/useLibraryState";
-import LibrarySidebar from "./LibrarySidebar";
-import LibraryHeader from "./LibraryHeader";
-import BookGrid from "./BookGrid";
-import BookList from "./BookList";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Plus, Library } from "lucide-react";
 
 /**
  * Props for the LibraryFeature component
@@ -46,25 +44,19 @@ interface LibraryFeatureProps {
  * @param searchParams - URL search parameters for initializing state
  */
 export function LibraryFeature({ searchParams }: LibraryFeatureProps) {
+  const { data: session } = useSession();
+  const [newListName, setNewListName] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
   const {
-    selectedList,
-    viewMode,
-    filters,
     readingLists,
-    selectedListData: currentList,
-    filteredBooks,
-    genres,
     isLoading,
     error,
-    actions,
+    createReadingList,
   } = useLibraryState(searchParams);
-
-  const { search: searchQuery, genre: filterGenre, sortBy } = filters;
-
-  // Create wrapper functions for filter updates
-  const setSearchQuery = (search: string) => actions.updateFilters({ search });
-  const setFilterGenre = (genre: string | null) => actions.updateFilters({ genre });
-  const setSortBy = (sortBy: string) => actions.updateFilters({ sortBy });
+  const usernameSlug = (session?.user?.name || session?.user?.email || "user")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
   if (error) {
     throw error; // Let ErrorBoundary handle this
@@ -74,72 +66,101 @@ export function LibraryFeature({ searchParams }: LibraryFeatureProps) {
     return <LibraryLoadingSkeleton />;
   }
 
+  const handleCreate = async () => {
+    const trimmed = newListName.trim();
+    if (!trimmed) return;
+    setIsCreating(true);
+    await createReadingList(trimmed);
+    setNewListName("");
+    setIsCreating(false);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 relative z-10">
-      <div className="relative flex h-screen">
-        <aside role="complementary" aria-label="Library navigation">
-          <LibrarySidebar
-            readingLists={readingLists as any}
-            selectedList={selectedList}
-            setSelectedList={actions.setSelectedList}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-          />
-        </aside>
-
-        {/* Main Content */}
-        <main
-          id="main-content"
-          className="flex-1 flex flex-col"
-          role="main"
-          aria-label="Library content"
-        >
-          <header role="banner">
-            <LibraryHeader
-              currentList={currentList as any}
-              viewMode={viewMode}
-              setViewMode={actions.setViewMode}
-              filterGenre={filterGenre || ""}
-              setFilterGenre={setFilterGenre}
-              sortBy={sortBy as "title" | "author" | "dateAdded" | "rating"}
-              setSortBy={setSortBy}
-              genres={genres as string[]}
-              filteredBooksCount={filteredBooks.length}
-            />
-          </header>
-
-          {/* Books Display */}
-          <section
-            className="flex-1 overflow-y-auto p-6"
-            role="region"
-            aria-label={`Books in ${currentList?.name || "library"}`}
-            aria-live="polite"
-          >
-            {filteredBooks.length > 0 ? (
-              viewMode === "grid" ? (
-                <BookGrid books={filteredBooks as any} />
-              ) : (
-                <BookList books={filteredBooks as any} />
-              )
-            ) : (
-              <div className="text-center py-12" role="status" aria-live="polite">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full shadow-lg mb-6">
-                  <BookOpen className="h-10 w-10 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-3 font-serif">
-                  No Books Found
-                </h3>
-                <p className="text-lg text-gray-600 dark:text-slate-300 italic">
-                  "A room without books is like a body without a soul." - Cicero
-                </p>
-                <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
-                  Try adjusting your search or filters to find your next great read
-                </p>
+    <div className="relative min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.2),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.15),transparent_50%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(148,163,184,0.2),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(71,85,105,0.25),transparent_50%)]">
+      <div className="absolute inset-0 bg-gradient-to-br from-amber-50/80 via-orange-50/80 to-red-50/80 dark:from-slate-950/80 dark:via-slate-900/80 dark:to-slate-800/80" />
+      <main className="relative container mx-auto px-4 py-12" role="main" aria-label="Library">
+        <div className="mb-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-amber-700/80 dark:text-amber-300/80 font-semibold">
+              Your Library
+            </p>
+            <h1 className="text-4xl md:text-5xl font-serif font-semibold text-gray-900 dark:text-slate-100 mt-3">
+              Reading Lists
+            </h1>
+            <p className="text-base md:text-lg text-gray-600 dark:text-slate-300 mt-4 max-w-2xl">
+              A shelf for every mood. Curate your collections and return to them anytime.
+            </p>
+          </div>
+          {session?.user && (
+            <div className="bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-lg border border-amber-200/70 dark:border-slate-700 p-4 w-full lg:w-[360px]">
+              <p className="text-xs uppercase tracking-[0.2em] text-amber-700/80 dark:text-amber-300/80 font-semibold mb-3">
+                Create List
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  value={newListName}
+                  onChange={(event) => setNewListName(event.target.value)}
+                  className="flex-1 px-3 py-2 rounded-lg border border-amber-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  placeholder="List name"
+                />
+                <button
+                  onClick={handleCreate}
+                  disabled={isCreating}
+                  className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white text-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  {isCreating ? "Saving..." : "Add"}
+                </button>
               </div>
-            )}
-          </section>
-        </main>
-      </div>
+            </div>
+          )}
+        </div>
+
+        {readingLists.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full shadow-lg mb-6">
+              <BookOpen className="h-10 w-10 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-3 font-serif">
+              No Reading Lists Yet
+            </h3>
+            <p className="text-gray-600 dark:text-slate-300">
+              Create your first list to begin organizing your library.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {readingLists.map((list: any) => (
+              <Link
+                key={list.id}
+                href={`/profile/${usernameSlug}/lists/${list.id}`}
+                className="group bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-3xl shadow-xl border border-amber-200/70 dark:border-slate-700 p-6 hover:-translate-y-1 transition-transform"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs uppercase tracking-[0.2em] text-amber-700/80 dark:text-amber-300/80 font-semibold">
+                    Reading List
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-slate-400">
+                    {list.bookIds?.length || 0} books
+                  </span>
+                </div>
+                <h2 className="text-2xl font-serif font-semibold text-gray-900 dark:text-slate-100 mb-2">
+                  {list.name}
+                </h2>
+                {list.description && (
+                  <p className="text-sm text-gray-600 dark:text-slate-300 line-clamp-3">
+                    {list.description}
+                  </p>
+                )}
+                <div className="mt-4 text-sm text-amber-700 dark:text-amber-300 inline-flex items-center gap-2">
+                  <Library className="h-4 w-4" />
+                  Open list →
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   );
 }

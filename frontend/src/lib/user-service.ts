@@ -1,13 +1,14 @@
-import axios from "axios";
+import serverApi from "./server-api";
 
 // Use environment variable or fallback to localhost
 // In server-side contexts (like NextAuth callbacks), this will use localhost
 // In production, use the Docker service name
-const USER_SERVICE_URL = typeof window === 'undefined' 
-  ? (process.env['USER_SERVICE_URL'] || process.env['NEXT_PUBLIC_USER_SERVICE_URL'] || "http://localhost:3001/api")
-  : (process.env['NEXT_PUBLIC_USER_SERVICE_URL'] || "http://localhost:3001/api");
-
-console.log("User Service URL:", USER_SERVICE_URL);
+const USER_SERVICE_URL =
+  typeof window === "undefined"
+    ? (process.env["USER_SERVICE_URL"] ||
+        process.env["NEXT_PUBLIC_USER_SERVICE_URL"] ||
+        "http://localhost:3001/api")
+    : process.env["NEXT_PUBLIC_USER_SERVICE_URL"] || "http://localhost:3001/api";
 
 // Types for user service responses
 export interface User {
@@ -41,6 +42,7 @@ export interface UserPreferences {
   accessibilityFont: boolean;
   reducedMotion: boolean;
   autoPlayMedia: boolean;
+  settings?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -91,6 +93,7 @@ export interface UpdatePreferencesRequest {
   accessibilityFont?: boolean;
   reducedMotion?: boolean;
   autoPlayMedia?: boolean;
+  settings?: Record<string, unknown> | null;
 }
 
 // API Client class
@@ -132,7 +135,7 @@ class UserServiceClient {
       console.log("UserService: URL:", `${this.baseURL}/me`);
       console.log("UserService: Data:", userData);
       
-      const response = await axios.post(
+      const response = await serverApi.post(
         `${this.baseURL}/me`,
         userData,
         { 
@@ -161,7 +164,7 @@ class UserServiceClient {
   // Get current user profile
   async getCurrentUser(): Promise<User> {
     try {
-      const response = await axios.get(
+      const response = await serverApi.get(
         `${this.baseURL}/me`,
         { headers: this.getHeaders() }
       );
@@ -175,7 +178,7 @@ class UserServiceClient {
   // Update current user profile
   async updateUser(userData: UpdateUserRequest): Promise<User> {
     try {
-      const response = await axios.patch(
+      const response = await serverApi.patch(
         `${this.baseURL}/me`,
         userData,
         { headers: this.getHeaders() }
@@ -190,7 +193,7 @@ class UserServiceClient {
   // Get user preferences
   async getPreferences(): Promise<UserPreferences> {
     try {
-      const response = await axios.get(
+      const response = await serverApi.get(
         `${this.baseURL}/me/preferences`,
         { headers: this.getHeaders() }
       );
@@ -204,7 +207,7 @@ class UserServiceClient {
   // Update user preferences
   async updatePreferences(preferences: UpdatePreferencesRequest): Promise<UserPreferences> {
     try {
-      const response = await axios.put(
+      const response = await serverApi.put(
         `${this.baseURL}/me/preferences`,
         preferences,
         { headers: this.getHeaders() }
@@ -219,7 +222,7 @@ class UserServiceClient {
   // Get user stats
   async getStats(): Promise<UserStats> {
     try {
-      const response = await axios.get(
+      const response = await serverApi.get(
         `${this.baseURL}/me/stats`,
         { headers: this.getHeaders() }
       );
@@ -233,8 +236,8 @@ class UserServiceClient {
   // Get user by ID (for public profiles)
   async getUserById(userId: string): Promise<{ token: string }> {
     try {
-      const response = await axios.get(
-        `${this.baseURL}/${userId}`,
+      const response = await serverApi.get(
+        `${this.baseURL.replace(/\/api$/, "")}/api/token/${userId}`,
         { headers: this.getHeaders() }
       );
       return response.data;
