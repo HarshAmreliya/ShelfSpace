@@ -1,0 +1,19 @@
+sequenceDiagram
+  participant C1 as Client A
+  participant C2 as Client B
+  participant GW as NGINX /socket.io
+  participant CS as chat-service Socket.IO
+  participant DB as Message table
+
+  C1->>GW: WebSocket upgrade /socket.io
+  GW->>CS: proxied upgrade
+  CS-->>C1: socket connected
+
+  C2->>GW: WebSocket upgrade /socket.io
+  GW->>CS: proxied upgrade
+  CS-->>C2: socket connected
+
+  C1->>CS: emit chat:message(groupId,content)
+  CS->>DB: persist message
+  CS-->>C1: ack message accepted
+  CS-->>C2: broadcast chat:message(newMessage)

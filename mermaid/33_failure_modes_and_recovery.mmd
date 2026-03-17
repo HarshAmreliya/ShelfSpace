@@ -1,0 +1,10 @@
+flowchart LR
+  call[Client call] --> dep{Dependency available?}
+
+  dep -->|yes| ok[Normal response]
+
+  dep -->|no: user-service verify fails| authFail[401/403 fail closed]
+  dep -->|no: analytics fails| soft[Domain call succeeds; analytics warning/log]
+  dep -->|no: book-service lookup fails| partial[Skip metadata enrichment / validation error]
+  dep -->|no: redis fails| degrade[Fall back to DB-only path]
+  dep -->|no: DB fails| hard[500 error + request trace]

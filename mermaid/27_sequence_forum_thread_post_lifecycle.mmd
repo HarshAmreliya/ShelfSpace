@@ -1,0 +1,27 @@
+sequenceDiagram
+  participant UI as Forums UI
+  participant GW as Gateway
+  participant FS as forum-service
+  participant US as user-service
+  participant DB as PostgreSQL
+  participant AN as analytics
+
+  UI->>GW: POST /api/forums/:id/threads
+  GW->>FS: create thread
+  FS->>US: verify token
+  US-->>FS: userId
+  FS->>DB: insert ForumThread
+  FS->>AN: emit THREAD_CREATED
+  FS-->>UI: thread created
+
+  UI->>GW: POST /api/forums/:id/threads/:threadId/posts
+  GW->>FS: create post
+  FS->>DB: insert ForumPost
+  FS->>AN: emit POST_CREATED
+  FS-->>UI: post created
+
+  UI->>GW: DELETE /api/forums/:id/threads/:threadId/posts/:postId
+  GW->>FS: delete post
+  FS->>DB: delete ForumPost (+cascade reactions/replies)
+  FS->>AN: emit POST_DELETED
+  FS-->>UI: delete ok

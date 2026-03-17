@@ -12,6 +12,12 @@ export interface ChatbotResponse {
   session_id: string;
 }
 
+/**
+ * Generate AIResponse.
+ * @param userMessage - user Message value.
+ * @param sessionId - session Id value.
+ * @returns Promise<{ message: Message; sessionId: string }>.
+ */
 export const generateAIResponse = async (
   userMessage: string,
   sessionId?: string

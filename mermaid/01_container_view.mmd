@@ -1,0 +1,48 @@
+flowchart LR
+  subgraph Client
+    ui[Next.js App Router UI]
+  end
+
+  subgraph Edge
+    ng[NGINX Gateway]
+  end
+
+  subgraph Platform
+    us[User Service :3001]
+    uls[User Library Service :3003]
+    bs[Book Service :3004]
+    rs[Review Service :3002]
+    fs[Forum Service :3005]
+    cs[Chat Service :3006 + Socket.IO]
+    as[Admin Service :3007]
+    ans[Analytics Service :3008]
+    cbs[Chatbot Service :8000]
+  end
+
+  subgraph Data
+    pg[(PostgreSQL)]
+    mg[(MongoDB)]
+    rd[(Redis)]
+  end
+
+  ui --> ng
+  ng --> us
+  ng --> uls
+  ng --> bs
+  ng --> rs
+  ng --> fs
+  ng --> cs
+  ng --> as
+  ng --> ans
+  ng --> cbs
+
+  us --> pg
+  uls --> pg
+  rs --> pg
+  fs --> pg
+  cs --> pg
+  as --> pg
+  bs --> mg
+  ans --> mg
+  us --> rd
+  cs --> rd

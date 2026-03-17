@@ -1,0 +1,17 @@
+sequenceDiagram
+  participant C as Client/Frontend
+  participant G as NGINX Gateway
+  participant S as Source Service
+  participant A as Analytics Service
+  participant E as events collection
+  participant P as projector.ts
+  participant R as analytics read model
+
+  C->>G: User action (book/forum/chat/admin)
+  G->>S: Domain API call
+  S->>A: POST /api/analytics/events
+  A->>E: insert event
+  A->>P: projectEvent(event)
+  P->>R: upsert per-user aggregates
+  A-->>S: { success: true }
+  S-->>C: domain response

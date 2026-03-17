@@ -1,0 +1,18 @@
+sequenceDiagram
+  participant FE as Frontend/Caller Service
+  participant GW as NGINX
+  participant SVC as Target Service
+  participant AUTH as user-service /api/auth/verify
+
+  FE->>GW: API request with Authorization: Bearer JWT
+  GW->>SVC: forward request
+  SVC->>AUTH: POST /api/auth/verify
+  AUTH->>AUTH: validate JWT signature + claims
+  alt token valid
+    AUTH-->>SVC: 200 { userId, role }
+    SVC->>SVC: proceed domain logic
+    SVC-->>FE: success response
+  else token invalid/expired
+    AUTH-->>SVC: 401/403
+    SVC-->>FE: unauthorized/forbidden
+  end

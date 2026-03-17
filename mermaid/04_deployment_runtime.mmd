@@ -1,0 +1,41 @@
+flowchart TB
+  subgraph docker[Docker Compose Network: shelfspace-net]
+    ng[nginx-gateway]
+    fe[frontend]
+    us[user-service]
+    uls[user-library-service]
+    bs[book-service]
+    rs[review-service]
+    fs[forum-service]
+    cs[chat-service]
+    as[admin-service]
+    ans[analytics-service]
+    cbs[chatbot-service]
+    pg[(postgres)]
+    mg[(mongodb)]
+    rd[(redis)]
+  end
+
+  ng --> fe
+  ng --> us
+  ng --> uls
+  ng --> bs
+  ng --> rs
+  ng --> fs
+  ng --> cs
+  ng --> as
+  ng --> ans
+  ng --> cbs
+
+  us --> pg
+  uls --> pg
+  rs --> pg
+  fs --> pg
+  cs --> pg
+  as --> pg
+
+  bs --> mg
+  ans --> mg
+
+  us --> rd
+  cs --> rd

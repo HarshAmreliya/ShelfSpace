@@ -1,0 +1,13 @@
+stateDiagram-v2
+  [*] --> Created : POST /reading-lists
+  Created --> Populated : add books
+  Populated --> Reordered : move books
+  Populated --> Trimmed : remove books
+  Reordered --> Populated : more add/remove
+  Trimmed --> Populated : add books
+  Populated --> UpdatedMeta : rename/visibility/edit
+  UpdatedMeta --> Populated
+  Created --> Deleted : delete list
+  Populated --> Deleted : delete list
+  UpdatedMeta --> Deleted : delete list
+  Deleted --> [*]

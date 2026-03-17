@@ -45,7 +45,8 @@ pip-log.txt
 # Build Artif
 
 # ml-experimentation
-ml-lab/
+ml-lab/*
+!ml-lab/README.md
 ml-lab/notebooks
 *.ipynb
 # ml-lab/.venv/

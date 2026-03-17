@@ -8,6 +8,10 @@ const CHATBOT_URL = process.env['CHATBOT_SERVICE_URL'] ||
 
 // console.log("[Chatbot Route] Using chatbot URL:", CHATBOT_URL);
 
+/**
+ * POST.
+ * @param request - request value.
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

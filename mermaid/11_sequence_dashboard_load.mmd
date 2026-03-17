@@ -1,0 +1,28 @@
+sequenceDiagram
+  participant F as Dashboard Feature
+  participant G as Gateway
+  participant AN as Analytics Service
+  participant DB as Mongo analytics
+
+  par Summary
+    F->>G: GET /api/analytics/dashboard/summary
+    G->>AN: summary query
+    AN->>DB: findOne by userId
+    DB-->>AN: analytics document
+    AN-->>F: summary DTO
+  and Reading Analytics
+    F->>G: GET /api/analytics/dashboard/reading-analytics
+    G->>AN: analytics query
+    AN->>DB: findOne by userId
+    AN-->>F: charts + stats
+  and Goals
+    F->>G: GET /api/analytics/dashboard/reading-goals
+    G->>AN: goals query
+    AN->>DB: findOne by userId
+    AN-->>F: goals + completion
+  and Activity
+    F->>G: GET /api/analytics/dashboard/activity
+    G->>AN: activity query
+    AN->>DB: findOne by userId
+    AN-->>F: activity timeline
+  end

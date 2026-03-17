@@ -1,0 +1,19 @@
+sequenceDiagram
+  participant F as Frontend Library UI
+  participant G as Gateway
+  participant LS as User Library Service
+  participant BS as Book Service
+  participant US as User Service
+  participant DB as PostgreSQL
+  participant AN as Analytics Service
+
+  F->>G: POST /api/library/reading-lists/:id/books
+  G->>LS: add books to list
+  LS->>US: verify bearer token
+  US-->>LS: token valid + userId
+  LS->>BS: GET /api/books/:bookId (validate each)
+  BS-->>LS: book metadata
+  LS->>DB: insert ReadingListBook rows
+  LS->>AN: emit READING_LIST_BOOKS_MOVED / CREATED events
+  AN-->>LS: ack
+  LS-->>F: updated reading list

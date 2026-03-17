@@ -1,0 +1,24 @@
+erDiagram
+  READING_LIST {
+    string id PK
+    string userId
+    string name
+    string description
+    string color
+    string icon
+    boolean isPublic
+    boolean isDefault
+    int sortOrder
+    datetime createdAt
+    datetime updatedAt
+  }
+
+  READING_LIST_BOOK {
+    string id PK
+    string readingListId FK
+    string bookId
+    datetime addedAt
+    int sortOrder
+  }
+
+  READING_LIST ||--o{ READING_LIST_BOOK : contains

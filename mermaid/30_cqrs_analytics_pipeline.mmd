@@ -1,0 +1,31 @@
+flowchart LR
+  subgraph WritePath[Write Path]
+    emitter[Domain services emit events]
+    ingest[POST /api/analytics/events]
+    storeE[(events collection)]
+  end
+
+  subgraph Projection[Projection]
+    projector[projector.ts]
+    rules[Event type switch handlers]
+    read[(analytics read model)]
+  end
+
+  subgraph QueryPath[Read Path]
+    q1[/dashboard/summary]
+    q2[/dashboard/reading-analytics]
+    q3[/dashboard/reading-goals]
+    q4[/dashboard/activity]
+    dto[Aggregated dashboard DTOs]
+  end
+
+  emitter --> ingest --> storeE
+  ingest --> projector --> rules --> read
+  read --> q1
+  read --> q2
+  read --> q3
+  read --> q4
+  q1 --> dto
+  q2 --> dto
+  q3 --> dto
+  q4 --> dto

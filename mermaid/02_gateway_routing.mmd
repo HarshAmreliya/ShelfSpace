@@ -1,0 +1,18 @@
+flowchart TB
+  client[Client Request]
+  gw[NGINX Gateway]
+
+  client --> gw
+
+  gw -->|/| frontend[frontend:3000]
+  gw -->|/api/users/*| userSvc[user-service:3001]
+  gw -->|/api/user-chat/* -> /api/chat/*| userSvc
+  gw -->|/api/library/* -> /*| libSvc[user-library-service:3003]
+  gw -->|/api/books/*| bookSvc[book-service:3004]
+  gw -->|/api/reviews/*| reviewSvc[review-service:3002]
+  gw -->|/api/forums/*| forumSvc[forum-service:3005]
+  gw -->|/api/chat/*| chatSvc[chat-service:3006]
+  gw -->|/socket.io/*| chatSvc
+  gw -->|/api/admin/*| adminSvc[admin-service:3007]
+  gw -->|/api/analytics/*| analyticsSvc[analytics-service:3008]
+  gw -->|/api/chatbot/*| chatbotSvc[chatbot-service:8000]

@@ -1,0 +1,17 @@
+flowchart LR
+  Browser --> NextUI[Next.js page/component]
+  NextUI --> ApiClient[frontend/lib/api.ts]
+  ApiClient --> Gateway[NGINX]
+
+  Gateway --> DomainSvc[Target Service Route]
+  DomainSvc --> AuthCheck[Token verification via user-service]
+  DomainSvc --> DataStore[(Postgres/Mongo)]
+  DomainSvc --> AnalyticsEmit[POST /api/analytics/events]
+
+  AnalyticsEmit --> AnalyticsSvc[analytics-service]
+  AnalyticsSvc --> EventLog[(events collection)]
+  AnalyticsSvc --> ReadModel[(analytics collection)]
+
+  DomainSvc --> Gateway
+  Gateway --> NextUI
+  NextUI --> Browser

@@ -1,0 +1,19 @@
+sequenceDiagram
+  participant UI as Chat UI
+  participant GW as Gateway
+  participant US as user-service(chat routes)
+  participant DB as PostgreSQL
+  participant RB as Redis cache/helpers
+  participant BOT as chatbot-service
+  participant AN as analytics-service
+
+  UI->>GW: POST /api/user-chat/sessions/:id/messages
+  GW->>US: forward request
+  US->>US: validate owner(session.userId==token.userId)
+  US->>DB: read session + append message metadata
+  US->>BOT: generate response/recommendations
+  BOT-->>US: AI reply
+  US->>DB: update lastMessageAt/title heuristics
+  US->>RB: cache/invalidate session list keys
+  US->>AN: emit CHAT_MESSAGE_SENT + CHATBOT_QUERY
+  US-->>UI: response payload with assistant message

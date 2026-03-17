@@ -1,0 +1,18 @@
+sequenceDiagram
+  participant F as Frontend Chat UI
+  participant G as Gateway
+  participant CS as Chat Service
+  participant US as User Service
+  participant FS as Forum Service
+  participant DB as PostgreSQL
+  participant RD as Redis
+
+  F->>G: GET /api/chat/groups/:groupId/messages
+  G->>CS: forward request
+  CS->>US: verify token
+  US-->>CS: userId
+  CS->>FS: membership check for group/forum
+  FS-->>CS: member allowed
+  CS->>DB: query Message by groupId
+  CS->>RD: publish/subscribe events (realtime path)
+  CS-->>F: message list
