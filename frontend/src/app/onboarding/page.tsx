@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/api-utils";
 
 import { 
@@ -122,8 +121,6 @@ export default function OnboardingPage() {
     try {
       setIsLoading(true);
 
-      console.log("=== Starting Onboarding Completion ===");
-      console.log("Session user ID:", session?.user?.id);
 
       // Update user profile if bio or website provided
       if (formData.bio || formData.website || !formData.isPublic) {
@@ -133,54 +130,40 @@ export default function OnboardingPage() {
         if (formData.bio) updateData.bio = formData.bio;
         if (formData.website) updateData.website = formData.website;
         
-        console.log("Updating user profile...", updateData);
-        await api.patch("/api/user/me", updateData, {
+        await fetch("/api/user/me", {
+          method: "PATCH",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updateData),
         });
         
-        console.log("User profile updated successfully");
       }
 
       // Update user preferences
-      console.log("Updating user preferences with data:", {
-        theme: formData.theme,
-        language: formData.language,
-        notificationsEmail: formData.notificationsEmail,
-        dailyDigest: formData.dailyDigest,
-        defaultViewMode: formData.defaultViewMode,
-      });
-      
-      const updatedPreferences = await api.put("/api/user/preferences", {
-        theme: formData.theme,
-        language: formData.language,
-        notificationsEmail: formData.notificationsEmail,
-        dailyDigest: formData.dailyDigest,
-        defaultViewMode: formData.defaultViewMode,
-      }, {
+      await fetch("/api/user/preferences", {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-      }).then((res) => res.data);
-      console.log("User preferences updated successfully:", updatedPreferences);
+        body: JSON.stringify({
+          theme: formData.theme,
+          language: formData.language,
+          notificationsEmail: formData.notificationsEmail,
+          dailyDigest: formData.dailyDigest,
+          defaultViewMode: formData.defaultViewMode,
+        }),
+      }).then((res) => res.json());
 
       // Update session to mark onboarding as complete
-      console.log("Updating session to mark onboarding complete...");
       await update({
         isNewUser: false,
         needsPreferences: false,
       });
 
       // Small delay to ensure session is propagated
-      console.log("Waiting for session propagation...");
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Redirect to dashboard
-      console.log("Redirecting to dashboard...");
-      console.log("=== Onboarding Completion Successful ===");
       window.location.href = "/dashboard";
     } catch (error: any) {
-      console.error("=== Onboarding Completion Failed ===");
-      console.error("Error:", error);
       const message = getErrorMessage(error);
-      console.error("Error message:", message);
       alert(`Failed to save your preferences: ${message || 'Unknown error'}. Please try again.`);
       setIsLoading(false);
     }

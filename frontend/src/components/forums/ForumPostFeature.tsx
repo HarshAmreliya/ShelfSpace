@@ -7,6 +7,7 @@ import { ArrowLeft, MessageCircle, ThumbsUp } from "lucide-react";
 import { useForumPosts } from "@/hooks/data/useForumPosts";
 import { type ForumPostDTO } from "@/lib/forum-service";
 import { ThreadDetailSkeleton } from "@/components/skeletons/SkeletonComponents";
+import { useToastNotifications } from "@/components/ui/Toast";
 import apiClient from "@/lib/api";
 import Link from "next/link";
 
@@ -26,14 +27,23 @@ export function ForumPostFeature({ forumId, threadId, forumSlug }: ForumPostFeat
   const [editPostContent, setEditPostContent] = useState("");
   const [userProfiles, setUserProfiles] = useState<Record<string, { name?: string }>>({});
   const userProfilesRef = useRef<Record<string, { name?: string }>>({});
+  const { error: showError, info: showInfo } = useToastNotifications();
 
   const handleCreatePost = async () => {
     if (!newPostContent.trim()) {
-      alert("Post content is required.");
+      showError("Post content is required.");
       return;
     }
-    await createPost(newPostContent.trim());
-    setNewPostContent("");
+    try {
+      await createPost(newPostContent.trim());
+      setNewPostContent("");
+    } catch (err: any) {
+      if (err?.status === 403 || err?.message?.toLowerCase().includes("forbidden")) {
+        showInfo("You need to join this forum before posting.");
+      } else {
+        showError("Failed to create post. Please try again.");
+      }
+    }
   };
 
   const startEditPost = (post: ForumPostDTO) => {

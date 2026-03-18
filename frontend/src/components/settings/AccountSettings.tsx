@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Trash2, Download, AlertTriangle, Info } from "lucide-react";
 import { signOut } from "next-auth/react";
-import apiClient from "@/lib/api";
+import { nextApiClient as apiClient } from "@/lib/api";
 
 export function AccountSettings() {
   const [deleteConfirm, setDeleteConfirm] = useState("");

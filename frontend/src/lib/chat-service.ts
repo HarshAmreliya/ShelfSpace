@@ -165,13 +165,15 @@ class ChatService {
     let metadata: any;
     let shelfAiSessionId: string | undefined;
     try {
-      const botResponse = await api.post("/chatbot/chat", {
-        query: userMessage,
-        session_id: sessionId,
+      const botRes = await fetch("/api/chatbot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ message: userMessage, sessionId }),
       });
-      response = botResponse.data?.answer || "";
-      shelfAiSessionId = botResponse.data?.session_id || sessionId;
-      metadata = botResponse.data?.metadata;
+      const botResponse = await botRes.json();
+      response = botResponse?.response || "";
+      shelfAiSessionId = botResponse?.sessionId || sessionId;
+      metadata = botResponse?.metadata;
     } catch (error: any) {
       console.warn("Chatbot request failed:", error);
       response =

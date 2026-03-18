@@ -19,12 +19,6 @@ export function useChatSessions() {
 
   // Load sessions on mount
   useEffect(() => {
-    console.log("[useChatSessions] Session state:", {
-      hasSession: !!session,
-      hasAccessToken: !!session?.accessToken,
-      accessToken: session?.accessToken ? `${session.accessToken.substring(0, 20)}...` : 'none'
-    });
-    
     if (session?.accessToken) {
       loadSessions();
     }
@@ -45,7 +39,6 @@ export function useChatSessions() {
  */
   const loadSessions = async () => {
     if (!session?.accessToken) {
-      console.warn("[useChatSessions] No access token available. User may need to re-login.");
       setError("Please log out and log back in to use chat features");
       return;
     }
@@ -55,12 +48,10 @@ export function useChatSessions() {
         limit: 50,
         includePinned: true,
       });
-      // Ensure sessionList is an array
       setSessions(Array.isArray(sessionList) ? sessionList : []);
-    } catch (err) {
-      console.error("Failed to load sessions:", err);
+    } catch {
       setError("Failed to load chat history");
-      setSessions([]); // Reset to empty array on error
+      setSessions([]);
     }
   };
 
@@ -77,18 +68,16 @@ export function useChatSessions() {
     try {
       setIsLoading(true);
       const sessionData = await chatService.getSession(session.accessToken, sessionId);
-      // Ensure messages is always an array
       const messagesList = Array.isArray(sessionData.messages) ? sessionData.messages : [];
       setMessages(messagesList);
       setCurrentSession(sessionData);
     } catch (err: any) {
-      console.error("Failed to load session:", err);
       if (err.response?.status === 410) {
         setError("This chat session has expired");
       } else {
         setError("Failed to load messages");
       }
-      setMessages([]); // Reset to empty array on error
+      setMessages([]);
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +103,6 @@ export function useChatSessions() {
       setMessages([]);
       return newSession;
     } catch (err) {
-      console.error("Failed to create session:", err);
       setError("Failed to create new chat");
       return null;
     }
@@ -133,31 +121,33 @@ export function useChatSessions() {
 
     try {
       setError(null);
-      setIsTyping(true);
 
       // Create session if none exists
       let sessionId = currentSession?.id;
       if (!sessionId) {
         const newSession = await createNewSession();
-        if (!newSession) {
-          setIsTyping(false);
-          return;
-        }
+        if (!newSession) return;
         sessionId = newSession.id;
       }
 
-      // Clear input immediately
+      // Clear input and show user message immediately
       setInputMessage("");
+      const optimisticUserMsg: ChatMessage = {
+        role: "user",
+        content: messageText,
+        timestamp: Date.now().toString(),
+      };
+      setMessages((prev) => [...(Array.isArray(prev) ? prev : []), optimisticUserMsg]);
+      setIsTyping(true);
 
-      // Send message and get response
-      const { userMsg, botMsg } = await chatService.sendChatMessage(
+      // Send message and get bot response
+      const { botMsg } = await chatService.sendChatMessage(
         session.accessToken,
         sessionId,
         messageText
       );
 
-      // Update messages - ensure prev is always an array
-      setMessages((prev) => [...(Array.isArray(prev) ? prev : []), userMsg, botMsg]);
+      setMessages((prev) => [...(Array.isArray(prev) ? prev : []), botMsg]);
 
       // Update session title if it's the first message
       if (messages.length === 0 && currentSession) {
@@ -179,8 +169,7 @@ export function useChatSessions() {
             : s
         )
       );
-    } catch (err) {
-      console.error("Failed to send message:", err);
+    } catch {
       setError("Failed to send message");
     } finally {
       setIsTyping(false);
@@ -222,7 +211,6 @@ export function useChatSessions() {
         setMessages([]);
       }
     } catch (err) {
-      console.error("Failed to delete session:", err);
       setError("Failed to delete chat");
     }
   };
@@ -251,7 +239,6 @@ export function useChatSessions() {
         )
       );
     } catch (err) {
-      console.error("Failed to toggle pin:", err);
       setError("Failed to update chat");
     }
   };
@@ -280,7 +267,6 @@ export function useChatSessions() {
         setCurrentSession((prev) => (prev ? { ...prev, title: newTitle } : null));
       }
     } catch (err) {
-      console.error("Failed to rename session:", err);
       setError("Failed to rename chat");
     }
   };

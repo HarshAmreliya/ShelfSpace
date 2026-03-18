@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Moon, Sun, Settings as SettingsIcon } from "lucide-react";
-import apiClient from "@/lib/api";
+import { nextApiClient as apiClient } from "@/lib/api";
 import { getErrorMessage } from "@/lib/api-utils";
 
 type NotificationChannels = {

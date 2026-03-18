@@ -5,6 +5,7 @@ import { AnimatedCard, StaggerContainer, StaggerItem, AnimatedCounter, GradientP
 import { ReadingGoalsChart } from '../charts/ChartComponents';
 import { Target, Trophy, TrendingUp, BookOpen, Clock, Star, Calendar } from 'lucide-react';
 import { useReadingGoalsData } from '@/hooks/data/useAnalytics';
+import { useReadingLists } from '@/hooks/data/useReadingLists';
 
 interface ReadingGoal {
   id: string;
@@ -25,8 +26,14 @@ interface ReadingGoal {
  */
 export function ReadingGoals() {
   const { data } = useReadingGoalsData();
+  const { data: readingLists } = useReadingLists({ includeBooks: false });
+  const finishedList = readingLists?.find((l: any) => l.name.toLowerCase().includes('finished') || l.name.toLowerCase().includes('completed'));
+  const liveBooksRead = finishedList?.bookCount ?? 0;
+
   const goals = (data?.goals || []).map((goal) => ({
     ...goal,
+    // Override "Books This Year" with actual count from Finished reading list
+    current: goal.category === 'books' && liveBooksRead > 0 ? liveBooksRead : goal.current,
     icon: goal.category === 'books'
       ? <BookOpen className="h-5 w-5" />
       : goal.category === 'pages'

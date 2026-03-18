@@ -70,7 +70,11 @@ function buildApiClient(baseURL?: string) {
 
 export const createApiClient = buildApiClient;
 
-// Default app-wide client used for primary API traffic.
+// Default app-wide client used for primary API traffic (points to backend via nginx).
 const apiClient = buildApiClient();
+
+// Client for Next.js internal API routes (/api/user/*, /api/auth/*, etc.).
+// Uses no baseURL so requests resolve against the current page origin (Next.js server).
+export const nextApiClient = buildApiClient("");
 
 export default apiClient;

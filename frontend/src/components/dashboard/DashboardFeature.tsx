@@ -38,6 +38,7 @@ import {
   CurrentlyReading
 } from "./sections";
 import { useDashboardSummary } from "@/hooks/data/useAnalytics";
+import { useReadingLists } from "@/hooks/data/useReadingLists";
 
 
 export interface DashboardFeatureProps {
@@ -54,6 +55,7 @@ export function DashboardFeature({ className }: DashboardFeatureProps) {
   const [showPreferences, setShowPreferences] = useState(false);
   const { success, info } = useToastNotifications();
   const { data: summary } = useDashboardSummary();
+  const { data: readingLists } = useReadingLists({ includeBooks: true });
   const { data: session } = useSession();
 
   // Get user name from session
@@ -68,17 +70,25 @@ export function DashboardFeature({ className }: DashboardFeatureProps) {
     setReadingQuote(getReadingQuote());
   }, [userName]);
 
-  const readingStats = summary || {
-    totalBooks: 0,
-    booksRead: 0,
-    currentlyReading: 0,
-    wantToRead: 0,
-    readingGoal: 52,
-    currentStreak: 0,
-    averageRating: 0,
-    totalPages: 0,
-    readingTime: 0,
-    favoriteGenre: "N/A",
+  const currentlyReadingList = readingLists?.find((l: any) => l.name.toLowerCase().includes("currently"));
+  const wantToReadList = readingLists?.find((l: any) => l.name.toLowerCase().includes("want"));
+  const finishedList = readingLists?.find((l: any) => l.name.toLowerCase().includes("finished") || l.name.toLowerCase().includes("completed"));
+
+  const liveCurrentlyReading = currentlyReadingList?.bookCount ?? summary?.currentlyReading ?? 0;
+  const liveWantToRead = wantToReadList?.bookCount ?? summary?.wantToRead ?? 0;
+  const liveBooksRead = finishedList?.bookCount ?? summary?.booksRead ?? 0;
+
+  const readingStats = {
+    totalBooks: readingLists ? liveCurrentlyReading + liveWantToRead + liveBooksRead : (summary?.totalBooks ?? 0),
+    booksRead: liveBooksRead,
+    currentlyReading: liveCurrentlyReading,
+    wantToRead: liveWantToRead,
+    readingGoal: summary?.readingGoal ?? 52,
+    currentStreak: summary?.currentStreak ?? 0,
+    averageRating: summary?.averageRating ?? 0,
+    totalPages: summary?.totalPages ?? 0,
+    readingTime: summary?.readingTime ?? 0,
+    favoriteGenre: summary?.favoriteGenre ?? "N/A",
   };
 
   // Auto-open preferences onboarding when user setup indicates missing preferences.

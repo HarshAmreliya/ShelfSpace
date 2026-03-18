@@ -1,78 +1,275 @@
-version: '3.8'
-
-# Production overrides
-# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+# Production Docker Compose — EC2 t3.micro deployment
+# All databases are external (RDS, MongoDB Atlas, Upstash Redis, Upstash Kafka).
+# Frontend is deployed on Vercel separately.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 
 services:
-  frontend:
-    environment:
-      NODE_ENV: production
-    command: npm start
 
-  user-service:
-    environment:
-      NODE_ENV: production
-    deploy:
-      replicas: 2
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-
-  review-service:
-    environment:
-      NODE_ENV: production
-    deploy:
-      replicas: 2
-
-  user-library-service:
-    environment:
-      NODE_ENV: production
-    deploy:
-      replicas: 2
-
-  book-service:
-    environment:
-      NODE_ENV: production
-    deploy:
-      replicas: 2
-
-  forum-service:
-    environment:
-      NODE_ENV: production
-    deploy:
-      replicas: 2
-
-  chat-service:
-    environment:
-      NODE_ENV: production
-    deploy:
-      replicas: 2
-
-  admin-service:
-    environment:
-      NODE_ENV: production
-    deploy:
-      replicas: 1
-
-  analytics-service:
-    environment:
-      NODE_ENV: production
-    deploy:
-      replicas: 1
-
-  chatbot-service:
-    environment:
-      NODE_ENV: production
-    deploy:
-      replicas: 2
+  # ============================================
+  # API GATEWAY
+  # ============================================
 
   nginx-gateway:
-    # Production: Add TLS certificates
+    image: nginx:stable-alpine
+    container_name: shelfspace-nginx
+    ports:
+      - "80:80"
     volumes:
       - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./api-gateway/ssl:/etc/nginx/ssl:ro
-    # Uncomment for production with TLS
-    # ports:
-    #   - "80:80"
-    #   - "443:443"
+    networks:
+      - shelfspace-net
+    depends_on:
+      user-service:
+        condition: service_healthy
+      review-service:
+        condition: service_healthy
+      forum-service:
+        condition: service_healthy
+      analytics-service:
+        condition: service_healthy
+      user-library-service:
+        condition: service_healthy
+      book-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    restart: unless-stopped
+
+  # ============================================
+  # BACKEND SERVICES
+  # ============================================
+
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    container_name: shelfspace-user-service
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: ${USER_DATABASE_URL:?USER_DATABASE_URL is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      LIBRARY_SERVICE_URL: http://user-library-service:3003
+      REDIS_URL: ${REDIS_URL:-redis://host.docker.internal:6379}
+      ANALYTICS_SERVICE_URL: http://analytics-service:3008
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-host.docker.internal:9092}
+      KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME:-}
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD:-}
+      KAFKA_SSL: ${KAFKA_SSL:-false}
+      KAFKA_SASL_MECHANISM: ${KAFKA_SASL_MECHANISM:-scram-sha-256}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+    networks:
+      - shelfspace-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+    restart: unless-stopped
+
+  review-service:
+    build:
+      context: ./services/review-service
+      dockerfile: Dockerfile
+    container_name: shelfspace-review-service
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL: ${REVIEW_DATABASE_URL:?REVIEW_DATABASE_URL is required}
+      USER_SERVICE_URL: http://user-service:3001
+      ANALYTICS_SERVICE_URL: http://analytics-service:3008
+      BOOK_SERVICE_URL: http://book-service:3004
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-host.docker.internal:9092}
+      KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME:-}
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD:-}
+      KAFKA_SSL: ${KAFKA_SSL:-false}
+      KAFKA_SASL_MECHANISM: ${KAFKA_SASL_MECHANISM:-scram-sha-256}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+    networks:
+      - shelfspace-net
+    depends_on:
+      user-service:
+        condition: service_healthy
+      book-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+    restart: unless-stopped
+
+  user-library-service:
+    build:
+      context: ./services/user-library-service
+      dockerfile: Dockerfile
+    container_name: shelfspace-library-service
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DATABASE_URL: ${LIBRARY_DATABASE_URL:?LIBRARY_DATABASE_URL is required}
+      USER_SERVICE_URL: http://user-service:3001
+      BOOK_SERVICE_URL: http://book-service:3004
+      ANALYTICS_SERVICE_URL: http://analytics-service:3008
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-host.docker.internal:9092}
+      KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME:-}
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD:-}
+      KAFKA_SSL: ${KAFKA_SSL:-false}
+      KAFKA_SASL_MECHANISM: ${KAFKA_SASL_MECHANISM:-scram-sha-256}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+    networks:
+      - shelfspace-net
+    depends_on:
+      user-service:
+        condition: service_healthy
+      book-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+    restart: unless-stopped
+
+  book-service:
+    build:
+      context: ./services/book-service
+      dockerfile: Dockerfile
+    container_name: shelfspace-book-service
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      NODE_ENV: production
+      PORT: 3004
+      MONGO_URI: ${MONGO_URI:?MONGO_URI is required}
+      USER_SERVICE_URL: http://user-service:3001
+      ANALYTICS_SERVICE_URL: http://analytics-service:3008
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-host.docker.internal:9092}
+      KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME:-}
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD:-}
+      KAFKA_SSL: ${KAFKA_SSL:-false}
+      KAFKA_SASL_MECHANISM: ${KAFKA_SASL_MECHANISM:-scram-sha-256}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+    networks:
+      - shelfspace-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+    restart: unless-stopped
+
+  forum-service:
+    build:
+      context: ./services/forum-service
+      dockerfile: Dockerfile
+    container_name: shelfspace-forum-service
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      NODE_ENV: production
+      PORT: 3005
+      DATABASE_URL: ${FORUM_DATABASE_URL:?FORUM_DATABASE_URL is required}
+      USER_SERVICE_URL: http://user-service:3001
+      ANALYTICS_SERVICE_URL: http://analytics-service:3008
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-host.docker.internal:9092}
+      KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME:-}
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD:-}
+      KAFKA_SSL: ${KAFKA_SSL:-false}
+      KAFKA_SASL_MECHANISM: ${KAFKA_SASL_MECHANISM:-scram-sha-256}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+    networks:
+      - shelfspace-net
+    depends_on:
+      user-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+    restart: unless-stopped
+
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+      dockerfile: Dockerfile
+    container_name: shelfspace-analytics-service
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      NODE_ENV: production
+      PORT: 3008
+      MONGO_URI: ${MONGO_ANALYTICS_URI:?MONGO_ANALYTICS_URI is required}
+      MONGO_DB: ${MONGO_ANALYTICS_DB:-analytics}
+      USER_SERVICE_URL: http://user-service:3001
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-host.docker.internal:9092}
+      KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME:-}
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD:-}
+      KAFKA_SSL: ${KAFKA_SSL:-false}
+      KAFKA_SASL_MECHANISM: ${KAFKA_SASL_MECHANISM:-scram-sha-256}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+    networks:
+      - shelfspace-net
+    depends_on:
+      user-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+    restart: unless-stopped
+
+  # ============================================
+  # NETWORKS
+  # ============================================
+
+networks:
+  shelfspace-net:
+    driver: bridge

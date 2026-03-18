@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import apiClient from "@/lib/api";
+import { nextApiClient as apiClient } from "@/lib/api";
 import { getErrorMessage } from "@/lib/api-utils";
 import { ForumService, ForumDTO } from "@/lib/forum-service";
 import { ReviewService, ReviewDTO } from "@/lib/review-service";

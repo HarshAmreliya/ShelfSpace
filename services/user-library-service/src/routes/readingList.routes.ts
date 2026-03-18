@@ -50,14 +50,15 @@ async function validateBookIds(bookIds: string[]) {
  */
 function getStatusFromListName(name: string): string | undefined {
   const listName = name.toLowerCase();
-  if (listName.includes("finished") || listName.includes("read") || listName.includes("completed")) {
-    return "read";
-  }
-  if (listName.includes("currently") || listName.includes("reading")) {
+  // Check "currently" before "read" — "currently reading" contains "read" as a substring
+  if (listName.includes("currently")) {
     return "currently-reading";
   }
   if (listName.includes("want") || listName.includes("wish")) {
     return "want-to-read";
+  }
+  if (listName.includes("finished") || listName.includes("read") || listName.includes("completed")) {
+    return "read";
   }
   return undefined;
 }

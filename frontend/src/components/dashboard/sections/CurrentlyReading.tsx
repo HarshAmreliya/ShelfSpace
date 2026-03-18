@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { AnimatedCard, StaggerContainer, StaggerItem, FloatingElement, GradientProgressBar } from '@/components/ui';
 import { BookOpen, Clock, Star, Play, Pause, BookMarked } from 'lucide-react';
 import { useReadingLists } from '@/hooks/data/useReadingLists';
+import { bookService } from '@/lib/book-service';
 import { Book } from '@/types/book';
 
 interface CurrentlyReadingBook {
@@ -52,21 +53,31 @@ function transformBook(book: Book): CurrentlyReadingBook {
  */
 export function CurrentlyReading() {
   const { data: readingLists, isLoading, error } = useReadingLists({ includeBooks: true });
+  const [currentlyReadingBooks, setCurrentlyReadingBooks] = useState<CurrentlyReadingBook[]>([]);
+  const [booksLoading, setBooksLoading] = useState(false);
 
-  // Get books from "Currently Reading" list
-  const currentlyReadingBooks = useMemo(() => {
+  const bookIds = useMemo(() => {
     if (!readingLists) return [];
-    
-    const currentlyReadingList = readingLists.find(
-      (list: any) => list.name.toLowerCase().includes('currently') || list.name.toLowerCase() === 'reading'
-    );
-    
-    if (!currentlyReadingList || !currentlyReadingList.books) return [];
-    
-    return currentlyReadingList.books
-      .filter((book: any) => book.status === 'currently-reading' || !book.status)
-      .map((book: any) => transformBook(book));
+    const list = readingLists.find((l: any) => l.name.toLowerCase().includes('currently'));
+    const ids = (list?.bookIds as string[]) ?? [];
+    return ids.slice(-3); // show last 3 added
   }, [readingLists]);
+
+  useEffect(() => {
+    if (bookIds.length === 0) {
+      setCurrentlyReadingBooks([]);
+      return;
+    }
+    let cancelled = false;
+    setBooksLoading(true);
+    Promise.all(bookIds.map((id) => bookService.getBookById(id).catch(() => null)))
+      .then((books) => {
+        if (cancelled) return;
+        setCurrentlyReadingBooks(books.filter(Boolean).map((b) => transformBook(b as Book)));
+      })
+      .finally(() => { if (!cancelled) setBooksLoading(false); });
+    return () => { cancelled = true; };
+  }, [bookIds]);
 
   const totalBooks = currentlyReadingBooks.length;
   const averageProgress = totalBooks > 0
@@ -112,7 +123,7 @@ export function CurrentlyReading() {
         />
       </div>
 
-      {isLoading && (
+      {(isLoading || booksLoading) && (
         <div className="text-center py-8 text-gray-600 dark:text-slate-400">
           Loading your reading progress...
         </div>
@@ -124,7 +135,7 @@ export function CurrentlyReading() {
         </div>
       )}
 
-      {!isLoading && !error && totalBooks === 0 && (
+      {!isLoading && !booksLoading && !error && totalBooks === 0 && (
         <div className="text-center py-8 text-gray-600 dark:text-slate-400">
           <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>You're not currently reading any books.</p>
@@ -132,7 +143,7 @@ export function CurrentlyReading() {
         </div>
       )}
 
-      {!isLoading && !error && totalBooks > 0 && (
+      {!isLoading && !booksLoading && !error && totalBooks > 0 && (
         <StaggerContainer className="space-y-4">
         {currentlyReadingBooks.map((book: any, index: number) => (
           <StaggerItem key={book.id} className="delay-100">

@@ -8,10 +8,10 @@ const kafka = new Kafka({
   ...(process.env.KAFKA_SSL === "true" && { ssl: true }),
   ...(process.env.KAFKA_SASL_USERNAME && {
     sasl: {
-      mechanism: (process.env.KAFKA_SASL_MECHANISM || "scram-sha-256") as "scram-sha-256" | "scram-sha-512",
+      mechanism: process.env.KAFKA_SASL_MECHANISM || "scram-sha-256",
       username: process.env.KAFKA_SASL_USERNAME,
       password: process.env.KAFKA_SASL_PASSWORD!,
-    },
+    } as any,
   }),
 });
 

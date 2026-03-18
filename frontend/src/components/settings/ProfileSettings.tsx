@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { getUserDisplayName, getUserInitials } from "@/utils/greetings";
 import { MapPin, X, Save } from "lucide-react";
-import apiClient from "@/lib/api";
+import { nextApiClient as apiClient } from "@/lib/api";
 import { getErrorMessage } from "@/lib/api-utils";
 
 type SettingsBlob = {

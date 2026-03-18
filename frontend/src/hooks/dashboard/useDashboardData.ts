@@ -130,11 +130,15 @@ export function useDashboardData() {
 
       // Fetch currently reading books from reading lists
       const currentlyReadingList = readingLists?.find(
-        (list: any) => list.name.toLowerCase().includes('currently') || list.name.toLowerCase() === 'reading'
+        (list: any) => list.name.toLowerCase().includes('currently')
       );
-      const currentlyReadingBooks = currentlyReadingList?.books?.filter(
-        (book: any) => book.status === 'currently-reading' || !book.status
-      ) || [];
+      const wantToReadList = readingLists?.find(
+        (list: any) => list.name.toLowerCase().includes('want')
+      );
+      const finishedList = readingLists?.find(
+        (list: any) => list.name.toLowerCase().includes('finished') || list.name.toLowerCase().includes('completed')
+      );
+      const currentlyReadingBooks = currentlyReadingList?.books || [];
 
       // Fetch recommendations from book service
       let recommendationsData: Recommendation[] = [];
@@ -203,9 +207,18 @@ export function useDashboardData() {
         console.error('Error fetching groups:', err);
       }
 
-      // Calculate stats after groups are fetched
+      // Calculate stats — use real reading list counts if available, fall back to analytics
+      const liveCurrentlyReading = currentlyReadingList?.bookCount ?? summaryData.currentlyReading;
+      const liveWantToRead = wantToReadList?.bookCount ?? summaryData.wantToRead;
+      const liveBooksRead = finishedList?.bookCount ?? summaryData.booksRead;
       const statsData = {
         ...summaryData,
+        currentlyReading: liveCurrentlyReading,
+        wantToRead: liveWantToRead,
+        booksRead: liveBooksRead,
+        totalBooks: readingLists
+          ? liveCurrentlyReading + liveWantToRead + liveBooksRead
+          : summaryData.totalBooks,
         activeGroups: groupsData.length,
       };
 
@@ -240,7 +253,14 @@ export function useDashboardData() {
 
   useEffect(() => {
     fetchData();
-  }, []); // Empty dependency array to run only once on mount
+  }, []); // Run on mount
+
+  // Re-run when reading lists load so KPI counts are accurate
+  useEffect(() => {
+    if (readingLists) {
+      fetchData(true);
+    }
+  }, [readingLists]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refetch = useCallback(
     (forceRefresh = false) => {

@@ -71,7 +71,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       // Sign out from NextAuth
       await signOut({ callbackUrl: "/login" });
-      console.log("Sign out completed");
     } catch (error) {
       console.error("Error during sign out:", error);
       // Still try to sign out even if clearing fails
