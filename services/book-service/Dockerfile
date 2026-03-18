@@ -1,14 +1,14 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm config set fetch-timeout 300000 && npm config set fetch-retry-mintimeout 20000 && npm config set fetch-retry-maxtimeout 120000 && npm ci
 COPY . .
 RUN npm run build
 
 FROM node:20-alpine AS production
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm config set fetch-timeout 300000 && npm config set fetch-retry-mintimeout 20000 && npm config set fetch-retry-maxtimeout 120000 && npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3004
