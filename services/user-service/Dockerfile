@@ -2,7 +2,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
-RUN npm config set fetch-timeout 300000 && npm config set fetch-retry-mintimeout 20000 && npm config set fetch-retry-maxtimeout 120000 && npm ci --ignore-scripts && node node_modules/esbuild/install.js
+RUN npm config set fetch-timeout 300000 && npm config set fetch-retry-mintimeout 20000 && npm config set fetch-retry-maxtimeout 120000 && npm ci --ignore-scripts && node node_modules/esbuild/install.js && npx prisma generate
 COPY . .
 RUN npm run build
 
