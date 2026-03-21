@@ -94,7 +94,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <ErrorBoundary fallback={DashboardErrorFallback}>
-      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+      <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
         {/* Mobile Menu Overlay */}
         {isMobileMenuOpen && (
           <div
@@ -114,15 +114,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Main Content */}
         <main
-          className={`flex-1 transition-all duration-300 ease-in-out overflow-hidden ${
-            isCollapsed ? "ml-16 lg:ml-16" : "ml-0 lg:ml-64 md:ml-56 sm:ml-48"
+          className={`flex-1 flex flex-col transition-all duration-300 ease-in-out overflow-hidden ${
+            isCollapsed ? "lg:ml-16" : "lg:ml-64"
           }`}
         >
           {/* Mobile Header */}
-          <div className="lg:hidden bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 p-4 flex items-center justify-between">
+          <div className="lg:hidden bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between">
             <button
               onClick={handleMobileMenuToggle}
-              className="p-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+              className="p-2.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Toggle navigation menu"
             >
               <svg
                 className="w-5 h-5"
@@ -144,7 +145,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="w-9 h-9" /> {/* Spacer for centering */}
           </div>
 
-          <div className="h-full overflow-auto">{children}</div>
+          <div className="flex-1 min-h-0 overflow-auto">{children}</div>
         </main>
 
         {/* Performance Monitor (Development Only) */}

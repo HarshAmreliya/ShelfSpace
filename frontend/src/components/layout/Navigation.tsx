@@ -19,12 +19,12 @@ interface NavigationProps {
 }
 import { useNavigation } from "@/hooks/navigation/useNavigation";
 import { preloadNavigationIcons } from "@/utils/lazyIcons";
-import { 
-  BookOpen, 
-  Library, 
-  Search, 
-  Users, 
-  MessageCircle, 
+import {
+  BookOpen,
+  Library,
+  Search,
+  Users,
+  MessageCircle,
   Settings,
   LogOut,
   Moon,
@@ -79,9 +79,9 @@ const Navigation: React.FC<NavigationProps> = memo(
     const navigationClassName = useMemo(
       () =>
         `fixed left-0 top-0 ${
-          isCollapsed 
-            ? "w-16 lg:w-16" 
-            : "w-64 lg:w-64 md:w-56 sm:w-48"
+          isCollapsed
+            ? "w-16"
+            : "w-64"
         } h-screen ${
           actualTheme === "dark" 
             ? "bg-gradient-to-b from-slate-900 via-gray-900 to-slate-800 border-slate-700" 
@@ -132,7 +132,7 @@ const Navigation: React.FC<NavigationProps> = memo(
 
           {/* Navigation Items */}
           <div
-            className={`flex-1 overflow-y-auto overflow-x-hidden py-4 sm:py-6 h-[calc(100vh-140px)] cursor-pointer ${
+            className={`flex-1 overflow-y-auto overflow-x-hidden py-4 sm:py-6 min-h-0 cursor-pointer ${
               actualTheme === "dark" ? "hover:bg-slate-800/10" : "hover:bg-amber-800/10"
             } transition-colors duration-200`}
             role="menu"
@@ -296,54 +296,19 @@ function BookNavigationItem({
   onItemClick,
   theme,
 }: BookNavigationItemProps) {
-/**
- * Get Icon.
- * @param name - name value.
- */
   const getIcon = (name: string) => {
     switch (name.toLowerCase()) {
-      case "dashboard":
-        return BookOpen;
-      case "library":
-        return Library;
-      case "discover":
-        return Search;
-      case "forums":
-        return Users;
-      case "chat":
-        return MessageCircle;
-      case "settings":
-        return Settings;
-      default:
-        return BookOpen;
-    }
-  };
-
-/**
- * Get Emoji.
- * @param name - name value.
- */
-  const getEmoji = (name: string) => {
-    switch (name.toLowerCase()) {
-      case "dashboard":
-        return "📚";
-      case "library":
-        return "📖";
-      case "discover":
-        return "🔍";
-      case "forums":
-        return "👥";
-      case "chat":
-        return "💬";
-      case "settings":
-        return "⚙️";
-      default:
-        return "📚";
+      case "dashboard": return BookOpen;
+      case "library":   return Library;
+      case "discover":  return Search;
+      case "forums":    return Users;
+      case "chat":      return MessageCircle;
+      case "settings":  return Settings;
+      default:          return BookOpen;
     }
   };
 
   const Icon = getIcon(item.name);
-  const emoji = getEmoji(item.name);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); // Prevent default link behavior since we're handling it manually
@@ -395,12 +360,7 @@ function BookNavigationItem({
       tabIndex={0}
     >
       <span className="flex-shrink-0">
-        <div className="relative">
-          <Icon className="h-4 w-4 sm:h-5 sm:w-5 transition-colors duration-200" />
-          {isActive && !isCollapsed && (
-            <div className="absolute -top-1 -right-1 text-xs">{emoji}</div>
-          )}
-        </div>
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5 transition-colors duration-200" />
       </span>
       {!isCollapsed && (
         <span className="flex-1 text-xs sm:text-sm font-medium text-left ml-2 sm:ml-3 font-serif truncate">

@@ -186,15 +186,15 @@ export function DiscoverFeature() {
     <ErrorBoundary fallback={DiscoverErrorFallback}>
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 relative z-10">
         <div className="relative container mx-auto px-4 py-8 z-20">
-          <h1 className="text-5xl font-extrabold text-gray-900 dark:text-slate-100 mb-6 font-serif text-center">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 dark:text-slate-100 mb-4 sm:mb-6 font-serif text-center">
             Discover Books
           </h1>
-          <p className="text-xl text-gray-700 dark:text-slate-300 mb-10 text-center max-w-2xl mx-auto">
+          <p className="text-base sm:text-xl text-gray-700 dark:text-slate-300 mb-6 sm:mb-10 text-center max-w-2xl mx-auto">
             Explore new worlds, find your next favorite read, and connect with stories that move you.
           </p>
 
           {/* Search and Filters */}
-          <div className="flex flex-col lg:flex-row gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 sm:mb-8">
             {/* Search */}
             <div className="flex-1 relative">
               <label htmlFor="book-search" className="sr-only">Search books</label>
@@ -211,7 +211,7 @@ export function DiscoverFeature() {
             </div>
 
             {/* Genre Filter */}
-            <div className="lg:w-48">
+            <div className="sm:w-40 lg:w-48">
               <label htmlFor="genre-filter" className="sr-only">Filter by genre</label>
               <select
                 id="genre-filter"
@@ -230,7 +230,7 @@ export function DiscoverFeature() {
             </div>
 
             {/* Sort */}
-            <div className="lg:w-48">
+            <div className="sm:w-40 lg:w-48">
               <label htmlFor="sort-by" className="sr-only">Sort books</label>
               <select
                 id="sort-by"
@@ -286,7 +286,7 @@ export function DiscoverFeature() {
 
           {/* All Books Section */}
           <section>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-slate-100 font-serif mb-6 flex items-center">
+            <h2 className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100 font-serif mb-4 sm:mb-6 flex items-center">
               <BookOpen className="h-7 w-7 text-amber-600 mr-3" />
               {pagination ? `All Books (${pagination.total} total)` : "All Books"}
             </h2>

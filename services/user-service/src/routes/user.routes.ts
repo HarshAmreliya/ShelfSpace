@@ -20,7 +20,7 @@ const router = express.Router();
 
 // Public profile lookup by userId
 router.get(
-  "/users/:userId/public",
+  "/:userId/public",
   async (
     req: Request<{ userId: string }>,
     res: Response<{ id: string; name?: string; avatarUrl?: string | null; bio?: string | null; isPublic: boolean }>
@@ -57,7 +57,7 @@ router.get(
 
 // Authenticated profile lookup by userId (returns name even if profile is private)
 router.get(
-  "/users/:userId/lookup",
+  "/:userId/lookup",
   isAuthenticated,
   async (
     req: Request<{ userId: string }>,
@@ -389,7 +389,7 @@ router.delete(
 
 // Admin routes
 router.put(
-  "/users/:userId/status",
+  "/:userId/status",
   isAdmin,
   async (
     req: Request<
@@ -433,7 +433,7 @@ router.put(
 );
 
 router.put(
-  "/users/:userId/preferences/reset",
+  "/:userId/preferences/reset",
   isAdmin,
   async (
     req: Request<{ userId: string }>,

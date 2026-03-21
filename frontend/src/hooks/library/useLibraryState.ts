@@ -138,6 +138,13 @@ export function useLibraryState(searchParams?: { [key: string]: string | string[
     return readingLists?.find((list) => list.id === state.selectedList);
   }, [readingLists, state.selectedList]);
 
+  // Auto-initialize default lists for new users, then refetch.
+  useEffect(() => {
+    if (isLoading) return;
+    if (!readingLists || readingLists.length > 0) return;
+    libraryService.initializeDefaults().then(() => refetchReadingLists()).catch(() => {});
+  }, [isLoading, readingLists, refetchReadingLists]);
+
   useEffect(() => {
     // Auto-select first list whenever selected list is missing/invalid.
     if (!readingLists || readingLists.length === 0) return;

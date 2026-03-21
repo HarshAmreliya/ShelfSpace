@@ -314,11 +314,11 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
           </button>
         </div>
         {/* Book Header */}
-        <div className="bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-xl border border-amber-200 dark:border-slate-700 p-8 mb-8">
-          <div className="flex flex-col lg:flex-row gap-8">
+        <div className="bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-xl border border-amber-200 dark:border-slate-700 p-4 sm:p-8 mb-8">
+          <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
             {/* Book Cover */}
-            <div className="flex-shrink-0">
-              <div className="w-64 h-80 bg-gradient-to-br from-amber-100 to-orange-200 dark:from-slate-700 dark:to-slate-600 rounded-xl shadow-lg flex items-center justify-center overflow-hidden">
+            <div className="flex-shrink-0 flex justify-center lg:justify-start">
+              <div className="w-48 h-64 sm:w-64 sm:h-80 bg-gradient-to-br from-amber-100 to-orange-200 dark:from-slate-700 dark:to-slate-600 rounded-xl shadow-lg flex items-center justify-center overflow-hidden">
                 {book.coverImage && !coverFailed ? (
                   <img
                     src={book.coverImage}
@@ -334,16 +334,16 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
 
             {/* Book Info */}
             <div className="flex-1">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h1 className="text-4xl font-bold text-gray-900 dark:text-slate-100 mb-2 font-serif">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 dark:text-slate-100 mb-2 font-serif">
                     {book.title}
                   </h1>
-                  <p className="text-xl text-gray-600 dark:text-slate-400 mb-4">
+                  <p className="text-base sm:text-xl text-gray-600 dark:text-slate-400 mb-4">
                     by {book.author}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     onClick={handleBookmark}
                     className="p-2 rounded-lg bg-amber-100 dark:bg-slate-700 hover:bg-amber-200 dark:hover:bg-slate-600 transition-colors"
@@ -364,7 +364,7 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
               </div>
 
               {/* Rating and Stats */}
-                <div className="flex items-center gap-6 mb-6">
+                <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-6">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center">
                     {[...Array(5)].map((_, i) => (
@@ -421,8 +421,8 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-xl border border-amber-200 dark:border-slate-700 p-8">
-          <div className="flex border-b border-amber-200 dark:border-slate-700 mb-8">
+        <div className="bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-xl border border-amber-200 dark:border-slate-700 p-4 sm:p-8">
+          <div className="flex overflow-x-auto border-b border-amber-200 dark:border-slate-700 mb-6 sm:mb-8 -mx-4 sm:mx-0 px-4 sm:px-0">
             {[
               { id: "overview", label: "Overview", icon: BookOpen },
               { id: "reviews", label: `Reviews (${reviews.length})`, icon: MessageCircle },
@@ -431,7 +431,7 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
+                className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 font-medium transition-colors whitespace-nowrap ${
                   activeTab === tab.id
                     ? "text-amber-600 dark:text-amber-400 border-b-2 border-amber-500 dark:border-amber-400"
                     : "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200"
@@ -525,7 +525,7 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
                 <div className="bg-amber-50 dark:bg-slate-700/50 rounded-lg p-6 border border-amber-200 dark:border-slate-600">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">Write a review</h3>
                   <div className="space-y-3">
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-3">
                       <select className="px-3 py-2 rounded border border-amber-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm" value={newRating} onChange={(e) => setNewRating(parseInt(e.target.value))}>
                         {[1,2,3,4,5].map(v => <option key={v} value={v}>{v}★</option>)}
                       </select>
@@ -575,9 +575,9 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
                     key={review.id}
                     className="bg-amber-50 dark:bg-slate-700/50 rounded-lg p-6 border border-amber-200 dark:border-slate-600"
                   >
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
                           <User className="h-5 w-5 text-white" />
                         </div>
                         <div>
@@ -605,7 +605,7 @@ export function BookDetailFeature({ bookId }: BookDetailFeatureProps) {
                         </div>
                       </div>
                       {session?.user?.id && review.userId === session.user.id && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           {editingReviewId === review.id ? (
                             <>
                               <button

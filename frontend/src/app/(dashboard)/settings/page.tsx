@@ -40,7 +40,7 @@ export default function SettingsPage() {
         <p className="text-xs uppercase tracking-[0.3em] text-amber-700/80 dark:text-amber-300/80 font-semibold">
           Account
         </p>
-        <h1 className="text-4xl md:text-5xl font-serif font-semibold text-gray-900 dark:text-slate-100 mt-3 mb-10">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-semibold text-gray-900 dark:text-slate-100 mt-3 mb-6 sm:mb-10">
           Settings
         </h1>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { chatService, ChatSession, ChatMessage } from "@/lib/chat-service";
 
@@ -16,6 +16,8 @@ export function useChatSessions() {
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Prevents the session-change effect from clobbering optimistic messages mid-send
+  const isSendingRef = useRef(false);
 
   // Load sessions on mount
   useEffect(() => {
@@ -24,9 +26,9 @@ export function useChatSessions() {
     }
   }, [session]);
 
-  // Load specific session when currentSession changes
+  // Load specific session when currentSession changes (skip if mid-send to avoid clobbering optimistic messages)
   useEffect(() => {
-    if (currentSession && session?.accessToken) {
+    if (currentSession && session?.accessToken && !isSendingRef.current) {
       loadSessionMessages(currentSession.id);
     }
   }, [currentSession?.id, session]);
@@ -119,6 +121,7 @@ export function useChatSessions() {
     const messageText = content || inputMessage;
     if (!messageText.trim() || !session?.accessToken) return;
 
+    isSendingRef.current = true;
     try {
       setError(null);
 
@@ -173,6 +176,7 @@ export function useChatSessions() {
       setError("Failed to send message");
     } finally {
       setIsTyping(false);
+      isSendingRef.current = false;
     }
   };
 

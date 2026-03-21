@@ -32,7 +32,7 @@ export const VirtualBookGrid: React.FC<VirtualBookGridProps> = ({
   // In a real implementation, this would use virtual scrolling
   return (
     <div
-      className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 ${className}`}
+      className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-8 ${className}`}
       role="grid"
       aria-label={`Grid of ${books.length} books`}
     >

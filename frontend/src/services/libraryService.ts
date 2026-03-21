@@ -91,7 +91,12 @@ export class LibraryService {
             );
             return books;
           };
-          const listBooks = await Promise.all(response.data.map(fetchListBooks));
+          // Fetch lists sequentially to avoid bursting the rate limiter with
+          // dozens of simultaneous book requests across all lists at once.
+          const listBooks: Awaited<ReturnType<typeof fetchListBooks>>[] = [];
+          for (const list of response.data) {
+            listBooks.push(await fetchListBooks(list));
+          }
           // Attach resolved books back to each list while preserving list order.
           response.data.forEach((list, index) => {
             list.books = listBooks[index] || [];

@@ -205,18 +205,18 @@ export function ForumsFeature() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 relative z-10">
-      <div className="relative container mx-auto px-4 py-8 z-20">
+      <div className="relative container mx-auto px-4 sm:px-6 py-6 sm:py-8 z-20">
           {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-extrabold text-gray-900 dark:text-slate-100 mb-6 font-serif">
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 dark:text-slate-100 mb-4 sm:mb-6 font-serif">
             Reading Forums
           </h1>
-          <p className="text-xl text-gray-700 dark:text-slate-300 mb-8 max-w-2xl mx-auto">
+          <p className="text-base sm:text-xl text-gray-700 dark:text-slate-300 mb-6 sm:mb-8 max-w-2xl mx-auto">
             Connect with fellow readers, share your thoughts, and discover new books through vibrant reading communities.
           </p>
-          
+
           {/* Quick Stats */}
-          <div className="flex justify-center gap-8 mb-8">
+          <div className="flex justify-center gap-4 sm:gap-8 mb-6 sm:mb-8">
             <div className="text-center">
               <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">{allForums.length}</div>
               <div className="text-sm text-gray-600 dark:text-slate-400">Active Forums</div>
@@ -348,7 +348,7 @@ export function ForumsFeature() {
                 Popular Forums
               </h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {popularForums.map((forum) => (
                 <ForumCard
                   key={forum.id}
@@ -399,7 +399,7 @@ export function ForumsFeature() {
           ) : (
             <div className={
               viewMode === "grid"
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
                 : "space-y-4"
             }>
               {filteredAndSortedForums.map((forum) => (
@@ -537,7 +537,7 @@ const ForumCard: React.FC<ForumCardProps> = ({ forum, onJoin, onLeave, onView })
         </div>
         <div className="flex items-center">
           <BookOpen className="h-4 w-4 mr-1" />
-          {forum.threadCount} books
+          {forum.threadCount} discussions
         </div>
       </div>
 
@@ -607,14 +607,14 @@ const ForumCard: React.FC<ForumCardProps> = ({ forum, onJoin, onLeave, onView })
 const ForumListItem: React.FC<ForumCardProps> = ({ forum, onJoin, onLeave, onView }) => {
   return (
     <div className="bg-white/90 dark:bg-slate-800/95 backdrop-blur-sm rounded-lg border border-amber-200 dark:border-slate-700 p-4 hover:shadow-lg transition-all duration-200">
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-2">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 truncate">
               {forum.name}
             </h3>
             {forum.isJoined && (
-              <span className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 text-xs font-semibold px-2 py-1 rounded-full">
+              <span className="flex-shrink-0 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 text-xs font-semibold px-2 py-1 rounded-full">
                 Joined
               </span>
             )}
@@ -622,14 +622,14 @@ const ForumListItem: React.FC<ForumCardProps> = ({ forum, onJoin, onLeave, onVie
           <p className="text-gray-600 dark:text-slate-400 text-sm mb-3 line-clamp-2">
             {forum.description}
           </p>
-          <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-slate-400">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-slate-400">
             <div className="flex items-center">
               <Users className="h-4 w-4 mr-1" />
               {forum.memberCount.toLocaleString()} members
             </div>
             <div className="flex items-center">
               <BookOpen className="h-4 w-4 mr-1" />
-              {forum.threadCount} books
+              {forum.threadCount} discussions
             </div>
             <div className="flex items-center">
               <Clock className="h-4 w-4 mr-1" />
@@ -637,7 +637,7 @@ const ForumListItem: React.FC<ForumCardProps> = ({ forum, onJoin, onLeave, onVie
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 ml-4">
+        <div className="flex items-center gap-2 sm:ml-4 flex-shrink-0">
           {forum.isJoined ? (
             <button
               onClick={() => onLeave(forum.id)}

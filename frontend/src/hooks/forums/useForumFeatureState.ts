@@ -175,7 +175,7 @@ export function useForumFeatureState({
       try {
         const results = await Promise.all(
           missing.map(async (id) => {
-            const { data } = await apiClient.get(`/api/user/lookup/${id}`);
+            const { data } = await apiClient.get(`/api/users/${id}/lookup`);
             return [id, data] as const;
           })
         );

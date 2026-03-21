@@ -112,12 +112,12 @@ export function LibraryFeature({ searchParams }: LibraryFeatureProps) {
     <div className="relative min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.2),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.15),transparent_50%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(148,163,184,0.2),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(71,85,105,0.25),transparent_50%)]">
       <div className="absolute inset-0 bg-gradient-to-br from-amber-50/80 via-orange-50/80 to-red-50/80 dark:from-slate-950/80 dark:via-slate-900/80 dark:to-slate-800/80" />
       <main className="relative container mx-auto px-4 py-12" role="main" aria-label="Library">
-        <div className="mb-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+        <div className="mb-6 sm:mb-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 sm:gap-6">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-amber-700/80 dark:text-amber-300/80 font-semibold">
               Your Library
             </p>
-            <h1 className="text-4xl md:text-5xl font-serif font-semibold text-gray-900 dark:text-slate-100 mt-3">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-semibold text-gray-900 dark:text-slate-100 mt-3">
               Reading Lists
             </h1>
             <p className="text-base md:text-lg text-gray-600 dark:text-slate-300 mt-4 max-w-2xl">
@@ -162,7 +162,7 @@ export function LibraryFeature({ searchParams }: LibraryFeatureProps) {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {readingLists.map((list: any) => (
               <Link
                 key={list.id}

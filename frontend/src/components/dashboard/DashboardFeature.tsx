@@ -103,16 +103,16 @@ export function DashboardFeature({ className }: DashboardFeatureProps) {
       <div className={`min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 relative z-10 ${className || ""}`}>
         <div className="relative max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Modern Header */}
-          <div className="mb-8">
-            <div className="flex items-center space-x-4 mb-4">
-              <div className="p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl shadow-lg">
-                <BookOpen className="h-8 w-8 text-white" />
+          <div className="mb-6 sm:mb-8">
+            <div className="flex items-center space-x-3 sm:space-x-4 mb-4">
+              <div className="p-2 sm:p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl shadow-lg flex-shrink-0">
+                <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
               <div className="flex-1">
-                <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-slate-100 font-serif">
+                <h1 className="text-2xl sm:text-3xl lg:text-5xl font-bold text-gray-900 dark:text-slate-100 font-serif">
                   {personalizedGreeting}!
                 </h1>
-                <p className="text-lg lg:text-xl text-gray-600 dark:text-slate-300 mt-1">
+                <p className="text-sm sm:text-base lg:text-xl text-gray-600 dark:text-slate-300 mt-1">
                   {isNewUser 
                     ? "Welcome to ShelfSpace! Let's start your reading journey."
                     : readingQuote
@@ -123,56 +123,56 @@ export function DashboardFeature({ className }: DashboardFeatureProps) {
           </div>
 
           {/* Quick Stats Overview */}
-          <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StaggerContainer className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
             <StaggerItem>
-              <div className="p-6 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <BookOpen className="h-8 w-8" />
-                  <FloatingElement className="text-2xl opacity-60"><BookOpen className="h-6 w-6" /></FloatingElement>
+              <div className="p-4 sm:p-6 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg text-white">
+                <div className="flex items-center justify-between mb-2 sm:mb-4">
+                  <BookOpen className="h-6 w-6 sm:h-8 sm:w-8" />
+                  <FloatingElement className="opacity-60"><BookOpen className="h-5 w-5 sm:h-6 sm:w-6" /></FloatingElement>
                 </div>
-                <div className="text-3xl font-bold mb-1">
+                <div className="text-2xl sm:text-3xl font-bold mb-1">
                   <AnimatedCounter value={readingStats.wantToRead} />
                 </div>
-                <div className="text-amber-100">Want to Read</div>
+                <div className="text-amber-100 text-xs sm:text-sm">Want to Read</div>
               </div>
             </StaggerItem>
-            
+
             <StaggerItem>
-              <div className="p-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl shadow-lg text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <BookOpen className="h-8 w-8" />
-                  <FloatingElement className="text-2xl opacity-60"><Check className="h-6 w-6" /></FloatingElement>
+              <div className="p-4 sm:p-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl shadow-lg text-white">
+                <div className="flex items-center justify-between mb-2 sm:mb-4">
+                  <BookOpen className="h-6 w-6 sm:h-8 sm:w-8" />
+                  <FloatingElement className="opacity-60"><Check className="h-5 w-5 sm:h-6 sm:w-6" /></FloatingElement>
                 </div>
-                <div className="text-3xl font-bold mb-1">
+                <div className="text-2xl sm:text-3xl font-bold mb-1">
                   <AnimatedCounter value={readingStats.booksRead} />
                 </div>
-                <div className="text-green-100">Books Completed</div>
+                <div className="text-green-100 text-xs sm:text-sm">Books Completed</div>
               </div>
             </StaggerItem>
-            
+
             <StaggerItem>
-              <div className="p-6 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <Clock className="h-8 w-8" />
-                  <FloatingElement className="text-2xl opacity-60"><BookOpen className="h-6 w-6" /></FloatingElement>
+              <div className="p-4 sm:p-6 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg text-white">
+                <div className="flex items-center justify-between mb-2 sm:mb-4">
+                  <Clock className="h-6 w-6 sm:h-8 sm:w-8" />
+                  <FloatingElement className="opacity-60"><BookOpen className="h-5 w-5 sm:h-6 sm:w-6" /></FloatingElement>
                 </div>
-                <div className="text-3xl font-bold mb-1">
+                <div className="text-2xl sm:text-3xl font-bold mb-1">
                   <AnimatedCounter value={readingStats.currentlyReading} />
                 </div>
-                <div className="text-blue-100">Currently Reading</div>
+                <div className="text-blue-100 text-xs sm:text-sm">Currently Reading</div>
               </div>
             </StaggerItem>
-            
+
             <StaggerItem>
-              <div className="p-6 bg-gradient-to-br from-purple-400 to-violet-500 rounded-xl shadow-lg text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <Target className="h-8 w-8" />
-                  <FloatingElement className="text-2xl opacity-60">🔥</FloatingElement>
+              <div className="p-4 sm:p-6 bg-gradient-to-br from-purple-400 to-violet-500 rounded-xl shadow-lg text-white">
+                <div className="flex items-center justify-between mb-2 sm:mb-4">
+                  <Target className="h-6 w-6 sm:h-8 sm:w-8" />
+                  <FloatingElement className="opacity-60">🔥</FloatingElement>
                 </div>
-                <div className="text-3xl font-bold mb-1">
+                <div className="text-2xl sm:text-3xl font-bold mb-1">
                   <AnimatedCounter value={readingStats.currentStreak} /> days
                 </div>
-                <div className="text-purple-100">Reading Streak</div>
+                <div className="text-purple-100 text-xs sm:text-sm">Reading Streak</div>
               </div>
             </StaggerItem>
           </StaggerContainer>
