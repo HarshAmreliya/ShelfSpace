@@ -25,16 +25,16 @@ export default withAuth(
       return NextResponse.redirect(new URL("/login?error=backend_verification_failed", req.url));
     }
 
-    // If user is on onboarding page and already completed it, redirect to dashboard
-    if (path === "/onboarding" && !token?.['isNewUser'] && !token?.['needsPreferences']) {
-      console.log("Redirecting to dashboard - onboarding already completed");
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-
-    // If user is new or needs preferences and NOT on onboarding page, redirect to onboarding
+    // If user is new or needs preferences, redirect to onboarding
     if (path !== "/onboarding" && (token?.['isNewUser'] || token?.['needsPreferences'])) {
       console.log("Redirecting to onboarding - user needs to complete setup");
       return NextResponse.redirect(new URL("/onboarding", req.url));
+    }
+
+    // If user has completed onboarding and somehow lands back on it, send to dashboard
+    if (path === "/onboarding" && !token?.['isNewUser'] && !token?.['needsPreferences']) {
+      console.log("Redirecting to dashboard - onboarding already completed");
+      return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
     // Allow access
